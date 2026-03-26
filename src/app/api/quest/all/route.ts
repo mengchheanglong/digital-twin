@@ -43,8 +43,6 @@ export async function GET(req: Request) {
       })
       .lean();
 
-    console.log('[API] Fetched Quests sample:', quests.slice(0, 2).map(q => ({ id: q._id, recurrencesLeft: (q as any).recurrencesLeft })));
-
     return NextResponse.json(
       quests.map((quest) => ({
         ...quest,

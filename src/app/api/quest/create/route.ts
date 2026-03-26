@@ -34,7 +34,6 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as CreateQuestPayload & { recurrences?: number };
-    console.log('[API] Create Quest Body:', body);
     const goal = String(body.goal || '').trim();
     const duration = normalizeDuration(String(body.duration || 'daily'));
     const recurrences = body.recurrences ? Math.max(1, Number(body.recurrences)) : undefined;
@@ -59,8 +58,6 @@ export async function POST(req: Request) {
     });
 
     await quest.save();
-
-
 
     return NextResponse.json({
       msg: 'Quest created.',

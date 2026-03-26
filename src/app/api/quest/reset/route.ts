@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+import { unauthorized, notFound, serverError } from '@/lib/api-response';
 import User from '@/lib/models/User';
 import Quest from '@/lib/models/Quest';
 import QuestLog from '@/lib/models/QuestLog';
@@ -35,13 +36,13 @@ export async function POST(req: Request) {
 
     const user = verifyToken(req);
     if (!user) {
-      return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
+      return unauthorized();
     }
 
     // Get user with timezone info
     const userDoc = await User.findById(user.id);
     if (!userDoc) {
-      return NextResponse.json({ msg: 'User not found.' }, { status: 404 });
+      return notFound('User not found.');
     }
 
     const timezone = userDoc.timezone || 'Asia/Bangkok';
@@ -102,11 +103,8 @@ export async function POST(req: Request) {
       completed: true,
       recurrencesLeft: 1,
     });
-    console.log('[RESET] Deleted one-time completed quests:', deleteOneTimeResult.deletedCount);
 
     // 3c. Reset completed daily quests with infinite recurrence (recurrencesLeft is undefined/null or > 1)
-    // FIX: Don't reset quests with recurrencesLeft = 1, they should be deleted instead
-    console.log('[RESET] Looking for completed daily quests to reset/delete...');
     const resetCompletedResult = await Quest.updateMany(
       {
         userId: user.id,
@@ -115,7 +113,7 @@ export async function POST(req: Request) {
         $or: [
           { recurrencesLeft: null },
           { recurrencesLeft: { $exists: false } },
-          { recurrencesLeft: { $gt: 1 } }, // FIX: Only reset if recurrencesLeft > 1
+          { recurrencesLeft: { $gt: 1 } },
         ],
       },
       {
@@ -163,7 +161,6 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error('Quest reset error:', error);
-    return NextResponse.json({ msg: 'Server error.' }, { status: 500 });
+    return serverError(error, 'Quest reset error');
   }
 }

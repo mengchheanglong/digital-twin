@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
+import { unauthorized, badRequest, notFound, serverError } from '@/lib/api-response';
 import { normalizeDuration, QUEST_XP_REWARD } from '@/lib/progression';
 import { adjustUserXP } from '@/lib/user-progress';
 import { updateUserInsight } from '@/lib/insight-engine';
@@ -24,17 +25,17 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const user = verifyToken(req);
     if (!user) {
-      return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
+      return unauthorized();
     }
 
     const { id } = params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ msg: 'Invalid quest id.' }, { status: 400 });
+      return badRequest('Invalid quest id.');
     }
 
     const quest = await Quest.findOne({ _id: id, userId: user.id });
     if (!quest) {
-      return NextResponse.json({ msg: 'Quest not found.' }, { status: 404 });
+      return notFound('Quest not found.');
     }
 
     const nextCompleted = !quest.completed;
@@ -120,8 +121,6 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
       let shouldDeleteOriginal = false;
       let nextRecurrencesLeft = quest.recurrencesLeft;
-      
-      console.log('[COMPLETE] recurrencesLeft:', quest.recurrencesLeft, '| nextRecurrencesLeft:', nextRecurrencesLeft);
 
       if (!existingFutureQuest) {
         // Handle recurrences
@@ -130,12 +129,10 @@ export async function PUT(req: Request, { params }: RouteContext) {
         if (typeof nextRecurrencesLeft === 'number') {
            if (nextRecurrencesLeft > 0) {
              nextRecurrencesLeft -= 1;
-             console.log('[COMPLETE] After decrement, nextRecurrencesLeft:', nextRecurrencesLeft);
              // If this was the last recurrence, mark for deletion
              if (nextRecurrencesLeft === 0) {
                shouldDeleteOriginal = true;
-               shouldCreate = false; // FIX: Don't create new quest when recurrences exhausted
-               console.log('[COMPLETE] Last recurrence - shouldDeleteOriginal:', shouldDeleteOriginal, 'shouldCreate:', shouldCreate);
+               shouldCreate = false;
              }
            } else {
              shouldCreate = false;
@@ -151,17 +148,11 @@ export async function PUT(req: Request, { params }: RouteContext) {
              date: nextDate,
              progress: 0,
              completed: false,
-             ratings: [],
              recurrencesLeft: nextRecurrencesLeft
            });
-           
-           // Only delete the original quest if recurrencesLeft === 0 (explicitly zero)
-           // undefined/null means infinite recurrence - keep the original quest
-           // Note: shouldDeleteOriginal is already set to true above when nextRecurrencesLeft === 0
          }
        } else {
          // Future quest already exists - only delete if recurrencesLeft === 0
-         // Don't delete infinite recurrence quests (recurrencesLeft === undefined/null)
          if (typeof quest.recurrencesLeft === 'number' && quest.recurrencesLeft === 0) {
            shouldDeleteOriginal = true;
          }
@@ -193,7 +184,6 @@ export async function PUT(req: Request, { params }: RouteContext) {
       progression,
     });
   } catch (error) {
-    console.error('Toggle completion error:', error);
-    return NextResponse.json({ msg: 'Server error.' }, { status: 500 });
+    return serverError(error, 'Toggle completion error');
   }
 }

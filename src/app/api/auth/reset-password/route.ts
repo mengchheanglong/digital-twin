@@ -1,9 +1,7 @@
-import { NextResponse } from "next/server";
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
-import { badRequest, notFound, successResponse, serverError } from "@/lib/api-response";
+import { badRequest, successResponse, serverError } from "@/lib/api-response";
 import { validatePassword } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";

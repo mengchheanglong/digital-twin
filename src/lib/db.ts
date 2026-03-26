@@ -24,10 +24,6 @@ async function dbConnect() {
 
   if (!uri) {
     console.error('❌ MONGODB_URI is not defined in .env file');
-    // If you want to strictly fail when no DB is provided:
-    // throw new Error('Please define the MONGODB_URI environment variable inside .env');
-    
-
   } else {
       console.log('Attempting to connect to MongoDB...');
   }

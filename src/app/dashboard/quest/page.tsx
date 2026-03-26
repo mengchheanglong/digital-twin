@@ -199,7 +199,6 @@ export default function QuestLogPage() {
       );
 
       setQuests(mapped);
-      console.log('[Frontend] Mapped Quests:', mapped);
     } catch {
       addToast("Quest sync failed", "Unable to load quest log.", "error");
     }
@@ -215,7 +214,6 @@ export default function QuestLogPage() {
       });
 
       setQuestLogs(response.data?.questLogs ?? []);
-      console.log('[Frontend] Quest Logs:', response.data?.questLogs);
     } catch {
       console.error("Failed to fetch quest logs");
     }
@@ -247,7 +245,6 @@ export default function QuestLogPage() {
             duration,
             recurrences: recurrences ? parseInt(recurrences) : undefined
       };
-      console.log('[Frontend] Creating Quest Payload:', payload);
 
       const response = await axios.post(
         "/api/quest/create",
