@@ -8,7 +8,11 @@ import {
   AlertTriangle,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
+  GitBranch,
+  Lightbulb,
   Loader2,
   Plus,
   Target,
@@ -40,6 +44,12 @@ interface QuestLogEntry {
   isDeleted: boolean;
 }
 
+
+interface QuestSuggestion {
+  goal: string;
+  duration: "daily" | "weekly" | "monthly";
+  reason: string;
+}
 
 interface ToastMessage {
   id: number;
@@ -101,6 +111,11 @@ export default function QuestLogPage() {
   const [busy, setBusy] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<QuestSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [decomposedSteps, setDecomposedSteps] = useState<Record<string, string[]>>({});
+  const [decomposingId, setDecomposingId] = useState<string | null>(null);
 
   const checkAndResetQuests = useCallback(async () => {
     try {
@@ -373,10 +388,65 @@ export default function QuestLogPage() {
     }
   };
 
+  const fetchSuggestions = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setLoadingSuggestions(true);
+    try {
+      const res = await axios.get("/api/quest/suggest", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuggestions((res.data?.suggestions as QuestSuggestion[]) ?? []);
+    } catch {
+      addToast("Suggestions failed", "Could not load quest suggestions.", "error");
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleToggleSuggestions = () => {
+    if (!showSuggestions && suggestions.length === 0) {
+      void fetchSuggestions();
+    }
+    setShowSuggestions((v) => !v);
+  };
+
+  const handleAddSuggestion = (s: QuestSuggestion) => {
+    setGoal(s.goal);
+    setDuration(s.duration);
+    setShowSuggestions(false);
+  };
+
+  const handleDecompose = async (questId: string) => {
+    if (decomposedSteps[questId]) {
+      setDecomposedSteps((prev) => {
+        const next = { ...prev };
+        delete next[questId];
+        return next;
+      });
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setDecomposingId(questId);
+    try {
+      const res = await axios.post(
+        "/api/quest/decompose",
+        { questId },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const steps = res.data?.steps as string[] | undefined;
+      if (steps && steps.length > 0) {
+        setDecomposedSteps((prev) => ({ ...prev, [questId]: steps }));
+      }
+    } catch {
+      addToast("Decompose failed", "Could not generate sub-steps.", "error");
+    } finally {
+      setDecomposingId(null);
+    }
+  };
+
   return (
-    <>
-    <div className="mx-auto w-full max-w-5xl animate-fade-in space-y-8 pb-10 text-text-primary">
-      <header className="text-center md:text-left flex items-center gap-3">
         <div className="p-2 rounded bg-accent-primary/10 text-accent-primary">
            <Target className="h-6 w-6" />
         </div>

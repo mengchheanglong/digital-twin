@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clamp } from "@/lib/math";
-import { Clock, LogOut, ScrollText, Sparkles, Swords, User } from "lucide-react";
+import { BarChart3, BookOpen, Clock, LogOut, ScrollText, Sparkles, Swords, Timer, User } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -67,7 +67,7 @@ function isNavItemActive(itemHref: string, pathname: string): boolean {
       pathname === "/dashboard/insight" || pathname === "/dashboard/checkin"
     );
   }
-  return pathname === itemHref;
+  return pathname.startsWith(itemHref);
 }
 
 export default function Sidebar() {
@@ -171,6 +171,21 @@ export default function Sidebar() {
       href: "/dashboard/chat",
       label: "Companion",
       icon: <Sparkles className="h-5 w-5" />,
+    },
+    {
+      href: "/dashboard/journal",
+      label: "Journal",
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
+      href: "/dashboard/focus",
+      label: "Focus",
+      icon: <Timer className="h-5 w-5" />,
+    },
+    {
+      href: "/dashboard/analytics",
+      label: "Analytics",
+      icon: <BarChart3 className="h-5 w-5" />,
     },
     {
       href: "/dashboard/history",
