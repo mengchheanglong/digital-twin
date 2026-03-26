@@ -35,7 +35,7 @@ async function getDatesByField(
     .map((d) => new Date(d));
 }
 
-function computeBestStreak(dates: Date[]): number {
+export function computeBestStreak(dates: Date[]): number {
   if (!dates.length) return 0;
 
   const uniqueDays = Array.from(
