@@ -61,14 +61,14 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
         }
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
-          router.push("/");
+          requireAuth();
           return;
         }
         setError("Failed to fetch insight data. Please try again.");
       } finally {
         setLoading(false);
       }
-    }, [requireAuth, insight, router]);
+    }, [requireAuth, insight]);
 
     useImperativeHandle(ref, () => ({
       refresh: fetchInsight,
