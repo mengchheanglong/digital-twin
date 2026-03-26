@@ -137,6 +137,7 @@ npm run dev
 - `npm run build` creates a production build
 - `npm run start` runs the production server
 - `npm run lint` runs ESLint
+- `npm test` runs the Jest test suite
 
 ## Data Model Summary
 
@@ -158,4 +159,4 @@ The application persists data for:
 - Password reset uses an OTP flow.
 - The companion chat stores conversation history per user.
 - Insight state is refreshed from check-ins, events, and chat activity.
-- There is currently no automated test suite configured in `package.json`.
+- Core utilities (date, math, validation, progression) are covered by a Jest test suite (`npm test`).
