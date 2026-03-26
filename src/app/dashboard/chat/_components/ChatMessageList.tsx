@@ -26,34 +26,35 @@ export function ChatMessageList({
   scrollContainerRef,
 }: ChatMessageListProps) {
   return (
-    <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-6 scroll-smooth bg-bg-panel">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 min-h-0 overflow-y-auto px-4 py-6 scroll-smooth"
+      style={{ background: "var(--color-bg-panel)" }}
+    >
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
         {hasMoreMessages && !bootstrapping && (
           <button
             onClick={() => void loadMoreMessages()}
             disabled={loadingMore}
-            className="mx-auto text-xs font-medium text-text-muted hover:text-text-primary hover:underline"
+            className="mx-auto rounded-lg border border-border bg-bg-card px-4 py-1.5 text-xs font-semibold text-text-muted hover:text-text-secondary hover:border-accent-primary/30 transition-all"
           >
-            {loadingMore ? "Loading..." : "Load Older Messages"}
+            {loadingMore ? "Loading…" : "Load older messages"}
           </button>
         )}
 
         {bootstrapping ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 py-20 opacity-50">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-primary/30 border-t-accent-primary" />
+          <div className="flex items-center justify-center py-24">
+            <div className="h-7 w-7 rounded-full border-2 border-accent-primary/30 border-t-accent-primary animate-spin" />
           </div>
         ) : messages.length <= 1 && !activeChatId ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in relative z-10">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent-primary/5 rounded-full blur-[100px] pointer-events-none" />
-            
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary shadow-inner border border-accent-primary/20">
-              <Sparkles className="h-8 w-8" />
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-accent-primary/5 rounded-full blur-[80px] pointer-events-none" />
+            <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-primary/25 bg-accent-primary/10 text-accent-primary shadow-[0_0_30px_rgba(139,92,246,0.15)]">
+              <Sparkles className="h-7 w-7" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white">
-              Welcome to the Link.
-            </h2>
-            <p className="mt-2 text-sm font-medium text-text-secondary max-w-sm">
-              I am your digital twin. I&apos;m ready to sync.
+            <h2 className="text-xl font-bold tracking-tight text-white">Your Digital Twin is here.</h2>
+            <p className="mt-2 max-w-xs text-sm text-text-secondary leading-relaxed">
+              I know your patterns, moods, and goals. Ask me anything about your journey.
             </p>
           </div>
         ) : (
@@ -61,41 +62,44 @@ export function ChatMessageList({
             <div
               key={message.id}
               className={[
-                "flex gap-4 group",
+                "flex gap-3 group animate-fade-in",
                 message.sender === "user" ? "flex-row-reverse" : "flex-row",
               ].join(" ")}
             >
+              {/* Avatar */}
               <div
-                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${
-                  message.sender === "ai" 
-                    ? "bg-accent-primary border-accent-primary shadow-[0_0_10px_rgba(139,92,246,0.3)]" 
-                    : "bg-bg-card border-border/60 shadow-sm"
-                }`}
+                className={[
+                  "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-transform duration-200 group-hover:scale-105",
+                  message.sender === "ai"
+                    ? "bg-accent-primary border-accent-primary/60 shadow-[0_0_12px_rgba(139,92,246,0.35)]"
+                    : "bg-bg-card border-border/70 shadow-sm",
+                ].join(" ")}
               >
                 {message.sender === "ai" ? (
-                  <Sparkles className="h-4 w-4 text-white" />
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
                 ) : (
-                  <User className="h-4 w-4 text-text-secondary" />
+                  <User className="h-3.5 w-3.5 text-text-secondary" />
                 )}
               </div>
 
-              <div
-                className={`flex max-w-[80%] flex-col ${
-                  message.sender === "user" ? "items-end" : "items-start"
-                }`}
-              >
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-sm font-bold text-text-primary">
+              {/* Bubble */}
+              <div className={`flex max-w-[78%] flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}>
+                <div className="flex items-baseline gap-2 mb-1.5 px-1">
+                  <span className="text-[12px] font-semibold text-text-secondary">
                     {message.sender === "ai" ? "Digital Twin" : "You"}
                   </span>
                   <span className="text-[10px] text-text-muted">
-                    {new Date(message.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <div className={`text-[0.93rem] leading-relaxed text-[#D1D5DB]`}>
+                <div
+                  className={[
+                    "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                    message.sender === "user"
+                      ? "bg-accent-primary text-white rounded-tr-sm shadow-[0_2px_8px_rgba(139,92,246,0.3)]"
+                      : "bg-bg-card border border-border/60 text-text-primary rounded-tl-sm shadow-sm",
+                  ].join(" ")}
+                >
                   {message.text}
                 </div>
               </div>
@@ -103,22 +107,18 @@ export function ChatMessageList({
           ))
         )}
 
+        {/* Typing indicator */}
         {isLoading && (
-          <div className="flex gap-4 animate-fade-in">
-            <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border bg-accent-primary border-accent-primary shadow-[0_0_10px_rgba(139,92,246,0.3)]">
-              <Sparkles className="h-4 w-4 text-white" />
+          <div className="flex gap-3 animate-fade-in">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-accent-primary border-accent-primary/60 shadow-[0_0_12px_rgba(139,92,246,0.35)]">
+              <Sparkles className="h-3.5 w-3.5 text-white" />
             </div>
-            <div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-sm font-bold text-text-primary">
-                  Digital Twin
-                </span>
-                <span className="text-[10px] text-text-muted">typing...</span>
-              </div>
-              <div className="flex gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-primary animate-pulse" />
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-primary animate-pulse delay-75" />
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-primary animate-pulse delay-150" />
+            <div className="flex flex-col items-start">
+              <span className="text-[12px] font-semibold text-text-secondary mb-1.5 px-1">Digital Twin</span>
+              <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-bg-card border border-border/60 px-4 py-3 shadow-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-primary dot-bounce-1" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-primary dot-bounce-2" />
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-primary dot-bounce-3" />
               </div>
             </div>
           </div>

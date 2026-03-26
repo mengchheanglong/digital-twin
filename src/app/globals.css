@@ -198,3 +198,118 @@ body {
     transition: none !important;
   }
 }
+
+/* === NEW ANIMATIONS & UTILITIES === */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-left {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dot-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(139, 92, 246, 0.08) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+.animate-scale-in {
+  animation: scale-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-slide-left {
+  animation: slide-left 280ms ease-out forwards;
+}
+
+.dot-bounce-1 { animation: dot-bounce 1.2s ease-in-out infinite; }
+.dot-bounce-2 { animation: dot-bounce 1.2s ease-in-out infinite 0.2s; }
+.dot-bounce-3 { animation: dot-bounce 1.2s ease-in-out infinite 0.4s; }
+
+/* Glass card */
+.glass {
+  background: rgba(28, 31, 43, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(42, 46, 63, 0.8);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-glow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-warm {
+  background: linear-gradient(135deg, #F59E0B, #F97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Focus ring utility */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+}
+
+/* Glow ring animation for CTA buttons */
+@keyframes ring-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5), 0 4px 14px rgba(139, 92, 246, 0.3); }
+  60% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0), 0 6px 20px rgba(139, 92, 246, 0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0), 0 4px 14px rgba(139, 92, 246, 0.3); }
+}
+
+.btn-glow {
+  animation: ring-pulse 2.8s ease-in-out infinite;
+}
+
+/* Progress bar shimmer */
+@keyframes progress-shine {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-accent-primary) 0%,
+    var(--color-accent-glow) 40%,
+    var(--color-accent-primary) 80%
+  );
+  background-size: 200% 100%;
+  animation: progress-shine 2s linear infinite;
+}
