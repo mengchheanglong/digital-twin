@@ -25,6 +25,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [flash, setFlash] = useState<FlashState | null>(null);
 
@@ -83,6 +84,7 @@ export default function AuthPage() {
     setMode(nextMode);
     setFlash(null);
     setLoading(false);
+    setConfirmPassword("");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -97,6 +99,10 @@ export default function AuthPage() {
       const passwordValidation = validatePassword(password.trim());
       if (!passwordValidation.isValid) {
         setFlash({ type: "error", text: passwordValidation.message });
+        return;
+      }
+      if (password.trim() !== confirmPassword.trim()) {
+        setFlash({ type: "error", text: "Passwords do not match." });
         return;
       }
     }
@@ -229,6 +235,24 @@ export default function AuthPage() {
               required
             />
           </div>
+
+          {!isLogin && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="w-full rounded-xl bg-bg-panel border border-border px-4 py-3 text-sm text-white placeholder-text-muted hover:border-accent-primary/50 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all outline-none"
+                required
+              />
+            </div>
+          )}
 
           {flash && (
             <div

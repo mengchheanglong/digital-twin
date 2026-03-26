@@ -4,9 +4,13 @@ import { verifyToken } from '@/lib/auth';
 import { normalizeDuration } from '@/lib/progression';
 
 import Quest from '@/lib/models/Quest';
-import { badRequest, unauthorized, serverError } from '@/lib/api-response';
+import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
+import { RateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+// 20 quest creations per minute per IP
+const createQuestLimiter = new RateLimiter(60 * 1000, 20);
 
 interface CreateQuestPayload {
   goal?: string;
@@ -15,6 +19,13 @@ interface CreateQuestPayload {
 
 export async function POST(req: Request) {
   try {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+
+    if (!createQuestLimiter.check(ip)) {
+      return tooManyRequests('Too many quest creation requests. Please try again later.');
+    }
+
     await dbConnect();
 
     const user = verifyToken(req);

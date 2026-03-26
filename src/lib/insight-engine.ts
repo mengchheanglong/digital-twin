@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import UserEvent, { IUserEvent } from './models/UserEvent';
+import CheckIn from './models/CheckIn';
 import UserInsightState from './models/UserInsightState';
 import dbConnect from './db';
 
@@ -38,6 +39,14 @@ export interface InsightData {
   productivityScore: number;
   entertainmentRatio: number;
   trend: 'rising' | 'stable' | 'dropping';
+}
+
+export interface CheckInDimensions {
+  energy: number;
+  focus: number;
+  stressControl: number;
+  socialConnection: number;
+  optimism: number;
 }
 
 interface GeminiResponse {
@@ -206,20 +215,76 @@ function calculateTrend(events: IUserEvent[]): 'rising' | 'stable' | 'dropping' 
 }
 
 /**
+ * Compute average check-in scores per dimension from the last 7 days.
+ * Question index mapping:
+ *   0 → energy, 1 → focus, 2 → stressControl, 3 → socialConnection, 4 → optimism
+ */
+async function computeCheckInDimensions(userId: string): Promise<CheckInDimensions | null> {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 7);
+  cutoffDate.setHours(0, 0, 0, 0);
+
+  const recentCheckIns = await CheckIn.find({
+    userId: new mongoose.Types.ObjectId(userId),
+    date: { $gte: cutoffDate },
+  })
+    .select('ratings')
+    .lean();
+
+  if (!recentCheckIns.length) {
+    return null;
+  }
+
+  const sums = [0, 0, 0, 0, 0];
+  let count = 0;
+
+  for (const checkIn of recentCheckIns) {
+    if (Array.isArray(checkIn.ratings) && checkIn.ratings.length === 5) {
+      for (let i = 0; i < 5; i++) {
+        sums[i] += checkIn.ratings[i];
+      }
+      count++;
+    }
+  }
+
+  if (!count) {
+    return null;
+  }
+
+  return {
+    energy: Math.round((sums[0] / count) * 10) / 10,
+    focus: Math.round((sums[1] / count) * 10) / 10,
+    stressControl: Math.round((sums[2] / count) * 10) / 10,
+    socialConnection: Math.round((sums[3] / count) * 10) / 10,
+    optimism: Math.round((sums[4] / count) * 10) / 10,
+  };
+}
+
+/**
  * Generate reflection using Gemini AI
  */
-async function generateReflection(insights: InsightData): Promise<string> {
+async function generateReflection(insights: InsightData, dimensions?: CheckInDimensions | null): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return 'Your twin is waiting for more daily signals before sharing a full reflection.';
   }
+
+  const dimensionLines = dimensions
+    ? [
+        `- Avg energy (7d): ${dimensions.energy}/5`,
+        `- Avg focus (7d): ${dimensions.focus}/5`,
+        `- Avg stress control (7d): ${dimensions.stressControl}/5`,
+        `- Avg social connection (7d): ${dimensions.socialConnection}/5`,
+        `- Avg optimism (7d): ${dimensions.optimism}/5`,
+      ].join('\n')
+    : '';
 
   const prompt = `Generate a 3-sentence daily reflection based on:
 - Top interest: ${insights.topInterest}
 - Productivity score: ${insights.productivityScore}/100
 - Entertainment ratio: ${Math.round(insights.entertainmentRatio * 100)}%
 - Trend: ${insights.trend}
-
+${dimensionLines ? `${dimensionLines}\n` : ''}
 Keep it encouraging and personal. Be specific about their interests and progress.`;
 
   try {
@@ -278,13 +343,31 @@ Keep it encouraging and personal. Be specific about their interests and progress
  * 2. Compute insights (top interest, productivity score, entertainment ratio, trend)
  * 3. Generate AI reflection
  * 4. Save/update UserInsightState
+ *
+ * Skips the full update (including the Gemini AI call) if the state was
+ * refreshed within the last 30 minutes to avoid redundant API usage.
  */
 export async function updateUserInsight(userId: string): Promise<InsightData | null> {
   await dbConnect();
 
   try {
-    // Step 1: Fetch last 7 days of events
-    const events = await getRecentEvents(userId, 7);
+    const CACHE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+
+    // Check if we recently updated and return early to save Gemini API calls
+    const existing = await UserInsightState.findOne(
+      { userId: new mongoose.Types.ObjectId(userId) },
+      { updatedAt: 1 }
+    ).lean();
+
+    if (existing?.updatedAt && Date.now() - new Date(existing.updatedAt).getTime() < CACHE_WINDOW_MS) {
+      return null;
+    }
+
+    // Step 1: Fetch last 7 days of events and check-in dimensions in parallel
+    const [events, checkInDimensions] = await Promise.all([
+      getRecentEvents(userId, 7),
+      computeCheckInDimensions(userId),
+    ]);
 
     // Step 2: Compute insights
     const topInterest = findTopInterest(events);
@@ -299,8 +382,8 @@ export async function updateUserInsight(userId: string): Promise<InsightData | n
       trend,
     };
 
-    // Step 3: Generate reflection using AI
-    const reflection = await generateReflection(insights);
+    // Step 3: Generate reflection using AI (including check-in dimensions)
+    const reflection = await generateReflection(insights, checkInDimensions);
 
     // Step 4: Save/update UserInsightState
     await UserInsightState.findOneAndUpdate(
@@ -312,6 +395,7 @@ export async function updateUserInsight(userId: string): Promise<InsightData | n
           entertainmentRatio,
           currentTrend: trend,
           lastReflection: reflection,
+          ...(checkInDimensions ? { checkInDimensions } : {}),
           updatedAt: new Date(),
         },
       },
@@ -333,4 +417,5 @@ export {
   findTopInterest,
   calculateTrend,
   generateReflection,
+  computeCheckInDimensions,
 };
