@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 import { ChatMessage, ChatSummary, ServerMessage } from "./types";
 import { ACTIVE_CHAT_STORAGE_KEY, introMessage } from "./constants";
 import { toUiMessage } from "./utils";
 
 export function useChat() {
-  const router = useRouter();
+  const { requireAuth, getAuthHeaders } = useAuth();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [historyChats, setHistoryChats] = useState<ChatSummary[]>([]);
@@ -26,12 +26,6 @@ export function useChat() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const historyPanelRef = useRef<HTMLDivElement>(null);
   const shouldScrollToBottomRef = useRef(true);
-
-  const authHeaders = useCallback(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-    return { Authorization: `Bearer ${token}` };
-  }, []);
 
   const startNewSession = useCallback((clearInput = true) => {
     sessionStorage.removeItem(ACTIVE_CHAT_STORAGE_KEY);
@@ -76,7 +70,7 @@ export function useChat() {
   const loadMoreMessages = useCallback(async () => {
     if (!nextCursor || loadingMore || !activeChatId) return;
 
-    const headers = authHeaders();
+    const headers = getAuthHeaders();
     if (!headers) return;
 
     setLoadingMore(true);
@@ -105,14 +99,11 @@ export function useChat() {
     } finally {
       setLoadingMore(false);
     }
-  }, [activeChatId, authHeaders, loadingMore, nextCursor]);
+  }, [activeChatId, getAuthHeaders, loadingMore, nextCursor]);
 
   const initializeChatPage = useCallback(async () => {
-    const headers = authHeaders();
-    if (!headers) {
-      router.push("/");
-      return;
-    }
+    const headers = requireAuth();
+    if (!headers) return;
 
     try {
       await fetchHistoryChats(headers);
@@ -129,7 +120,7 @@ export function useChat() {
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        router.push("/");
+        requireAuth();
         return;
       }
 
@@ -138,14 +129,11 @@ export function useChat() {
     } finally {
       setBootstrapping(false);
     }
-  }, [authHeaders, fetchHistoryChats, loadConversationById, router, startNewSession]);
+  }, [requireAuth, fetchHistoryChats, loadConversationById, startNewSession]);
 
   const openHistoryChat = useCallback(async (chatId: string) => {
-    const headers = authHeaders();
-    if (!headers) {
-      router.push("/");
-      return;
-    }
+    const headers = requireAuth();
+    if (!headers) return;
 
     setHistoryLoadingId(chatId);
     try {
@@ -154,7 +142,7 @@ export function useChat() {
       setHistoryPanelOpen(false);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        router.push("/");
+        requireAuth();
         return;
       }
 
@@ -162,16 +150,13 @@ export function useChat() {
     } finally {
       setHistoryLoadingId(null);
     }
-  }, [authHeaders, loadConversationById, router]);
+  }, [requireAuth, loadConversationById]);
 
   const handleSend = useCallback(async () => {
     if (!input.trim() || isLoading) return;
 
-    const headers = authHeaders();
-    if (!headers) {
-      router.push("/");
-      return;
-    }
+    const headers = requireAuth();
+    if (!headers) return;
 
     const outgoingText = input.trim();
     const userMessage: ChatMessage = {
@@ -215,7 +200,7 @@ export function useChat() {
       await fetchHistoryChats(headers);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
-        router.push("/");
+        requireAuth();
         return;
       }
 
@@ -227,7 +212,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeChatId, authHeaders, fetchHistoryChats, input, isLoading, router]);
+  }, [activeChatId, requireAuth, fetchHistoryChats, input, isLoading]);
 
   useEffect(() => {
     void initializeChatPage();

@@ -3,21 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import InsightCards, { InsightCardsHandle } from "@/components/InsightCards";
 import { Flame, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function InsightPage() {
   const insightCardsRef = useRef<InsightCardsHandle>(null);
   const [streak, setStreak] = useState<number>(0);
+  const { getAuthHeaders } = useAuth();
 
   useEffect(() => {
     let mounted = true;
 
     const fetchStreak = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      const headers = getAuthHeaders();
+      if (!headers) return;
 
       try {
         const profileRes = await fetch("/api/profile", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
           cache: "no-store",
         });
 
@@ -51,7 +53,7 @@ export default function InsightPage() {
       mounted = false;
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [getAuthHeaders]);
 
   return (
     <div className="mx-auto w-full max-w-5xl animate-fade-in space-y-6 pb-10 text-text-primary">

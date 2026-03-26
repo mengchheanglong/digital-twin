@@ -5,6 +5,7 @@ import axios from "axios";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, Frown, Meh, Smile, Zap, Flame } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ResponseEntry {
   question: string;
@@ -69,6 +70,7 @@ const INSIGHT_PATH = "/dashboard/insight";
 
 export default function DailyPulsePage() {
   const router = useRouter();
+  const { requireAuth, getAuthHeaders } = useAuth();
   const [questions, setQuestions] = useState<string[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
@@ -84,16 +86,11 @@ export default function DailyPulsePage() {
   }, [currentQuestionIndex, questions.length]);
 
   const fetchQuestions = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-      return;
-    }
+    const headers = requireAuth();
+    if (!headers) return;
 
     try {
-      const response = await axios.get("/api/checkin/questions", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get("/api/checkin/questions", { headers });
       const incomingQuestions = response.data?.questions;
       setQuestions(Array.isArray(incomingQuestions) && incomingQuestions.length ? incomingQuestions : fallbackQuestions);
       setError("");
@@ -108,7 +105,7 @@ export default function DailyPulsePage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [requireAuth, router]);
 
   useEffect(() => {
     void fetchQuestions();
@@ -118,8 +115,8 @@ export default function DailyPulsePage() {
     setSubmitting(true);
     setError("");
 
-    const token = localStorage.getItem("token");
-    if (!token) {
+    const headers = getAuthHeaders();
+    if (!headers) {
       router.push("/");
       setSubmitting(false);
       return;
@@ -130,7 +127,7 @@ export default function DailyPulsePage() {
       const response = await axios.post(
         "/api/checkin/submit",
         { ratings },
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers },
       );
 
       const apiResult = response.data?.result as CheckInResult | undefined;

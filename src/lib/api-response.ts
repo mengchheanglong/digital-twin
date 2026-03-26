@@ -15,7 +15,7 @@ export function errorResponse(msg: string, status: number = 400) {
  * @param data Optional data payload
  * @param status HTTP status code (default: 200)
  */
-export function successResponse(msg: string, data: any = null, status: number = 200) {
+export function successResponse(msg: string, data: unknown = null, status: number = 200) {
   return NextResponse.json({ msg, data }, { status });
 }
 

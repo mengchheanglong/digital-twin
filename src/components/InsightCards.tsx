@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, forwardRef, useImperativeHandle } fro
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowRight, ArrowUp, Lock, Sparkles, Target } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   InsightSectionHeader,
   InsightStatCard,
@@ -37,22 +38,14 @@ interface InsightState {
 const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
   function InsightCards({ className = "" }, ref) {
     const router = useRouter();
+    const { requireAuth } = useAuth();
     const [insight, setInsight] = useState<InsightState | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const authHeaders = useCallback(() => {
-      const token = localStorage.getItem("token");
-      if (!token) return null;
-      return { Authorization: `Bearer ${token}` };
-    }, []);
-
     const fetchInsight = useCallback(async () => {
-      const headers = authHeaders();
-      if (!headers) {
-        router.push("/");
-        return;
-      }
+      const headers = requireAuth();
+      if (!headers) return;
 
       try {
         if (!insight) {
@@ -68,14 +61,14 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
         }
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
-          router.push("/");
+          requireAuth();
           return;
         }
         setError("Failed to fetch insight data. Please try again.");
       } finally {
         setLoading(false);
       }
-    }, [authHeaders, insight, router]);
+    }, [requireAuth, insight]);
 
     useImperativeHandle(ref, () => ({
       refresh: fetchInsight,

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { Clock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HistoryItem {
   id: string;
@@ -15,29 +16,25 @@ interface HistoryItem {
 
 export default function HistoryPage() {
   const router = useRouter();
+  const { requireAuth } = useAuth();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchHistory = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-      return;
-    }
+    const headers = requireAuth();
+    if (!headers) return;
 
     try {
       setLoading(true);
-      const response = await axios.get("/api/checkin/history", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get("/api/checkin/history", { headers });
 
       const items = Array.isArray(response.data?.history) ? (response.data.history as HistoryItem[]) : [];
       setHistory(items);
       setError("");
     } catch (requestError) {
       if (axios.isAxiosError(requestError) && requestError.response?.status === 401) {
-        router.push("/");
+        requireAuth();
         return;
       }
 
@@ -45,7 +42,7 @@ export default function HistoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [requireAuth]);
 
   useEffect(() => {
     void fetchHistory();

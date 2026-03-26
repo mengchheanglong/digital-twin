@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
-import { badRequest, unauthorized, serverError } from '@/lib/api-response';
+import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
+import { RateLimiter } from '@/lib/rate-limit';
 import UserEvent from '@/lib/models/UserEvent';
 import { updateUserInsight } from '@/lib/insight-engine';
 
 export const dynamic = 'force-dynamic';
+
+// 30 events per minute per IP
+const eventsLimiter = new RateLimiter(60 * 1000, 30);
 
 // Valid event types
 const VALID_EVENT_TYPES = ['quest_completed', 'chat_message', 'log_added'] as const;
@@ -24,6 +28,13 @@ interface CreateEventRequest {
 
 export async function POST(req: Request) {
   try {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+
+    if (!eventsLimiter.check(ip)) {
+      return tooManyRequests('Too many event requests. Please try again later.');
+    }
+
     await dbConnect();
 
     // Step 1: Authenticate user

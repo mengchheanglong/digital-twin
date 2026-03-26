@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clamp } from "@/lib/math";
-import { LogOut, ScrollText, Sparkles, Swords, User } from "lucide-react";
+import { Clock, LogOut, ScrollText, Sparkles, Swords, User } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -171,6 +171,11 @@ export default function Sidebar() {
       href: "/dashboard/chat",
       label: "Companion",
       icon: <Sparkles className="h-5 w-5" />,
+    },
+    {
+      href: "/dashboard/history",
+      label: "History",
+      icon: <Clock className="h-5 w-5" />,
     },
   ];
 
