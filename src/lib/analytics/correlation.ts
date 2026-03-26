@@ -17,7 +17,7 @@ export interface CorrelationReport {
   sampleDays: number;
 }
 
-function pearsonCorrelation(x: number[], y: number[]): number {
+export function pearsonCorrelation(x: number[], y: number[]): number {
   const n = x.length;
   if (n < 3) return 0;
 
@@ -42,7 +42,7 @@ function pearsonCorrelation(x: number[], y: number[]): number {
   return Math.round((numerator / denominator) * 1000) / 1000;
 }
 
-function interpretCorrelation(coefficient: number): string {
+export function interpretCorrelation(coefficient: number): string {
   const abs = Math.abs(coefficient);
   const direction = coefficient >= 0 ? 'positive' : 'negative';
 
