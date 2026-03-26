@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clamp } from "@/lib/math";
-import { BarChart3, BookOpen, Clock, LogOut, ScrollText, Sparkles, Swords, Timer, User } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, Clock, LogOut, ScrollText, Sparkles, Swords, Timer, User } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -186,6 +186,11 @@ export default function Sidebar() {
       href: "/dashboard/analytics",
       label: "Analytics",
       icon: <BarChart3 className="h-5 w-5" />,
+    },
+    {
+      href: "/dashboard/timeline",
+      label: "Timeline",
+      icon: <CalendarDays className="h-5 w-5" />,
     },
     {
       href: "/dashboard/history",
