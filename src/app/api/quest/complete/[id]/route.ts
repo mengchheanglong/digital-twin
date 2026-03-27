@@ -72,8 +72,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
         },
       });
 
-      // Update insights asynchronously
-      updateUserInsight(user._id.toString()).catch(console.error);
+      // Update insights with force flag so the completion is reflected immediately
+      updateUserInsight(user._id.toString(), { force: true }).catch(console.error);
     }
     
     // Recurring Logic

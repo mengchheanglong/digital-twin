@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import {
   badRequest,
   unauthorized,
@@ -19,7 +19,7 @@ export async function PUT(
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
     const { id } = params;
@@ -69,7 +69,7 @@ export async function DELETE(
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
     const { id } = params;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import QuestLog from '@/lib/models/QuestLog';
 import { unauthorized, serverError } from '@/lib/api-response';
 
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized('No token, authorization denied.');
     }

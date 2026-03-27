@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import CheckIn from '@/lib/models/CheckIn';
 import { unauthorized, serverError } from '@/lib/api-response';
 import mongoose from 'mongoose';
@@ -87,8 +87,9 @@ Return a JSON array of exactly 3 objects. Each object must have:
 Respond ONLY with valid JSON, no markdown, no explanation.`;
 
   try {
+    const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -199,7 +200,7 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
     const cutoff = new Date();

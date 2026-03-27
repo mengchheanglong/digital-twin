@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { badRequest, unauthorized, serverError } from '@/lib/api-response';
 import Quest from '@/lib/models/Quest';
 import dbConnect from '@/lib/db';
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
     const body = (await req.json()) as { questId?: string };

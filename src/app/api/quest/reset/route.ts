@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, notFound, serverError } from '@/lib/api-response';
 import User from '@/lib/models/User';
 import Quest from '@/lib/models/Quest';
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized();
     }

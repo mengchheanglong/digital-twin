@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { normalizeDuration } from '@/lib/progression';
 
 import Quest from '@/lib/models/Quest';
 import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
-import { RateLimiter } from '@/lib/rate-limit';
+import { MongoRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 // 20 quest creations per minute per IP
-const createQuestLimiter = new RateLimiter(60 * 1000, 20);
+const createQuestLimiter = new MongoRateLimiter('quest-create', 60 * 1000, 20);
 
 interface CreateQuestPayload {
   goal?: string;
@@ -22,13 +22,13 @@ export async function POST(req: Request) {
     const forwarded = req.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
 
-    if (!createQuestLimiter.check(ip)) {
+    if (!(await createQuestLimiter.check(ip))) {
       return tooManyRequests('Too many quest creation requests. Please try again later.');
     }
 
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized('No token, authorization denied.');
     }

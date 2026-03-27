@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
-import { RateLimiter } from '@/lib/rate-limit';
+import { MongoRateLimiter } from '@/lib/rate-limit';
 import UserEvent from '@/lib/models/UserEvent';
 import { updateUserInsight } from '@/lib/insight-engine';
 
 export const dynamic = 'force-dynamic';
 
 // 30 events per minute per IP
-const eventsLimiter = new RateLimiter(60 * 1000, 30);
+const eventsLimiter = new MongoRateLimiter('events', 60 * 1000, 30);
 
 // Valid event types
 const VALID_EVENT_TYPES = ['quest_completed', 'chat_message', 'log_added'] as const;
@@ -31,14 +31,14 @@ export async function POST(req: Request) {
     const forwarded = req.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
 
-    if (!eventsLimiter.check(ip)) {
+    if (!(await eventsLimiter.check(ip))) {
       return tooManyRequests('Too many event requests. Please try again later.');
     }
 
     await dbConnect();
 
     // Step 1: Authenticate user
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized();
     }

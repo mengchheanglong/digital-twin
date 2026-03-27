@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import Quest from '@/lib/models/Quest';
 import QuestLog from '@/lib/models/QuestLog';
 import { unauthorized, serverError } from '@/lib/api-response';
@@ -18,7 +18,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized('No token, authorization denied.');
     }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError } from '@/lib/api-response';
 import { getDayKey } from '@/lib/progression';
 import CheckIn from '@/lib/models/CheckIn';
@@ -83,7 +83,7 @@ export async function GET(req: Request) {
     await dbConnect();
 
     // Step 1: Authenticate user
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized();
     }

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { clamp } from '@/lib/math';
 import dbConnect from '@/lib/db';
 import ChatConversation from '@/lib/models/ChatConversation';
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
     }
@@ -119,7 +119,7 @@ export async function DELETE(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
     }
