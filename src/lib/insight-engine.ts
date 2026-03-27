@@ -3,6 +3,7 @@ import UserEvent, { IUserEvent } from './models/UserEvent';
 import CheckIn from './models/CheckIn';
 import UserInsightState from './models/UserInsightState';
 import dbConnect from './db';
+import { CHECKIN_DIMENSIONS } from './progression';
 
 // Category classifications for productivity calculation
 const PRODUCTIVE_CATEGORIES = [
@@ -18,6 +19,7 @@ const PRODUCTIVE_CATEGORIES = [
   'career',
   'finance',
   'planning',
+  'checkin',
 ];
 
 const ENTERTAINMENT_CATEGORIES = [
@@ -76,30 +78,38 @@ async function getRecentEvents(userId: string, days: number): Promise<IUserEvent
 }
 
 /**
- * Calculate productivity score from events
- * - quest_completed = +1
- * - log_added with productive category = +0.5
- * - log_added with entertainment category = -0.5
+ * Calculate productivity score from events.
+ *
+ * Scoring:
+ *   quest_completed            = +2
+ *   log_added with productive  = +1
+ *   log_added with checkin     = +0.5  (daily self-reflection counts)
+ *   log_added with entertain.  = -1
+ *
+ * The raw score is normalised against the expected max for the window
+ * (2 events/day × days) so that an active user scores near 100.
  */
-function calculateProductivityScore(events: IUserEvent[]): number {
+function calculateProductivityScore(events: IUserEvent[], days = 7): number {
   let score = 0;
 
   for (const event of events) {
     if (event.type === 'quest_completed') {
-      score += 1;
+      score += 2;
     } else if (event.type === 'log_added') {
       const category = (event.metadata?.category || '').toLowerCase();
-      if (PRODUCTIVE_CATEGORIES.some((c) => category.includes(c))) {
+      if (category === 'checkin') {
         score += 0.5;
+      } else if (PRODUCTIVE_CATEGORIES.some((c) => category.includes(c))) {
+        score += 1;
       } else if (ENTERTAINMENT_CATEGORIES.some((c) => category.includes(c))) {
-        score -= 0.5;
+        score -= 1;
       }
     }
   }
 
-  // Normalize to 0-100 scale
-  // Assuming max reasonable score of 50 for normalization
-  const normalizedScore = Math.max(0, Math.min(100, (score / 50) * 100));
+  // Normalise: expected max ≈ 2 events/day with full productive score
+  const expectedMax = days * 2;
+  const normalizedScore = Math.max(0, Math.min(100, (score / expectedMax) * 100));
   return Math.round(normalizedScore * 10) / 10;
 }
 
@@ -137,7 +147,7 @@ function findTopInterest(events: IUserEvent[]): string {
   for (const event of events) {
     // Collect interests from category and topic
     const interests: string[] = [];
-    if (event.metadata?.category) {
+    if (event.metadata?.category && event.metadata.category !== 'checkin') {
       interests.push(event.metadata.category);
     }
     if (event.metadata?.topic) {
@@ -181,7 +191,7 @@ function calculateDailyProductivityScore(events: IUserEvent[], date: Date): numb
     return eventDate >= startOfDay && eventDate <= endOfDay;
   });
 
-  return calculateProductivityScore(dayEvents);
+  return calculateProductivityScore(dayEvents, 1);
 }
 
 /**
@@ -216,8 +226,7 @@ function calculateTrend(events: IUserEvent[]): 'rising' | 'stable' | 'dropping' 
 
 /**
  * Compute average check-in scores per dimension from the last 7 days.
- * Question index mapping:
- *   0 → energy, 1 → focus, 2 → stressControl, 3 → socialConnection, 4 → optimism
+ * Uses CHECKIN_DIMENSIONS to map indices — never positional guesswork.
  */
 async function computeCheckInDimensions(userId: string): Promise<CheckInDimensions | null> {
   const cutoffDate = new Date();
@@ -239,8 +248,8 @@ async function computeCheckInDimensions(userId: string): Promise<CheckInDimensio
   let count = 0;
 
   for (const checkIn of recentCheckIns) {
-    if (Array.isArray(checkIn.ratings) && checkIn.ratings.length === 5) {
-      for (let i = 0; i < 5; i++) {
+    if (Array.isArray(checkIn.ratings) && checkIn.ratings.length === CHECKIN_DIMENSIONS.length) {
+      for (let i = 0; i < CHECKIN_DIMENSIONS.length; i++) {
         sums[i] += checkIn.ratings[i];
       }
       count++;
@@ -287,9 +296,11 @@ async function generateReflection(insights: InsightData, dimensions?: CheckInDim
 ${dimensionLines ? `${dimensionLines}\n` : ''}
 Keep it encouraging and personal. Be specific about their interests and progress.`;
 
+  const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
+
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
         method: 'POST',
         headers: {
@@ -337,6 +348,15 @@ Keep it encouraging and personal. Be specific about their interests and progress
   }
 }
 
+export interface UpdateInsightOptions {
+  /**
+   * When true, bypass the 30-minute cache window and force an immediate
+   * update. Use this after a check-in submission or quest completion so the
+   * new data is always reflected in the next insight read.
+   */
+  force?: boolean;
+}
+
 /**
  * Main function: Update user insight state
  * 1. Fetch last 7 days of events
@@ -345,22 +365,48 @@ Keep it encouraging and personal. Be specific about their interests and progress
  * 4. Save/update UserInsightState
  *
  * Skips the full update (including the Gemini AI call) if the state was
- * refreshed within the last 30 minutes to avoid redundant API usage.
+ * refreshed within the last 30 minutes, unless `force` is true.
+ *
+ * The cache check is performed atomically: we only proceed if we can
+ * claim the update slot, preventing redundant concurrent Gemini calls.
  */
-export async function updateUserInsight(userId: string): Promise<InsightData | null> {
+export async function updateUserInsight(
+  userId: string,
+  options: UpdateInsightOptions = {},
+): Promise<InsightData | null> {
   await dbConnect();
 
   try {
     const CACHE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+    const now = new Date();
+    const cacheThreshold = new Date(now.getTime() - CACHE_WINDOW_MS);
 
-    // Check if we recently updated and return early to save Gemini API calls
-    const existing = await UserInsightState.findOne(
-      { userId: new mongoose.Types.ObjectId(userId) },
-      { updatedAt: 1 }
-    ).lean();
+    if (!options.force) {
+      // Atomic cache check: only proceed if updatedAt is stale (or missing).
+      // We speculatively set updatedAt=now so concurrent callers see the
+      // window as taken and skip their update.
+      const claimed = await UserInsightState.findOneAndUpdate(
+        {
+          userId: new mongoose.Types.ObjectId(userId),
+          $or: [
+            { updatedAt: { $lt: cacheThreshold } },
+            { updatedAt: { $exists: false } },
+          ],
+        },
+        { $set: { updatedAt: now } },
+        { new: false },
+      ).lean();
 
-    if (existing?.updatedAt && Date.now() - new Date(existing.updatedAt).getTime() < CACHE_WINDOW_MS) {
-      return null;
+      // If nothing was found, another process recently updated — skip.
+      if (!claimed) {
+        // Check if a document exists at all; if not, fall through to create.
+        const exists = await UserInsightState.exists({
+          userId: new mongoose.Types.ObjectId(userId),
+        });
+        if (exists) {
+          return null;
+        }
+      }
     }
 
     // Step 1: Fetch last 7 days of events and check-in dimensions in parallel
@@ -371,7 +417,7 @@ export async function updateUserInsight(userId: string): Promise<InsightData | n
 
     // Step 2: Compute insights
     const topInterest = findTopInterest(events);
-    const productivityScore = calculateProductivityScore(events);
+    const productivityScore = calculateProductivityScore(events, 7);
     const entertainmentRatio = calculateEntertainmentRatio(events);
     const trend = calculateTrend(events);
 
@@ -385,7 +431,9 @@ export async function updateUserInsight(userId: string): Promise<InsightData | n
     // Step 3: Generate reflection using AI (including check-in dimensions)
     const reflection = await generateReflection(insights, checkInDimensions);
 
-    // Step 4: Save/update UserInsightState
+    const reflectionEntry = { text: reflection, date: now };
+
+    // Step 4: Save/update UserInsightState, appending to history (max 30 entries)
     await UserInsightState.findOneAndUpdate(
       { userId: new mongoose.Types.ObjectId(userId) },
       {
@@ -396,7 +444,13 @@ export async function updateUserInsight(userId: string): Promise<InsightData | n
           currentTrend: trend,
           lastReflection: reflection,
           ...(checkInDimensions ? { checkInDimensions } : {}),
-          updatedAt: new Date(),
+          updatedAt: now,
+        },
+        $push: {
+          reflectionHistory: {
+            $each: [reflectionEntry],
+            $slice: -30, // keep the most recent 30
+          },
         },
       },
       { upsert: true, new: true }

@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import CheckIn from '@/lib/models/CheckIn';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
     }

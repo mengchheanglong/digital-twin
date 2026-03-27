@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, badRequest, notFound, serverError } from '@/lib/api-response';
 import { normalizeDuration, QUEST_XP_REWARD } from '@/lib/progression';
 import { adjustUserXP } from '@/lib/user-progress';
@@ -23,7 +23,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized();
     }
@@ -72,8 +72,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
         },
       });
 
-      // Update insights asynchronously
-      updateUserInsight(user._id.toString()).catch(console.error);
+      // Update insights with force flag so the completion is reflected immediately
+      updateUserInsight(user._id.toString(), { force: true }).catch(console.error);
     }
     
     // Recurring Logic

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { computeCorrelation } from '@/lib/analytics/correlation';
 import { unauthorized, serverError } from '@/lib/api-response';
 
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
     const { searchParams } = new URL(req.url);

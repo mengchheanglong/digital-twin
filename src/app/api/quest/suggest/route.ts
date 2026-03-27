@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError } from '@/lib/api-response';
 import Quest from '@/lib/models/Quest';
 import UserInsightState from '@/lib/models/UserInsightState';
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
     const uid = new mongoose.Types.ObjectId(user.id);

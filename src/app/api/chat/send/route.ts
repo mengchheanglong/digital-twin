@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { CHAT_SIGNAL_TYPES, parseSignalResponseText } from '@/lib/chat-signals';
 import dbConnect from '@/lib/db';
 import { updateUserInsight } from '@/lib/insight-engine';
@@ -427,7 +427,7 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized('No token, authorization denied.');
     }
@@ -510,9 +510,22 @@ export async function POST(req: Request) {
     const userMessageObjectId = new mongoose.Types.ObjectId();
     const userMessageId = String(userMessageObjectId);
 
-    // Fire and forget signal extraction to avoid blocking the UI
-    persistStructuredSignals(user.id, userMessageId, message, companionResult.model).catch((err) => {
-      console.error('Background signal persistence failed:', err);
+    // Fire and forget signal extraction — capped at 20 extractions per user per day
+    // to prevent runaway Gemini API usage.
+    ChatSignal.countDocuments({
+      userId: user.id,
+      createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+    }).then((dailyCount) => {
+      if (dailyCount < 20) {
+        persistStructuredSignals(user.id, userMessageId, message, companionResult.model).catch((err) => {
+          console.error('Background signal persistence failed:', err);
+        });
+      }
+    }).catch(() => {
+      // If count fails, still attempt extraction to avoid silent data loss
+      persistStructuredSignals(user.id, userMessageId, message, companionResult.model).catch((err) => {
+        console.error('Background signal persistence failed:', err);
+      });
     });
 
     await Promise.all([
@@ -558,8 +571,8 @@ export async function POST(req: Request) {
       },
     }).catch((err) => console.error('Failed to create chat event:', err));
 
-    // Update insights asynchronously
-    updateUserInsight(user._id.toString()).catch(console.error);
+    // Update insights with force flag so the new chat message is always visible
+    updateUserInsight(user._id.toString(), { force: true }).catch(console.error);
 
     const userMessage = {
       role: 'user' as const,

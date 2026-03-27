@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenWithRevocation } from '@/lib/auth';
 import { normalizeDuration, QUEST_XP_REWARD } from '@/lib/progression';
 import { adjustUserXP } from '@/lib/user-progress';
 
@@ -23,7 +23,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
   try {
     await dbConnect();
 
-    const user = verifyToken(req);
+    const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
     }

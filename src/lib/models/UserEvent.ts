@@ -61,11 +61,8 @@ const userEventSchema = new mongoose.Schema(
 // Indexes for efficient queries
 userEventSchema.index({ userId: 1, createdAt: -1 });
 userEventSchema.index({ userId: 1, type: 1 });
-
-// Handle hot reloading in development
-if (process.env.NODE_ENV === 'development') {
-  delete mongoose.models.UserEvent;
-}
+// Automatically expire events after 90 days
+userEventSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 const UserEvent: Model<IUserEvent> =
   mongoose.models.UserEvent || mongoose.model<IUserEvent>('UserEvent', userEventSchema);
