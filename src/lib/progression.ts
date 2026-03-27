@@ -1,4 +1,4 @@
-import { Egg, Bug, Snail, Turtle, Rabbit, Bird } from "lucide-react";
+import { Sprout, Leaf, Flame, Zap, Star, Crown } from "lucide-react";
 
 export type QuestDuration = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -204,7 +204,7 @@ export const AVATAR_TIERS = [
   { 
     level: 1, 
     name: "Dormant Seed", 
-    icon: Egg, 
+    icon: Sprout, 
     colors: "from-slate-400 to-slate-600", 
     bg: "bg-slate-500/10", 
     border: "border-slate-500/30",
@@ -215,7 +215,7 @@ export const AVATAR_TIERS = [
   { 
     level: 5, 
     name: "Hatchling", 
-    icon: Bug, 
+    icon: Leaf, 
     colors: "from-blue-400 to-indigo-600", 
     bg: "bg-blue-500/10", 
     border: "border-blue-500/30",
@@ -226,7 +226,7 @@ export const AVATAR_TIERS = [
   { 
     level: 15, 
     name: "Wanderer", 
-    icon: Snail, 
+    icon: Flame, 
     colors: "from-accent-primary to-fuchsia-600", 
     bg: "bg-accent-primary/10", 
     border: "border-accent-primary/40",
@@ -237,7 +237,7 @@ export const AVATAR_TIERS = [
   { 
     level: 30, 
     name: "Traveler", 
-    icon: Turtle, 
+    icon: Zap, 
     colors: "from-orange-400 to-red-600", 
     bg: "bg-orange-500/10", 
     border: "border-orange-500/40",
@@ -248,7 +248,7 @@ export const AVATAR_TIERS = [
   { 
     level: 50, 
     name: "Sprinter", 
-    icon: Rabbit, 
+    icon: Star, 
     colors: "from-amber-300 to-yellow-600", 
     bg: "bg-amber-500/10", 
     border: "border-amber-500/50",
@@ -259,7 +259,7 @@ export const AVATAR_TIERS = [
   { 
     level: 100, 
     name: "Ascendant", 
-    icon: Bird, 
+    icon: Crown, 
     colors: "from-emerald-300 via-cyan-400 to-blue-500", 
     bg: "bg-cyan-500/10", 
     border: "border-cyan-500/50",

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clamp } from "@/lib/math";
-import { BarChart3, BookOpen, Brain, CalendarDays, ChevronLeft, ChevronRight, Clock, LogOut, ScrollText, Sparkles, Swords, Timer, User } from "lucide-react";
+import { BarChart3, BookOpen, Brain, CalendarDays, ChevronLeft, ChevronRight, Clock, LogOut, ScrollText, Sparkles, Swords, Timer } from "lucide-react";
 import { getAvatarTier } from "@/lib/progression";
 
 interface NavItem {

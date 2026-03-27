@@ -1,5 +1,5 @@
 import { RefObject } from "react";
-import { Sparkles, User } from "lucide-react";
+import { Sparkles, CircleUser } from "lucide-react";
 import { ChatMessage } from "../types";
 
 interface ChatMessageListProps {
@@ -78,7 +78,7 @@ export function ChatMessageList({
                 {message.sender === "ai" ? (
                   <Sparkles className="h-3.5 w-3.5 text-white" />
                 ) : (
-                  <User className="h-3.5 w-3.5 text-text-secondary" />
+                  <CircleUser className="h-3.5 w-3.5 text-text-secondary" />
                 )}
               </div>
 
