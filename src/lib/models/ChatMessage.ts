@@ -21,6 +21,8 @@ const chatMessageSchema = new Schema(
 
 // Compound index for efficient fetching of messages in a chat
 chatMessageSchema.index({ chatId: 1, createdAt: 1 });
+// Automatically expire messages after 365 days
+chatMessageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 });
 
 const ChatMessage: Model<IChatMessage> =
   mongoose.models.ChatMessage || mongoose.model<IChatMessage>('ChatMessage', chatMessageSchema);

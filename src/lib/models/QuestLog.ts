@@ -34,10 +34,6 @@ const questLogSchema = new mongoose.Schema({
 questLogSchema.index({ userId: 1, completedDate: -1 });
 questLogSchema.index({ userId: 1, questId: 1 });
 
-if (process.env.NODE_ENV === 'development') {
-  delete mongoose.models.QuestLog;
-}
-
 const QuestLog: Model<IQuestLog> = mongoose.models.QuestLog || mongoose.model<IQuestLog>('QuestLog', questLogSchema);
 
 export default QuestLog;

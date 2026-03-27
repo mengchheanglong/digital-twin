@@ -24,6 +24,8 @@ const chatSignalSchema = new Schema(
 
 // Compound index for optimized analytics queries filtering by user and sorted by time
 chatSignalSchema.index({ userId: 1, createdAt: -1 });
+// Automatically expire signals after 180 days
+chatSignalSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 60 * 60 });
 
 const ChatSignal: Model<IChatSignal> =
   mongoose.models.ChatSignal || mongoose.model<IChatSignal>('ChatSignal', chatSignalSchema);

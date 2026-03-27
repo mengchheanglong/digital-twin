@@ -4,7 +4,7 @@ import dbConnect from '@/lib/db';
 import { signToken } from '@/lib/auth';
 import User from '@/lib/models/User';
 import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
-import { RateLimiter } from '@/lib/rate-limit';
+import { MongoRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,15 +13,15 @@ interface LoginPayload {
   password?: string;
 }
 
-// 5 requests per minute
-const loginLimiter = new RateLimiter(60 * 1000, 5);
+// 5 requests per minute per IP
+const loginLimiter = new MongoRateLimiter('login', 60 * 1000, 5);
 
 export async function POST(req: Request) {
   try {
     const forwarded = req.headers.get('x-forwarded-for');
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
 
-    if (!loginLimiter.check(ip)) {
+    if (!(await loginLimiter.check(ip))) {
       return tooManyRequests('Too many login attempts. Please try again later.');
     }
 

@@ -35,6 +35,10 @@ export async function POST(req: Request) {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
 
+    // Record when the password was changed so tokens issued before this
+    // moment are treated as revoked.
+    user.passwordChangedAt = new Date();
+
     // Clear reset token fields
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;

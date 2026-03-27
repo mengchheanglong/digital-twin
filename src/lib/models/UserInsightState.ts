@@ -1,5 +1,10 @@
 import mongoose, { Document, Model } from 'mongoose';
 
+export interface ReflectionEntry {
+  text: string;
+  date: Date;
+}
+
 export interface IUserInsightState extends Document {
   userId: mongoose.Types.ObjectId;
   topInterest: string;
@@ -7,6 +12,7 @@ export interface IUserInsightState extends Document {
   entertainmentRatio: number;
   currentTrend: 'rising' | 'stable' | 'dropping';
   lastReflection: string;
+  reflectionHistory: ReflectionEntry[];
   updatedAt: Date;
   checkInDimensions?: {
     energy: number;
@@ -52,6 +58,15 @@ const userInsightStateSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    reflectionHistory: {
+      type: [
+        {
+          text: { type: String, required: true, trim: true },
+          date: { type: Date, required: true },
+        },
+      ],
+      default: [],
+    },
     checkInDimensions: {
       type: {
         energy: { type: Number, default: 0 },
@@ -71,11 +86,6 @@ const userInsightStateSchema = new mongoose.Schema(
     timestamps: false,
   }
 );
-
-// Handle hot reloading in development
-if (process.env.NODE_ENV === 'development') {
-  delete mongoose.models.UserInsightState;
-}
 
 const UserInsightState: Model<IUserInsightState> =
   mongoose.models.UserInsightState ||

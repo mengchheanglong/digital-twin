@@ -32,10 +32,6 @@ const questSchema = new mongoose.Schema({
 
 questSchema.index({ userId: 1, date: -1 });
 
-if (process.env.NODE_ENV === 'development') {
-  delete mongoose.models.Quest;
-}
-
 const Quest: Model<IQuest> = mongoose.models.Quest || mongoose.model<IQuest>('Quest', questSchema);
 
 
