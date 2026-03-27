@@ -19,7 +19,7 @@ export interface StreakReport {
 }
 
 async function getDatesByField(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line
   model: mongoose.Model<any>,
   userId: mongoose.Types.ObjectId,
   dateField: string,

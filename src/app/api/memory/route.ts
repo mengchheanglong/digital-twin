@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError } from '@/lib/api-response';
-import { synthesizeUserMemory, getUserMemoryContext } from '@/lib/memory-engine';
+import { synthesizeUserMemory } from '@/lib/memory-engine';
 import UserMemory from '@/lib/models/UserMemory';
 import mongoose from 'mongoose';
 
@@ -47,6 +47,3 @@ export async function POST(req: Request) {
     return serverError(error, 'Synthesize memory error');
   }
 }
-
-/** Internal helper: get memory context string for AI prompt injection */
-export { getUserMemoryContext };
