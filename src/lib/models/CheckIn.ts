@@ -7,6 +7,8 @@ export interface ICheckIn extends Document {
   percentage: number;
   dayKey: string;
   date: Date;
+  checkInType: 'daily' | 'micro';
+  hour?: number;
 }
 
 function validateRatings(values: number[]): boolean {
@@ -24,10 +26,13 @@ const checkInSchema = new mongoose.Schema({
   percentage: { type: Number, required: true, min: 0, max: 100 },
   dayKey: { type: String, required: true },
   date: { type: Date, default: Date.now },
+  checkInType: { type: String, enum: ['daily', 'micro'], default: 'daily' },
+  hour: { type: Number, min: 0, max: 23 },
 });
 
-checkInSchema.index({ userId: 1, dayKey: 1 }, { unique: true });
+checkInSchema.index({ userId: 1, dayKey: 1 }, { unique: true, partialFilterExpression: { checkInType: 'daily' } });
 checkInSchema.index({ userId: 1, date: -1 });
+checkInSchema.index({ userId: 1, checkInType: 1, date: -1 });
 
 const CheckIn: Model<ICheckIn> = mongoose.models.CheckIn || mongoose.model<ICheckIn>('CheckIn', checkInSchema);
 

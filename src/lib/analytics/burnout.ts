@@ -9,11 +9,66 @@ export interface BurnoutFactor {
   description: string;
 }
 
+export type BurnoutStageLabel = 'thriving' | 'tiring' | 'strained' | 'overwhelmed';
+
+export interface BurnoutStageInfo {
+  stage: BurnoutStageLabel;
+  label: string;
+  color: string;
+  description: string;
+  minScore: number;
+  maxScore: number;
+}
+
+export const BURNOUT_STAGES: BurnoutStageInfo[] = [
+  {
+    stage: 'thriving',
+    label: 'Thriving',
+    color: 'emerald',
+    description: 'Your wellness patterns look healthy. Keep it up!',
+    minScore: 0,
+    maxScore: 24,
+  },
+  {
+    stage: 'tiring',
+    label: 'Tiring',
+    color: 'yellow',
+    description: 'Early signs of fatigue detected. Small adjustments now prevent bigger drops.',
+    minScore: 25,
+    maxScore: 49,
+  },
+  {
+    stage: 'strained',
+    label: 'Strained',
+    color: 'orange',
+    description: 'Significant strain. Prioritize recovery and reduce your load this week.',
+    minScore: 50,
+    maxScore: 74,
+  },
+  {
+    stage: 'overwhelmed',
+    label: 'Overwhelmed',
+    color: 'red',
+    description: 'Critical burnout risk. Please focus on rest and consider reaching out for support.',
+    minScore: 75,
+    maxScore: 100,
+  },
+];
+
+export function toBurnoutStage(score: number): BurnoutStageInfo {
+  return (
+    [...BURNOUT_STAGES].reverse().find((s) => score >= s.minScore) ||
+    BURNOUT_STAGES[0]
+  );
+}
+
 export interface BurnoutReport {
   riskScore: number;
   riskLevel: 'low' | 'moderate' | 'high' | 'critical';
+  stage: BurnoutStageInfo;
   factors: BurnoutFactor[];
   recommendations: string[];
+  personalizedInterventions: string[];
 }
 
 export function toRiskLevel(score: number): 'low' | 'moderate' | 'high' | 'critical' {
@@ -126,6 +181,7 @@ export async function computeBurnoutRisk(
     factors.reduce((sum, f) => sum + f.score, 0) / factors.length,
   );
   const riskLevel = toRiskLevel(riskScore);
+  const stage = toBurnoutStage(riskScore);
 
   const recommendations: string[] = [];
   if (checkInFreqScore > 50)
@@ -141,5 +197,26 @@ export async function computeBurnoutRisk(
   if (recommendations.length === 0)
     recommendations.push('Keep up the great work! Your patterns look healthy');
 
-  return { riskScore, riskLevel, factors, recommendations };
+  // Personalized interventions based on which factors are elevated
+  const personalizedInterventions: string[] = [];
+  if (checkInFreqScore > 60) {
+    personalizedInterventions.push('Set a daily check-in reminder at a consistent time you always have 2 minutes free.');
+  }
+  if (trendScore > 50) {
+    personalizedInterventions.push('For the next 3 days, complete only 1 quest per day — small wins rebuild momentum faster than rest alone.');
+  }
+  if (questDropScore > 60) {
+    personalizedInterventions.push('Break your active quests into smaller 15-minute micro-tasks. Progress, not perfection.');
+  }
+  if (lowWellnessScore > 60) {
+    personalizedInterventions.push('Prioritize sleep and one outdoor activity today. Physical recovery unlocks mental recovery.');
+  }
+  if (riskScore >= 75) {
+    personalizedInterventions.push('Consider speaking to someone you trust or a mental health professional. You deserve support.');
+  }
+  if (personalizedInterventions.length === 0) {
+    personalizedInterventions.push('Your patterns are healthy. Keep doing what you\'re doing and celebrate your consistency.');
+  }
+
+  return { riskScore, riskLevel, stage, factors, recommendations, personalizedInterventions };
 }
