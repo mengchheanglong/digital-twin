@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme {
   /* Discord Dark Base Colors */
@@ -34,6 +34,7 @@
 
 :root {
   --sidebar-width: 17rem;
+  --sidebar-width-collapsed: 4.5rem;
 }
 
 * {
@@ -322,3 +323,48 @@ body {
   background-size: 200% 100%;
   animation: progress-shine 2s linear infinite;
 }
+
+.ease-apple {
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* === ANIMAL PROGRESSION PHYSICS === */
+
+@keyframes animal-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.animate-animal-pulse { animation: animal-pulse 3s ease-in-out infinite; }
+
+@keyframes animal-wiggle {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+.animate-animal-wiggle { animation: animal-wiggle 1.5s ease-in-out infinite; }
+
+@keyframes animal-slide {
+  0%, 100% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+}
+.animate-animal-slide { animation: animal-slide 4s ease-in-out infinite; }
+
+@keyframes animal-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.animate-animal-float { animation: animal-float 4s ease-in-out infinite; }
+
+@keyframes animal-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-animal-hop { animation: animal-hop 0.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+
+@keyframes animal-fly {
+  0% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-4px) rotate(-6deg); }
+  50% { transform: translateY(0) rotate(0deg); }
+  75% { transform: translateY(4px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+.animate-animal-fly { animation: animal-fly 2.5s ease-in-out infinite; }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
@@ -50,7 +50,7 @@ export default function HistoryPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl animate-fade-in">
-      <section className="overflow-hidden text-left rounded-2xl border border-border bg-bg-card shadow-xl relative">
+      <section className="overflow-hidden text-left rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl shadow-card relative transition-all duration-500 ease-apple hover:shadow-stripe-hover hover:-translate-y-1">
         <div className="absolute top-0 w-full h-1/2 bg-linear-to-b from-accent-primary/5 to-transparent pointer-events-none" />
         
         <header className="flex items-center gap-3 border-b border-border/50 px-6 py-5 relative z-10">
@@ -78,7 +78,7 @@ export default function HistoryPage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {history.map((item) => (
-                <article key={item.id} className="group flex flex-col justify-between rounded-xl border border-border/50 bg-bg-panel/50 p-5 transition-all hover:border-accent-primary/30 hover:bg-bg-panel hover:shadow-lg">
+                <article key={item.id} className="group flex flex-col justify-between rounded-xl border border-white/5 bg-bg-panel/50 backdrop-blur-md p-5 transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-accent-primary/30 hover:bg-bg-panel/80 hover:shadow-stripe-hover">
                   <div className="flex items-start justify-between mb-3">
                     <p className="text-sm font-bold tracking-tight text-white group-hover:text-accent-primary transition-colors">
                       {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}

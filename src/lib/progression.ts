@@ -1,4 +1,6 @@
-﻿export type QuestDuration = 'daily' | 'weekly' | 'monthly' | 'yearly';
+import { Egg, Bug, Snail, Turtle, Rabbit, Bird } from "lucide-react";
+
+export type QuestDuration = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 /**
  * Ordered list of check-in dimension names, corresponding to ratings[0..4].
@@ -196,4 +198,77 @@ export function getMoodFromCheckIn(overallScore: number, maxScore = 25): MoodSna
   if (percentage >= 40) return { emoji: '🙂', label: 'Good' };
   if (percentage >= 20) return { emoji: '😐', label: 'Neutral' };
   return { emoji: '😟', label: 'Low' };
+}
+
+export const AVATAR_TIERS = [
+  { 
+    level: 1, 
+    name: "Dormant Seed", 
+    icon: Egg, 
+    colors: "from-slate-400 to-slate-600", 
+    bg: "bg-slate-500/10", 
+    border: "border-slate-500/30",
+    glow: "shadow-[0_0_15px_rgba(148,163,184,0.15)]",
+    text: "text-slate-300",
+    animation: "animate-animal-pulse"
+  },
+  { 
+    level: 5, 
+    name: "Hatchling", 
+    icon: Bug, 
+    colors: "from-blue-400 to-indigo-600", 
+    bg: "bg-blue-500/10", 
+    border: "border-blue-500/30",
+    glow: "shadow-[0_0_20px_rgba(59,130,246,0.3)]",
+    text: "text-blue-300",
+    animation: "animate-animal-wiggle"
+  },
+  { 
+    level: 15, 
+    name: "Wanderer", 
+    icon: Snail, 
+    colors: "from-accent-primary to-fuchsia-600", 
+    bg: "bg-accent-primary/10", 
+    border: "border-accent-primary/40",
+    glow: "shadow-[0_0_25px_rgba(139,92,246,0.4)]",
+    text: "text-accent-primary",
+    animation: "animate-animal-slide"
+  },
+  { 
+    level: 30, 
+    name: "Traveler", 
+    icon: Turtle, 
+    colors: "from-orange-400 to-red-600", 
+    bg: "bg-orange-500/10", 
+    border: "border-orange-500/40",
+    glow: "shadow-[0_0_30px_rgba(249,115,22,0.4)]",
+    text: "text-orange-400",
+    animation: "animate-animal-float"
+  },
+  { 
+    level: 50, 
+    name: "Sprinter", 
+    icon: Rabbit, 
+    colors: "from-amber-300 to-yellow-600", 
+    bg: "bg-amber-500/10", 
+    border: "border-amber-500/50",
+    glow: "shadow-[0_0_35px_rgba(245,158,11,0.5)]",
+    text: "text-amber-300",
+    animation: "animate-animal-hop"
+  },
+  { 
+    level: 100, 
+    name: "Ascendant", 
+    icon: Bird, 
+    colors: "from-emerald-300 via-cyan-400 to-blue-500", 
+    bg: "bg-cyan-500/10", 
+    border: "border-cyan-500/50",
+    glow: "shadow-[0_0_40px_rgba(6,182,212,0.6)]",
+    text: "text-cyan-300",
+    animation: "animate-animal-fly"
+  },
+];
+
+export function getAvatarTier(level: number) {
+  return [...AVATAR_TIERS].reverse().find(tier => level >= tier.level) || AVATAR_TIERS[0];
 }

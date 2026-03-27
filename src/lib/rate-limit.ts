@@ -98,7 +98,6 @@ export class MongoRateLimiter {
           key,
           purpose: this.purpose,
           resetAt,
-          count: 0,
         },
       },
       { upsert: true, new: true },

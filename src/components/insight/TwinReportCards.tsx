@@ -25,25 +25,28 @@ interface InsightStatCardProps {
 
 const statToneMap: Record<
   InsightStatCardProps["tone"],
-  { container: string; icon: string; value: string; glow: string }
+  { container: string; icon: string; value: string; glow: string; ambient: string }
 > = {
   violet: {
-    container: "border-accent-primary/20 hover:border-accent-primary/40",
-    icon: "bg-accent-primary/10 border-accent-primary/25 text-accent-hover",
+    container: "border-white/5 hover:border-accent-primary/30",
+    icon: "bg-gradient-to-br from-accent-primary/20 to-purple-500/20 border-white/10 text-accent-primary ring-1 ring-white/5",
     value: "text-white",
-    glow: "hover:shadow-[0_0_30px_rgba(139,92,246,0.08)]",
+    glow: "group-hover:shadow-[0_0_40px_rgba(139,92,246,0.15)]",
+    ambient: "bg-accent-primary/20",
   },
   emerald: {
-    container: "border-status-success/20 hover:border-status-success/40",
-    icon: "bg-status-success/10 border-status-success/25 text-status-success",
+    container: "border-white/5 hover:border-status-success/30",
+    icon: "bg-gradient-to-br from-status-success/20 to-emerald-400/20 border-white/10 text-status-success ring-1 ring-white/5",
     value: "text-white",
-    glow: "hover:shadow-[0_0_30px_rgba(52,211,153,0.08)]",
+    glow: "group-hover:shadow-[0_0_40px_rgba(52,211,153,0.15)]",
+    ambient: "bg-status-success/20",
   },
   amber: {
-    container: "border-status-warning/20 hover:border-status-warning/40",
-    icon: "bg-status-warning/10 border-status-warning/25 text-status-warning",
+    container: "border-white/5 hover:border-status-warning/30",
+    icon: "bg-gradient-to-br from-status-warning/20 to-yellow-400/20 border-white/10 text-status-warning ring-1 ring-white/5",
     value: "text-white",
-    glow: "hover:shadow-[0_0_30px_rgba(251,191,36,0.08)]",
+    glow: "group-hover:shadow-[0_0_40px_rgba(251,191,36,0.15)]",
+    ambient: "bg-status-warning/20",
   },
 };
 
@@ -60,21 +63,21 @@ export function TodayStatusCard({
   return (
     <article
       className={[
-        "relative overflow-hidden rounded-2xl border p-7 transition-all duration-300",
+        "group relative overflow-hidden rounded-2xl border p-7 transition-all duration-500 ease-apple backdrop-blur-xl",
         completed
-          ? "bg-bg-card border-status-success/25 hover:border-status-success/45 hover:shadow-[0_0_50px_rgba(52,211,153,0.07)]"
-          : "bg-bg-card border-status-warning/30 hover:border-status-warning/50 hover:shadow-[0_0_50px_rgba(251,191,36,0.07)]",
+          ? "bg-bg-card border-white/5 hover:border-status-success/30 shadow-card hover:shadow-stripe-hover hover:-translate-y-1"
+          : "bg-bg-card border-white/5 hover:border-status-warning/30 shadow-card hover:shadow-stripe-hover hover:-translate-y-1",
       ].join(" ")}
     >
       {/* Ambient glow blobs */}
       <div
         className={[
-          "pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full blur-3xl opacity-60",
-          completed ? "bg-status-success/15" : "bg-status-warning/12",
+          "pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-[60px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-70 group-hover:scale-110",
+          completed ? "bg-status-success/30" : "bg-status-warning/30",
         ].join(" ")}
       />
       {!completed && (
-        <div className="twin-waiting-aura pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-status-warning/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-status-warning/20 blur-[50px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-60 group-hover:scale-110" />
       )}
 
       <div className="relative z-10">
@@ -134,10 +137,10 @@ export function TodayStatusCard({
             <button
               type="button"
               onClick={onStartCheckIn}
-              className="twin-cta-pulse inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent-primary to-accent-hover px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.01] active:scale-[0.99]"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent-primary to-purple-500 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 ease-apple hover:scale-[1.02] hover:shadow-glow active:scale-[0.97] ring-1 ring-white/20 shadow-sm"
             >
               Start Daily Check-In
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-apple group-hover:translate-x-1" />
             </button>
           </div>
         )}
@@ -158,13 +161,13 @@ export function ReflectionCard({ reflection, className = "" }: ReflectionCardPro
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-2xl border border-border bg-bg-card p-6 shadow-xl transition-all duration-300",
-        "hover:border-accent-primary/35 hover:shadow-[0_0_40px_rgba(139,92,246,0.08)]",
+        "group relative overflow-hidden rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple",
+        "hover:border-accent-primary/30 hover:shadow-stripe-hover hover:-translate-y-1",
         className,
       ].join(" ")}
     >
       {/* Background glow */}
-      <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-accent-primary/5 blur-3xl transition-opacity duration-500 group-hover:bg-accent-primary/8" />
+      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-70 group-hover:scale-110" />
 
       <div className="relative z-10">
         {/* Badge */}
@@ -191,29 +194,31 @@ export function InsightStatCard({ label, value, icon, tone }: InsightStatCardPro
   return (
     <article
       className={[
-        "group relative rounded-2xl border bg-bg-card p-5 shadow-lg transition-all duration-300 overflow-hidden",
-        "hover:-translate-y-0.5 hover:shadow-xl",
+        "group relative rounded-2xl border bg-bg-card/80 backdrop-blur-xl p-5 shadow-card transition-all duration-500 ease-apple overflow-hidden",
+        "hover:-translate-y-1 hover:shadow-stripe-hover",
         toneStyles.container,
-        toneStyles.glow,
       ].join(" ")}
     >
-      <div className="flex items-start justify-between mb-4">
+      {/* Ambient background glow */}
+      <div className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-60 group-hover:scale-110 ${toneStyles.ambient}`} />
+
+      <div className="flex items-start justify-between mb-4 relative z-10">
         <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">{label}</p>
         <span
           className={[
-            "inline-flex items-center justify-center rounded-xl border p-2 transition-transform duration-300 group-hover:scale-110",
+            "inline-flex items-center justify-center rounded-xl p-2 shadow-sm transition-all duration-500 ease-spring group-hover:scale-110 group-hover:rotate-3",
             toneStyles.icon,
           ].join(" ")}
         >
           {icon}
         </span>
       </div>
-      <p className={["truncate text-2xl font-bold tracking-tight", toneStyles.value].join(" ")}>
+      <p className={["truncate text-2xl font-bold tracking-tight relative z-10", toneStyles.value].join(" ")}>
         {value}
       </p>
 
       {/* Subtle background shimmer on hover */}
-      <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/[0.015] to-transparent transition-transform duration-700 group-hover:translate-x-[100%]" />
+      <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/[0.04] to-transparent transition-transform duration-700 ease-apple group-hover:translate-x-[100%]" />
     </article>
   );
 }

@@ -38,6 +38,10 @@ const colorMap: Record<StatColor, { iconBg: string; iconColor: string }> = {
 /**
  * StatCard - Displays individual statistics with icon, value, and label
  * Used in a 2x2 grid layout for main stats
+
+/**
+ * StatCard - Displays individual statistics with icon, value, and label
+ * Used in a 2x2 grid layout for main stats
  */
 export function StatCard({ icon, value, label, color, trend }: StatCardProps) {
   const colors = colorMap[color];
@@ -46,16 +50,19 @@ export function StatCard({ icon, value, label, color, trend }: StatCardProps) {
   return (
     <div
       className={`
-        group relative flex flex-col rounded-2xl p-4 
-        bg-bg-panel border border-border/50 backdrop-blur-sm 
-        hover:bg-bg-panel/80 hover:border-accent-primary/30 transition-all duration-300
-        hover:-translate-y-0.5 hover:shadow-xl
+        group relative flex flex-col rounded-2xl p-5 
+        bg-bg-card/80 border border-white/5 backdrop-blur-xl 
+        hover:border-accent-primary/30 transition-all duration-500 ease-apple
+        hover:-translate-y-1 hover:shadow-stripe-hover shadow-card overflow-hidden
       `}
     >
+      {/* Ambient background glow */}
+      <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/5 blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-100 group-hover:bg-accent-primary/20" />
       {/* Icon Wrapper */}
       <div
         className={`
-          flex h-10 w-10 items-center justify-center rounded-lg
+          flex h-11 w-11 items-center justify-center rounded-xl shadow-inner ring-1 ring-white/10
+          transition-transform duration-500 ease-spring group-hover:scale-110 group-hover:rotate-3
           ${colors.iconBg}
         `}
       >

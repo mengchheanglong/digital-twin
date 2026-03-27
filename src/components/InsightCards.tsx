@@ -48,9 +48,6 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
       if (!headers) return;
 
       try {
-        if (!insight) {
-          setLoading(true);
-        }
         setError(null);
         const response = await axios.get("/api/insight/state", { headers });
         
@@ -68,7 +65,7 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
       } finally {
         setLoading(false);
       }
-    }, [requireAuth, insight]);
+    }, [requireAuth]);
 
     useImperativeHandle(ref, () => ({
       refresh: fetchInsight,
@@ -148,29 +145,41 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
     };
 
     return (
-      <div className={`space-y-5 ${className}`}>
-        <TodayStatusCard
-          completed={todaySnapshot.isComplete}
-          activityCount={todaySnapshot.activityCount}
-          mainTheme={todaySnapshot.mainTheme}
-          summary={todaySnapshot.summary}
-          onStartCheckIn={() => router.push("/dashboard/checkin")}
-        />
+      <div className={`grid gap-5 lg:grid-cols-3 ${className}`}>
+        {/* Left Column (2/3 width) - Status & Reflection */}
+        <div className="flex flex-col gap-5 lg:col-span-2">
+          <TodayStatusCard
+            completed={todaySnapshot.isComplete}
+            activityCount={todaySnapshot.activityCount}
+            mainTheme={todaySnapshot.mainTheme}
+            summary={todaySnapshot.summary}
+            onStartCheckIn={() => router.push("/dashboard/checkin")}
+          />
 
-        {todaySnapshot.isComplete ? (
-          <ReflectionCard className="animate-fade-in" reflection={insight.lastReflection} />
-        ) : (
-          <div className="animate-fade-in rounded-xl border border-border bg-bg-panel/75 px-4 py-3 text-sm text-text-secondary transition-all duration-300 hover:-translate-y-0.5 hover:border-accent-primary/30 hover:bg-[#171b2c] hover:shadow-[0_12px_30px_rgba(0,0,0,0.25)]">
-            <span className="inline-flex items-center gap-2 font-medium text-accent-glow">
-              <Lock className="h-4 w-4" />
-              Daily Reflection unlocks after today&apos;s check-in.
-            </span>
+          {todaySnapshot.isComplete ? (
+            <ReflectionCard
+              className="flex-1 animate-fade-in"
+              reflection={insight.lastReflection}
+            />
+          ) : (
+            <div className="flex-1 animate-fade-in rounded-2xl border border-white/5 bg-bg-card/40 backdrop-blur-xl p-8 flex flex-col items-center justify-center text-center transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover group">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary/10 text-accent-primary ring-1 ring-white/10 shadow-inner group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-500 ease-spring">
+                <Lock className="h-6 w-6" />
+              </div>
+              <h3 className="mb-1.5 text-lg font-bold text-white tracking-tight">Reflection Locked</h3>
+              <p className="text-sm text-text-secondary max-w-sm">
+                Your twin needs today&apos;s check-in to generate deep personalized analysis.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (1/3 width) - Insight Stats */}
+        <section className="flex flex-col gap-4">
+          <div>
+            <InsightSectionHeader />
           </div>
-        )}
-
-        <section className="space-y-3">
-          <InsightSectionHeader />
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="flex flex-1 flex-col gap-4">
             <InsightStatCard
               label="Main Focus"
               value={insight.topInterest || "General"}

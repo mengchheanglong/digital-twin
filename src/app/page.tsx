@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { Activity, ArrowRight, Brain, CheckCircle, Eye, EyeOff, Lock, Mail, Sparkles, Swords, Timer, TrendingUp } from "lucide-react";
+import { Activity, ArrowRight, Brain, CheckCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { validatePassword } from "@/lib/validation";
 
 type FlashType = "success" | "error";
@@ -17,14 +17,6 @@ interface FlashState {
 function resolveMode(value: string | null): AuthMode {
   return value === "signup" ? "signup" : "signin";
 }
-
-const FEATURES = [
-  { icon: <CheckCircle className="h-4 w-4 text-status-success" />, text: "Daily wellness check-ins & mood tracking" },
-  { icon: <Sparkles className="h-4 w-4 text-accent-primary" />, text: "AI companion powered by your data" },
-  { icon: <Swords className="h-4 w-4 text-amber-400" />, text: "Gamified quest system for your goals" },
-  { icon: <TrendingUp className="h-4 w-4 text-cyan-400" />, text: "Deep analytics & burnout detection" },
-  { icon: <Timer className="h-4 w-4 text-fuchsia-400" />, text: "Focus sessions with smart insights" },
-];
 
 export default function AuthPage() {
   const router = useRouter();
@@ -62,8 +54,8 @@ export default function AuthPage() {
     return () => { if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current); };
   }, []);
 
-  const pageTitle = useMemo(() => isLogin ? "Welcome back" : "Create your account", [isLogin]);
-  const pageSubtitle = useMemo(() => isLogin ? "Sign in to your Digital Twin" : "Initialize your Digital Twin", [isLogin]);
+  const pageTitle = useMemo(() => isLogin ? "Welcome back" : "Create an account", [isLogin]);
+  const pageSubtitle = useMemo(() => isLogin ? "Enter your details to access your account." : "Start discovering insights from your data.", [isLogin]);
 
   const setAuthMode = (nextMode: AuthMode) => {
     if (redirectTimerRef.current) { clearTimeout(redirectTimerRef.current); redirectTimerRef.current = null; }
@@ -93,169 +85,75 @@ export default function AuthPage() {
       if (!token) { setFlash({ type: "error", text: "Authentication failed. Please retry." }); return; }
       localStorage.setItem("token", token);
       if (isLogin) { router.replace("/dashboard/insight"); return; }
-      setFlash({ type: "success", text: "Account created! Loading your twin..." });
-      redirectTimerRef.current = setTimeout(() => { router.replace("/dashboard/insight"); }, 700);
+      setFlash({ type: "success", text: "Success. Initializing workspace..." });
+      redirectTimerRef.current = setTimeout(() => { router.replace("/dashboard/insight"); }, 900);
     } catch (error) {
       const message = axios.isAxiosError(error) && error.response?.data?.msg
         ? String(error.response.data.msg)
         : isLogin ? "Invalid credentials. Please try again." : "Registration failed. Please retry.";
       setFlash({ type: "error", text: message });
     } finally {
-      setLoading(false);
+      if (!isLogin) setLoading(false);
+      else {
+          setTimeout(() => { if (!redirectTimerRef.current) setLoading(false); }, 500);
+      }
     }
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-bg-base flex">
-      {/* Animated Background Orbs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-accent-primary/8 blur-[120px] animate-float" style={{ animationDelay: "0s" }} />
-        <div className="absolute top-1/2 -right-40 h-[500px] w-[500px] rounded-full bg-fuchsia-500/6 blur-[120px] animate-float" style={{ animationDelay: "2s" }} />
-        <div className="absolute -bottom-20 left-1/3 h-[400px] w-[400px] rounded-full bg-indigo-500/6 blur-[100px] animate-float" style={{ animationDelay: "1s" }} />
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage: "linear-gradient(rgba(139,92,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.5) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
+    <div className="relative flex min-h-screen items-center justify-center bg-[#0A0A0A] selection:bg-accent-primary/30 selection:text-white px-4 sm:px-6">
+      
+      {/* Vercel/Linear Style Ambient Glow: Extremely massive, highly blurred, dark gradient centered behind the form */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+        <div className="h-[40rem] w-[40rem] rounded-full bg-accent-primary/10 blur-[120px] mix-blend-screen" />
       </div>
 
-      {/* Left Panel — Brand & Features (desktop only) */}
-      <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] flex-col justify-between p-12 xl:p-16 relative z-10">
-        {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]">
-            <Brain className="h-5 w-5 text-white" />
+      <div className="relative z-10 w-full max-w-[400px]">
+        
+        {/* Logo Placement Centered */}
+        <div className="mb-8 flex flex-col items-center justify-center text-center">
+          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-primary to-purple-600 shadow-[0_0_40px_rgba(139,92,246,0.3)] ring-1 ring-white/20 relative">
+            <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
+             <Brain className="h-6 w-6 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-white">Digital Twin</span>
+          <h1 className="text-2xl font-bold tracking-tight text-[#EDEDED]">{pageTitle}</h1>
+          <p className="mt-2 text-[14px] text-[#A1A1AA] font-normal">{pageSubtitle}</p>
         </div>
 
-        {/* Main Hero */}
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent-primary/30 bg-accent-primary/10 px-4 py-1.5 text-xs font-semibold text-accent-glow">
-              <Sparkles className="h-3.5 w-3.5" />
-              AI-powered personal intelligence
-            </div>
-            <h1 className="text-4xl xl:text-5xl font-bold leading-tight tracking-tight text-white">
-              Your data, understood
-              <br />
-              <span className="text-gradient">by your digital twin.</span>
-            </h1>
-            <p className="text-base xl:text-lg text-text-secondary leading-relaxed max-w-md">
-              Track mood, build habits, and gain AI-driven insights about yourself — every single day.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {FEATURES.map((feature, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 rounded-xl bg-bg-panel/60 border border-border/50 px-4 py-3 backdrop-blur-sm"
-                style={{ animationDelay: `${i * 80}ms` }}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bg-card/80">
-                  {feature.icon}
-                </div>
-                <span className="text-sm font-medium text-text-secondary">{feature.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Subtle bottom decoration */}
-        <p className="text-xs text-text-muted">© {new Date().getFullYear()} Digital Twin. All rights reserved.</p>
-      </div>
-
-      {/* Right Panel — Auth Form */}
-      <div className="flex w-full lg:w-[48%] xl:w-[45%] items-center justify-center px-6 py-10 relative z-10">
-        <div className="w-full max-w-[420px]">
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center justify-center gap-3 mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary shadow-[0_0_20px_rgba(139,92,246,0.5)]">
-              <Brain className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-white">Digital Twin</span>
-          </div>
-
-          {/* Card */}
-          <div className="rounded-2xl border border-border bg-bg-card shadow-2xl shadow-black/30 overflow-hidden">
-            {/* Card Header with tabs */}
-            <div className="p-6 pb-0">
-              <h2 className="text-xl font-bold text-white">{pageTitle}</h2>
-              <p className="mt-1 text-sm text-text-secondary">{pageSubtitle}</p>
-
-              {/* Tab Switcher */}
-              <div className="mt-5 flex rounded-xl border border-border bg-bg-panel p-1 text-sm font-semibold relative">
-                <button
-                  type="button"
-                  className={[
-                    "w-1/2 rounded-lg py-2 text-sm font-semibold transition-all duration-200 relative z-10",
-                    isLogin ? "text-white" : "text-text-muted hover:text-text-secondary",
-                  ].join(" ")}
-                  onClick={() => setAuthMode("signin")}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  className={[
-                    "w-1/2 rounded-lg py-2 text-sm font-semibold transition-all duration-200 relative z-10",
-                    !isLogin ? "text-white" : "text-text-muted hover:text-text-secondary",
-                  ].join(" ")}
-                  onClick={() => setAuthMode("signup")}
-                >
-                  Sign Up
-                </button>
-                <div
-                  className="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-bg-card shadow-sm border border-border/60 transition-transform duration-300 ease-in-out"
-                  style={{ transform: isLogin ? "translateX(0)" : "translateX(calc(100% + 8px))", left: "4px" }}
+        {/* Auth Floating Card */}
+        <div className="rounded-2xl border border-[#27272A] bg-[#121212]/80 p-8 shadow-2xl backdrop-blur-2xl">
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            
+            {/* Minimalist Input Groups */}
+            <div className="space-y-4">
+              <div className="space-y-2 relative">
+                <label className="text-[13px] font-medium text-[#EDEDED]" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                  className="w-full rounded-xl border border-[#27272A] bg-[#0A0A0A]/50 px-4 py-2.5 text-[14px] text-[#EDEDED] placeholder-[#71717A] shadow-sm transition-colors focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary hovering:border-[#3F3F46]"
+                  required
                 />
               </div>
-            </div>
 
-            {/* Form Body */}
-            <form className="p-6 space-y-4" onSubmit={handleSubmit}>
-              {/* Email */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="email">
-                  Email address
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted">
-                    <Mail className="h-4 w-4" />
-                  </div>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    className="w-full rounded-xl bg-bg-panel border border-border pl-10 pr-4 py-2.5 text-sm text-white placeholder-text-muted hover:border-accent-primary/40 focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1.5">
+              <div className="space-y-2 relative">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="password">
+                  <label className="text-[13px] font-medium text-[#EDEDED]" htmlFor="password">
                     Password
                   </label>
                   {isLogin && (
-                    <a href="/auth/forgot-password" className="text-xs font-medium text-accent-primary hover:text-accent-hover transition-colors">
+                    <a href="/auth/forgot-password" className="text-[13px] font-medium text-[#A1A1AA] hover:text-[#EDEDED] transition-colors">
                       Forgot password?
                     </a>
                   )}
                 </div>
                 <div className="relative">
-                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted">
-                    <Lock className="h-4 w-4" />
-                  </div>
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -263,13 +161,13 @@ export default function AuthPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     autoComplete={isLogin ? "current-password" : "new-password"}
-                    className="w-full rounded-xl bg-bg-panel border border-border pl-10 pr-11 py-2.5 text-sm text-white placeholder-text-muted hover:border-accent-primary/40 focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all outline-none"
+                    className="w-full rounded-xl border border-[#27272A] bg-[#0A0A0A]/50 px-4 py-2.5 pr-10 text-[14px] text-[#EDEDED] placeholder-[#71717A] shadow-sm transition-colors focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary hovering:border-[#3F3F46]"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717A] hover:text-[#EDEDED] transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -277,16 +175,13 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              {/* Confirm Password */}
-              {!isLogin && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="confirmPassword">
-                    Confirm password
+              {/* Confirm Password (smooth expanding accordion style) */}
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isLogin ? 'h-0 opacity-0 m-0' : 'h-[72px] opacity-100 mt-4'}`}>
+                <div className="space-y-2 h-full">
+                  <label className="text-[13px] font-medium text-[#EDEDED]" htmlFor="confirmPassword">
+                    Confirm Password
                   </label>
                   <div className="relative">
-                    <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted">
-                      <Lock className="h-4 w-4" />
-                    </div>
                     <input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
@@ -294,67 +189,72 @@ export default function AuthPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
                       autoComplete="new-password"
-                      className="w-full rounded-xl bg-bg-panel border border-border pl-10 pr-11 py-2.5 text-sm text-white placeholder-text-muted hover:border-accent-primary/40 focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all outline-none"
-                      required
+                      className="w-full rounded-xl border border-[#27272A] bg-[#0A0A0A]/50 px-4 py-2.5 pr-10 text-[14px] text-[#EDEDED] placeholder-[#71717A] shadow-sm transition-colors focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary hovering:border-[#3F3F46]"
+                      required={!isLogin}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword((v) => !v)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717A] hover:text-[#EDEDED] transition-colors"
                       tabIndex={-1}
                     >
                       {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Flash Message */}
+            {flash && (
+              <div className={[
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] font-medium transition-all animate-in fade-in slide-in-from-top-1",
+                flash.type === "success"
+                  ? "border-[#059669]/30 bg-[#059669]/10 text-[#10B981]"
+                  : "border-[#E11D48]/30 bg-[#E11D48]/10 text-[#F43F5E]",
+              ].join(" ")}>
+                {flash.type === "error" && <Activity className="h-4 w-4 shrink-0" />}
+                {flash.type === "success" && <CheckCircle className="h-4 w-4 shrink-0" />}
+                <span>{flash.text}</span>
+              </div>
+            )}
+
+            {/* Primary Action Button - High Contrast Vercel Style */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[14px] font-medium text-black transition-all hover:bg-[#E4E4E7] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-black" />
+              ) : (
+                <>
+                  {isLogin ? "Sign In" : "Continue"}
+                  <ArrowRight className="h-4 w-4" />
+                </>
               )}
+            </button>
+          </form>
+        </div>
 
-              {/* Flash Message */}
-              {flash && (
-                <div className={[
-                  "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm animate-fade-in",
-                  flash.type === "success"
-                    ? "border-status-success/20 bg-status-success/10 text-status-success"
-                    : "border-status-error/20 bg-status-error/10 text-status-error",
-                ].join(" ")}>
-                  {flash.type === "error" && <Activity className="h-4 w-4 mt-0.5 shrink-0" />}
-                  {flash.type === "success" && <CheckCircle className="h-4 w-4 mt-0.5 shrink-0" />}
-                  <span>{flash.text}</span>
-                </div>
-              )}
+        {/* Footer Toggle */}
+        <p className="mt-8 text-center text-[13px] text-[#A1A1AA]">
+          {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <button
+            type="button"
+            onClick={() => setAuthMode(isLogin ? "signup" : "signin")}
+            className="font-medium text-[#EDEDED] hover:underline underline-offset-4 transition-all"
+          >
+            {isLogin ? "Sign up" : "Sign in"}
+          </button>
+        </p>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full overflow-hidden rounded-xl bg-accent-primary px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-accent-primary/25 hover:bg-accent-hover transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    <span>Processing…</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{isLogin ? "Sign In" : "Create Account"}</span>
-                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-                  </>
-                )}
-              </button>
-
-              {/* Toggle mode link */}
-              <p className="text-center text-xs text-text-muted">
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <button
-                  type="button"
-                  onClick={() => setAuthMode(isLogin ? "signup" : "signin")}
-                  className="font-semibold text-accent-primary hover:text-accent-hover transition-colors"
-                >
-                  {isLogin ? "Sign up" : "Sign in"}
-                </button>
-              </p>
-            </form>
-          </div>
+        <div className="mt-12 flex justify-center space-x-4 text-[13px] text-[#71717A]">
+           <a href="#" className="hover:text-[#D4D4D8] transition-colors">Privacy</a>
+           <span>&bull;</span>
+           <a href="#" className="hover:text-[#D4D4D8] transition-colors">Terms</a>
+           <span>&bull;</span>
+           <a href="#" className="hover:text-[#D4D4D8] transition-colors">Security</a>
         </div>
       </div>
     </div>

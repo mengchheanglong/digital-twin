@@ -38,22 +38,26 @@ export function AchievementCard({
   return (
     <div
       className={`
-        group relative flex items-start gap-4 rounded-2xl p-4
-        transition-all duration-300 hover:bg-bg-panel/40
+        group relative flex items-start gap-4 rounded-2xl p-5
+        transition-all duration-500 ease-apple backdrop-blur-xl overflow-hidden shadow-card
         ${isUnlocked
-          ? "border border-border/50 bg-bg-panel/20 hover:border-accent-primary/30"
-          : "border border-dashed border-border/30 bg-bg-panel/5 opacity-60 hover:opacity-80 hover:border-border/50"
+          ? "border border-white/5 bg-bg-card/80 hover:border-accent-primary/40 hover:shadow-stripe-hover hover:-translate-y-1"
+          : "border border-dashed border-white/10 bg-bg-panel/10 opacity-70 hover:opacity-100 hover:border-white/20 hover:shadow-stripe hover:-translate-y-0.5"
         }
       `}
     >
+      {/* Ambient glass glow */}
+      {isUnlocked && (
+        <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-accent-primary/20 blur-[50px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-60" />
+      )}
       {/* Badge Icon */}
       <div
         className={`
-          flex h-12 w-12 shrink-0 items-center justify-center rounded-full
-          transition-transform duration-300 group-hover:scale-110
+          relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-inner ring-1 ring-white/10
+          transition-transform duration-500 ease-spring group-hover:scale-110 group-hover:rotate-6
           ${isUnlocked
-            ? colorClass || "bg-accent-primary/10 text-accent-primary"
-            : "bg-bg-base text-text-muted grayscale"
+            ? colorClass || "bg-gradient-to-br from-accent-primary/20 to-purple-500/20 text-accent-primary"
+            : "bg-bg-base/50 text-text-muted grayscale"
           }
         `}
       >

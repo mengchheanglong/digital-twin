@@ -1,4 +1,4 @@
-﻿/** @type {import('tailwindcss').Config} */
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -31,6 +31,13 @@ module.exports = {
       boxShadow: {
         card: "0 10px 30px -18px rgba(15, 23, 42, 0.24)",
         lift: "0 18px 34px -22px rgba(91, 141, 239, 0.38)",
+        stripe: "0 50px 100px -20px rgba(50,50,93,0.15), 0 30px 60px -30px rgba(0,0,0,0.2), inset 0 -2px 6px 0 rgba(10,37,64,0.1)",
+        "stripe-hover": "0 50px 100px -20px rgba(50,50,93,0.25), 0 30px 60px -30px rgba(0,0,0,0.3), inset 0 -2px 6px 0 rgba(10,37,64,0.1)",
+        glow: "0 0 20px rgba(167, 139, 250, 0.15), inset 0 0 10px rgba(167, 139, 250, 0.1)",
+      },
+      transitionTimingFunction: {
+        apple: "cubic-bezier(0.32, 0.72, 0, 1)",
+        spring: "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
       },
       keyframes: {
         fadeIn: {

@@ -176,7 +176,9 @@ function CorrelationCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-card p-6">
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<BarChart3 className="h-5 w-5" />}
         title="Check-in × Quest Correlation"
@@ -247,7 +249,9 @@ function BurnoutCard({
 
   if (!report)
     return (
-      <div className="rounded-2xl border border-border bg-bg-card p-6">
+      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
         <p className="text-sm text-text-muted">
           Could not load burnout data.
         </p>
@@ -256,8 +260,10 @@ function BurnoutCard({
 
   return (
     <div
-      className={`rounded-2xl border p-6 ${burnoutBg(report.riskLevel)}`}
+      className={`group relative rounded-2xl border backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden ${burnoutBg(report.riskLevel)}`}
     >
+      {/* Ambient hover aura specific to burnout risk */}
+      <div className={`pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-40 ${burnoutBg(report.riskLevel).split(' ')[0]}`} />
       <SectionHeader
         icon={<AlertTriangle className="h-5 w-5" />}
         title="Burnout Risk"
@@ -361,7 +367,9 @@ function MoodPatternsCard({
 
   if (!patterns)
     return (
-      <div className="rounded-2xl border border-border bg-bg-card p-6">
+      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
         <p className="text-sm text-text-muted">
           Could not load mood patterns.
         </p>
@@ -376,7 +384,9 @@ function MoodPatternsCard({
   );
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-card p-6">
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Brain className="h-5 w-5" />}
         title="Mood Patterns"
@@ -468,7 +478,9 @@ function StreaksCard({
 
   if (!report)
     return (
-      <div className="rounded-2xl border border-border bg-bg-card p-6">
+      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
         <p className="text-sm text-text-muted">
           Could not load streak data.
         </p>
@@ -476,7 +488,9 @@ function StreaksCard({
     );
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-card p-6">
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Flame className="h-5 w-5" />}
         title="Activity Streaks"
@@ -534,7 +548,9 @@ function WeeklyReportCard({
 
   if (!report)
     return (
-      <div className="rounded-2xl border border-border bg-bg-card p-6">
+      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
         <p className="text-sm text-text-muted">
           Could not load weekly report.
         </p>
@@ -544,7 +560,9 @@ function WeeklyReportCard({
   const { stats } = report;
 
   return (
-    <div className="rounded-2xl border border-border bg-bg-card p-6">
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      {/* Ambient hover glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <div className="flex items-start justify-between mb-5">
         <SectionHeader
           icon={<Calendar className="h-5 w-5" />}
@@ -635,9 +653,8 @@ export default function AnalyticsPage() {
   const [loadingStreaks, setLoadingStreaks] = useState(true);
   const [loadingWeekly, setLoadingWeekly] = useState(true);
 
-  const headers = getAuthHeaders();
-
   const fetchCorrelation = useCallback(async () => {
+    const headers = getAuthHeaders();
     if (!headers) return;
     setLoadingCorr(true);
     try {
@@ -654,9 +671,10 @@ export default function AnalyticsPage() {
     } finally {
       setLoadingCorr(false);
     }
-  }, [headers]);
+  }, [getAuthHeaders]);
 
   const fetchBurnout = useCallback(async () => {
+    const headers = getAuthHeaders();
     if (!headers) return;
     setLoadingBurnout(true);
     try {
@@ -671,9 +689,10 @@ export default function AnalyticsPage() {
     } finally {
       setLoadingBurnout(false);
     }
-  }, [headers]);
+  }, [getAuthHeaders]);
 
   const fetchMoodPatterns = useCallback(async () => {
+    const headers = getAuthHeaders();
     if (!headers) return;
     setLoadingMood(true);
     try {
@@ -688,9 +707,10 @@ export default function AnalyticsPage() {
     } finally {
       setLoadingMood(false);
     }
-  }, [headers]);
+  }, [getAuthHeaders]);
 
   const fetchStreaks = useCallback(async () => {
+    const headers = getAuthHeaders();
     if (!headers) return;
     setLoadingStreaks(true);
     try {
@@ -705,9 +725,10 @@ export default function AnalyticsPage() {
     } finally {
       setLoadingStreaks(false);
     }
-  }, [headers]);
+  }, [getAuthHeaders]);
 
   const fetchWeeklyReport = useCallback(async () => {
+    const headers = getAuthHeaders();
     if (!headers) return;
     setLoadingWeekly(true);
     try {
@@ -722,7 +743,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoadingWeekly(false);
     }
-  }, [headers]);
+  }, [getAuthHeaders]);
 
   useEffect(() => {
     void fetchCorrelation();
@@ -755,30 +776,38 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Top row: Correlation + Burnout */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <CorrelationCard
-          report={correlation}
-          loading={loadingCorr}
-        />
-        <BurnoutCard report={burnout} loading={loadingBurnout} />
-      </div>
+      <div className="grid gap-5 md:grid-cols-3">
+        {/* Weekly Report Hero Row */}
+        <div className="md:col-span-3">
+          <WeeklyReportCard
+            report={weeklyReport}
+            loading={loadingWeekly}
+            onRefresh={fetchWeeklyReport}
+          />
+        </div>
 
-      {/* Middle row: Mood Patterns + Streaks */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <MoodPatternsCard
-          patterns={moodPatterns}
-          loading={loadingMood}
-        />
-        <StreaksCard report={streaks} loading={loadingStreaks} />
-      </div>
+        {/* Row 2: Correlation (2x wide) vs Burnout */}
+        <div className="md:col-span-2">
+          <CorrelationCard
+            report={correlation}
+            loading={loadingCorr}
+          />
+        </div>
+        <div className="md:col-span-1">
+          <BurnoutCard report={burnout} loading={loadingBurnout} />
+        </div>
 
-      {/* Weekly Report */}
-      <WeeklyReportCard
-        report={weeklyReport}
-        loading={loadingWeekly}
-        onRefresh={fetchWeeklyReport}
-      />
+        {/* Row 3: Mood vs Streaks (2x wide) */}
+        <div className="md:col-span-1">
+          <MoodPatternsCard
+            patterns={moodPatterns}
+            loading={loadingMood}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <StreaksCard report={streaks} loading={loadingStreaks} />
+        </div>
+      </div>
     </div>
   );
 }

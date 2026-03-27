@@ -2,6 +2,7 @@
 
 import React from "react";
 import { User } from "lucide-react";
+import { getAvatarTier } from "@/lib/progression";
 
 export interface ProfileHeaderProps {
   name: string;
@@ -24,6 +25,9 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   // Calculate XP percentage
   const xpPercent = requiredXP > 0 ? Math.round((currentXP / requiredXP) * 100) : 0;
+  
+  const tier = getAvatarTier(level);
+  const TierIcon = tier.icon;
 
   return (
     <section className="relative flex flex-col items-center overflow-hidden rounded-2xl border border-border bg-bg-card p-8 shadow-xl">
@@ -33,15 +37,15 @@ export function ProfileHeader({
       {/* Avatar Ring with Glow Effect */}
       <div className="relative z-10 w-full flex justify-center">
         <div
-          className="flex h-28 w-28 items-center justify-center rounded-full bg-linear-to-br from-accent-primary to-fuchsia-500 p-[3px] shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+          className={`flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br ${tier.colors} p-[3px] ${tier.glow}`}
         >
           <div className="flex h-full w-full items-center justify-center rounded-full bg-bg-base border-[3px] border-bg-card">
-            <User className="h-12 w-12 text-white" strokeWidth={1.8} />
+            <TierIcon className={`h-12 w-12 ${tier.text} ${tier.animation}`} strokeWidth={1.8} />
           </div>
         </div>
 
         {/* Level Badge */}
-        <div className="absolute -bottom-3 flex items-center justify-center whitespace-nowrap rounded-full border-[3px] border-bg-card bg-accent-primary px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-lg">
+        <div className={`absolute -bottom-3 flex items-center justify-center whitespace-nowrap rounded-full border-[3px] border-bg-card bg-gradient-to-r ${tier.colors} px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-lg`}>
           <span>Lvl {level}</span>
         </div>
       </div>
