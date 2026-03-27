@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import InsightCards, { InsightCardsHandle } from "@/components/InsightCards";
+import ForecastPanel from "@/components/insight/ForecastPanel";
+import WeeklyPlanCard from "@/components/insight/WeeklyPlanCard";
 import { Flame, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -81,6 +83,12 @@ export default function InsightPage() {
 
       {/* Insight Cards */}
       <InsightCards ref={insightCardsRef} />
+
+      {/* 7-Day Wellness Forecast */}
+      <ForecastPanel />
+
+      {/* Weekly Blueprint */}
+      <WeeklyPlanCard />
     </div>
   );
 }

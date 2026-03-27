@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Brain,
   Calendar,
+  Flag,
   Loader2,
+  Plus,
   RefreshCw,
   Sparkles,
   TrendingDown,
   TrendingUp,
+  Trash2,
   Minus,
   Zap,
   Activity,
@@ -16,6 +19,7 @@ import {
   Users,
   Sun,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LineChart,
   Line,
@@ -44,6 +48,15 @@ interface PatternInsight {
   description: string;
   type: "strength" | "opportunity" | "pattern" | "warning";
   dimension?: string;
+}
+
+interface LifeEvent {
+  _id: string;
+  title: string;
+  category: string;
+  notes: string;
+  date: string;
+  dayKey: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -241,6 +254,7 @@ function HeatCell({ day }: { day: TimelineDay }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TimelinePage() {
+  const { getAuthHeaders } = useAuth();
   const [days, setDays] = useState<TimelineDay[]>([]);
   const [insights, setInsights] = useState<PatternInsight[]>([]);
   const [chartWindow, setChartWindow] = useState<7 | 14 | 30>(30);
@@ -249,13 +263,23 @@ export default function TimelinePage() {
   const [errorDays, setErrorDays] = useState<string | null>(null);
   const [errorInsights, setErrorInsights] = useState<string | null>(null);
 
+  // Life events state
+  const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventCategory, setNewEventCategory] = useState("personal");
+  const [newEventNotes, setNewEventNotes] = useState("");
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+
   const fetchDays = useCallback(async () => {
     setLoadingDays(true);
     setErrorDays(null);
     try {
-      const token = localStorage.getItem("token");
+      const headers = getAuthHeaders();
       const res = await fetch("/api/timeline/checkin", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: headers ?? {},
         cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to load timeline data");
@@ -266,15 +290,15 @@ export default function TimelinePage() {
     } finally {
       setLoadingDays(false);
     }
-  }, []);
+  }, [getAuthHeaders]);
 
   const fetchInsights = useCallback(async () => {
     setLoadingInsights(true);
     setErrorInsights(null);
     try {
-      const token = localStorage.getItem("token");
+      const headers = getAuthHeaders();
       const res = await fetch("/api/timeline/insights", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: headers ?? {},
         cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to load insights");
@@ -285,12 +309,64 @@ export default function TimelinePage() {
     } finally {
       setLoadingInsights(false);
     }
-  }, []);
+  }, [getAuthHeaders]);
+
+  const fetchLifeEvents = useCallback(async () => {
+    setLoadingEvents(true);
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+      const res = await fetch("/api/life-events?limit=50", { headers, cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { events: LifeEvent[] };
+        setLifeEvents(data.events ?? []);
+      }
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, [getAuthHeaders]);
+
+  const handleAddEvent = async () => {
+    if (!newEventTitle.trim()) return;
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    setAddingEvent(true);
+    try {
+      const res = await fetch("/api/life-events", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newEventTitle,
+          category: newEventCategory,
+          notes: newEventNotes,
+          date: newEventDate || new Date().toISOString(),
+        }),
+      });
+      if (res.ok) {
+        setNewEventTitle("");
+        setNewEventDate("");
+        setNewEventCategory("personal");
+        setNewEventNotes("");
+        setShowAddForm(false);
+        void fetchLifeEvents();
+      }
+    } finally {
+      setAddingEvent(false);
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    await fetch(`/api/life-events/${id}`, { method: "DELETE", headers });
+    setLifeEvents((ev) => ev.filter((e) => e._id !== id));
+  };
 
   useEffect(() => {
     void fetchDays();
     void fetchInsights();
-  }, [fetchDays, fetchInsights]);
+    void fetchLifeEvents();
+  }, [fetchDays, fetchInsights, fetchLifeEvents]);
 
   // Partition TIMELINE_DAYS days into columns (weeks), Sunday-first
   const grid: (TimelineDay | null)[][] = [];
@@ -643,6 +719,114 @@ export default function TimelinePage() {
                   : "holding steady"}{" "}
               compared to the prior week.
             </span>
+          </div>
+        )}
+      </section>
+
+      {/* ── Life Events Section ──────────────────────────────── */}
+      <section className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <Flag className="h-5 w-5 text-rose-400" />
+            Life Events
+          </h2>
+          <button
+            onClick={() => setShowAddForm((v) => !v)}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Event
+          </button>
+        </div>
+
+        {/* Add event form */}
+        {showAddForm && (
+          <div className="mb-4 rounded-2xl border border-white/5 bg-bg-panel p-4 space-y-3 animate-fade-in">
+            <input
+              value={newEventTitle}
+              onChange={(e) => setNewEventTitle(e.target.value)}
+              placeholder="Event title (e.g. Started new job)"
+              className="w-full rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 transition-colors"
+              maxLength={200}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={newEventCategory}
+                onChange={(e) => setNewEventCategory(e.target.value)}
+                className="rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-primary/50 transition-colors"
+              >
+                {["career", "health", "relationship", "personal", "travel", "achievement", "challenge", "other"].map((c) => (
+                  <option key={c} value={c} className="capitalize">{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={newEventDate}
+                onChange={(e) => setNewEventDate(e.target.value)}
+                className="rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-primary/50 transition-colors"
+              />
+            </div>
+            <textarea
+              value={newEventNotes}
+              onChange={(e) => setNewEventNotes(e.target.value)}
+              placeholder="Notes (optional)"
+              rows={2}
+              maxLength={1000}
+              className="w-full resize-none rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 transition-colors"
+            />
+            <button
+              onClick={() => void handleAddEvent()}
+              disabled={addingEvent || !newEventTitle.trim()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-primary py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-colors"
+            >
+              {addingEvent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {addingEvent ? "Saving…" : "Save Event"}
+            </button>
+          </div>
+        )}
+
+        {/* Events list */}
+        {loadingEvents ? (
+          <div className="animate-pulse space-y-2">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-border" />)}
+          </div>
+        ) : lifeEvents.length === 0 ? (
+          <div className="rounded-xl border border-white/5 bg-bg-panel px-4 py-6 text-center text-sm text-text-muted">
+            No life events recorded yet. Add milestones to see how they affect your wellness.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {lifeEvents.map((event) => {
+              const categoryColors: Record<string, string> = {
+                career: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+                health: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+                relationship: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+                personal: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+                travel: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+                achievement: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+                challenge: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+                other: "text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
+              };
+              return (
+                <div key={event._id} className="flex items-start gap-3 rounded-xl border border-white/5 bg-bg-panel px-4 py-3">
+                  <span className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize shrink-0 ${categoryColors[event.category] ?? categoryColors.other}`}>
+                    {event.category}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{event.title}</p>
+                    <p className="text-[11px] text-text-muted">{new Date(event.date).toLocaleDateString()}</p>
+                    {event.notes && <p className="text-xs text-text-secondary mt-0.5 truncate">{event.notes}</p>}
+                  </div>
+                  <button
+                    onClick={() => void handleDeleteEvent(event._id)}
+                    className="text-text-muted hover:text-status-error transition-colors shrink-0"
+                    title="Delete event"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

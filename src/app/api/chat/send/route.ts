@@ -4,6 +4,7 @@ import { verifyTokenWithRevocation } from '@/lib/auth';
 import { CHAT_SIGNAL_TYPES, parseSignalResponseText } from '@/lib/chat-signals';
 import dbConnect from '@/lib/db';
 import { updateUserInsight } from '@/lib/insight-engine';
+import { getUserMemoryContext } from '@/lib/memory-engine';
 import ChatConversation from '@/lib/models/ChatConversation';
 import ChatMessage from '@/lib/models/ChatMessage';
 import ChatSignal from '@/lib/models/ChatSignal';
@@ -205,7 +206,7 @@ interface InsightData {
   lastReflection: string;
 }
 
-function buildCompanionPayload(userMessage: string, history: ConversationEntry[], insight?: InsightData | null) {
+function buildCompanionPayload(userMessage: string, history: ConversationEntry[], insight?: InsightData | null, memoryContext?: string) {
   const historyContents: GeminiContent[] = history
     .filter((message) => message.content.trim())
     .slice(-14)
@@ -219,6 +220,14 @@ function buildCompanionPayload(userMessage: string, history: ConversationEntry[]
     'You are the user\'s digital twin.',
     'You observe their behavior and give supportive, intelligent feedback.',
   ];
+
+  // Add long-term memory context if available
+  if (memoryContext) {
+    systemPromptParts.push('');
+    systemPromptParts.push('=== LONG-TERM MEMORY ===');
+    systemPromptParts.push(memoryContext);
+    systemPromptParts.push('Reference this memory naturally when relevant, without stating it was from a file.');
+  }
 
   // Add insight section if available
   if (insight) {
@@ -484,8 +493,11 @@ export async function POST(req: Request) {
         content: String(entry.content || ''),
       }));
 
-    // Fetch user's insight state for personalized context
-    const insightState = await UserInsightState.findOne({ userId: user._id }).lean();
+    // Fetch user's insight state and memory context for personalized context
+    const [insightState, memoryContext] = await Promise.all([
+      UserInsightState.findOne({ userId: user._id }).lean(),
+      getUserMemoryContext(user.id),
+    ]);
     const insightData: InsightData | null = insightState
       ? {
           topInterest: insightState.topInterest || '',
@@ -497,7 +509,7 @@ export async function POST(req: Request) {
 
     let companionResult: GeminiGenerationResult;
     try {
-      companionResult = await tryGeminiWithFallback(buildCompanionPayload(message, history, insightData));
+      companionResult = await tryGeminiWithFallback(buildCompanionPayload(message, history, insightData, memoryContext || undefined));
       companionResult = await ensureReplyQuality(message, companionResult);
     } catch (llmError) {
       console.error('Gemini generation failed:', llmError);

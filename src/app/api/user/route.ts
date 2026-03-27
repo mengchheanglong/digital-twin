@@ -36,9 +36,9 @@ export const DELETE = withAuth(async (_req, _context, user) => {
       QuestLog.deleteMany({ userId: uid }),
       JournalEntry.deleteMany({ userId: uid }),
       FocusSession.deleteMany({ userId: uid }),
-      ChatMessage.deleteMany({ userId: uid }),
-      ChatConversation.deleteMany({ userId: uid }),
-      ChatSignal.deleteMany({ userId: uid }),
+      ChatMessage.deleteMany({ userId: user.id }),
+      ChatConversation.deleteMany({ userId: user.id }),
+      ChatSignal.deleteMany({ userId: user.id }),
       UserEvent.deleteMany({ userId: uid }),
       UserInsightState.deleteMany({ userId: uid }),
       // RateLimitEntry rows are keyed by IP, not userId, so no user-specific cleanup needed.

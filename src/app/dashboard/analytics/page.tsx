@@ -10,8 +10,10 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
+  Link2,
   Loader2,
   RefreshCw,
+  Sliders,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -40,11 +42,57 @@ interface BurnoutFactor {
   description: string;
 }
 
+interface BurnoutStageInfo {
+  stage: string;
+  label: string;
+  color: string;
+  description: string;
+}
+
 interface BurnoutReport {
   riskScore: number;
   riskLevel: "low" | "moderate" | "high" | "critical";
+  stage?: BurnoutStageInfo;
   factors: BurnoutFactor[];
   recommendations: string[];
+  personalizedInterventions?: string[];
+}
+
+interface SynergyPair {
+  habitA: string;
+  habitB: string;
+  dimension: string;
+  liftPercent: number;
+  sampleCount: number;
+  description: string;
+}
+
+interface SynergyReport {
+  pairs: SynergyPair[];
+  message: string;
+}
+
+interface HourlyBucket {
+  hour: number;
+  label: string;
+  averagePercentage: number;
+  sampleCount: number;
+  dimensions: {
+    energy: number;
+    focus: number;
+    stressControl: number;
+    socialConnection: number;
+    optimism: number;
+  };
+}
+
+interface DailyRhythmReport {
+  buckets: HourlyBucket[];
+  peakFocusWindow: string | null;
+  peakEnergyWindow: string | null;
+  lowestHour: string | null;
+  totalMicroCheckIns: number;
+  message: string;
 }
 
 interface DayPattern {
@@ -328,6 +376,14 @@ function BurnoutCard({
 
       {expanded && (
         <div className="mt-3 space-y-2">
+          {/* Stage description */}
+          {report.stage && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Current Stage</p>
+              <p className="text-xs font-semibold text-white">{report.stage.label}</p>
+              <p className="text-[11px] text-text-secondary mt-0.5">{report.stage.description}</p>
+            </div>
+          )}
           {report.factors.map((f) => (
             <div key={f.name} className="flex items-center gap-2">
               <div className="flex-1">
@@ -348,8 +404,231 @@ function BurnoutCard({
               </div>
             </div>
           ))}
+          {/* Personalized interventions */}
+          {report.personalizedInterventions && report.personalizedInterventions.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">Personalized Actions</p>
+              {report.personalizedInterventions.map((intervention, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent-primary/20 text-[9px] font-bold text-accent-primary">
+                    {i + 1}
+                  </span>
+                  <p className="text-[11px] text-text-secondary">{intervention}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Synergy Card ─────────────────────────────────────────────────────────────
+
+function SynergyCard({
+  report,
+  loading,
+}: {
+  report: SynergyReport | null;
+  loading: boolean;
+}) {
+  if (loading) return <LoadingCard />;
+
+  return (
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
+      <SectionHeader
+        icon={<Link2 className="h-5 w-5" />}
+        title="Habit Synergies"
+        subtitle="Habits that boost each other"
+      />
+      {!report || !report.pairs.length ? (
+        <p className="text-xs text-text-muted">{report?.message ?? "No synergy data yet."}</p>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs text-text-secondary">{report.message}</p>
+          {report.pairs.map((pair, i) => (
+            <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 space-y-1">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs font-semibold text-white">
+                  {pair.habitA} + {pair.habitB}
+                </p>
+                <span className="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                  +{pair.liftPercent}% {pair.dimension}
+                </span>
+              </div>
+              <p className="text-[11px] text-text-secondary">{pair.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Daily Rhythm Card ────────────────────────────────────────────────────────
+
+function DailyRhythmCard({
+  report,
+  loading,
+}: {
+  report: DailyRhythmReport | null;
+  loading: boolean;
+}) {
+  if (loading) return <LoadingCard />;
+
+  return (
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
+      <SectionHeader
+        icon={<Flame className="h-5 w-5" />}
+        title="Daily Rhythm"
+        subtitle="Your energy patterns by hour"
+      />
+      {!report || !report.buckets.length ? (
+        <div className="space-y-3">
+          <p className="text-xs text-text-muted">{report?.message ?? "No micro check-in data yet."}</p>
+          <div className="rounded-xl border border-accent-primary/20 bg-accent-primary/5 p-3">
+            <p className="text-[11px] text-text-secondary">
+              💡 Use <strong className="text-white">micro check-ins</strong> throughout your day to discover your energy patterns. Log a quick pulse from the check-in page.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-xs text-text-secondary">{report.message}</p>
+          {/* Hour bars */}
+          <div className="flex items-end gap-1 h-24">
+            {report.buckets.map((b) => {
+              const pct = b.averagePercentage;
+              const barColor = pct >= 65 ? "bg-emerald-500" : pct >= 45 ? "bg-amber-400" : "bg-red-500";
+              return (
+                <div key={b.hour} className="flex flex-col items-center gap-1 flex-1 group/bar relative">
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden group-hover/bar:block z-10 w-28 rounded-lg border border-white/10 bg-bg-card px-2 py-1.5 text-[10px] text-text-secondary shadow-xl text-center">
+                    {b.label}: {pct}%<br /><span className="text-[9px] text-text-muted">{b.sampleCount} readings</span>
+                  </div>
+                  <div className="relative w-full rounded bg-white/5" style={{ height: 64 }}>
+                    <div
+                      className={`absolute bottom-0 w-full rounded transition-all duration-700 ${barColor}`}
+                      style={{ height: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-text-muted">{b.label}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {report.peakEnergyWindow && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                <p className="text-[9px] text-text-muted uppercase tracking-wider">Peak Energy</p>
+                <p className="text-xs font-bold text-amber-400">{report.peakEnergyWindow}</p>
+              </div>
+            )}
+            {report.peakFocusWindow && (
+              <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+                <p className="text-[9px] text-text-muted uppercase tracking-wider">Peak Focus</p>
+                <p className="text-xs font-bold text-sky-400">{report.peakFocusWindow}</p>
+              </div>
+            )}
+            {report.lowestHour && (
+              <div className="rounded-xl border border-zinc-500/20 bg-zinc-500/5 px-3 py-2">
+                <p className="text-[9px] text-text-muted uppercase tracking-wider">Lowest Energy</p>
+                <p className="text-xs font-bold text-zinc-400">{report.lowestHour}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── What-If Simulator ────────────────────────────────────────────────────────
+
+const DIMENSION_DEFAULTS = { energy: 3, focus: 3, stressControl: 3, socialConnection: 3, optimism: 3 };
+
+function SimulatorCard() {
+  const [dims, setDims] = useState<Record<string, number>>(DIMENSION_DEFAULTS);
+  const [questsPerWeek, setQuestsPerWeek] = useState(5);
+  const [entertainmentRatio, setEntertainmentRatio] = useState(30);
+
+  const avgDim = Object.values(dims).reduce((a, b) => a + b, 0) / 5;
+  const wellnessScore = Math.round(((avgDim - 1) / 4) * 100);
+  // productivity = (quests / 14 possible) * 100 * (1 - entertainment/100)
+  const productivityScore = Math.round(Math.min(100, (questsPerWeek / 14) * 100) * (1 - entertainmentRatio / 100));
+  const burnoutRisk = Math.max(0, Math.round(100 - wellnessScore * 0.5 - productivityScore * 0.5 + entertainmentRatio * 0.2));
+  const burnoutLabel = burnoutRisk >= 75 ? "Critical" : burnoutRisk >= 50 ? "High" : burnoutRisk >= 25 ? "Moderate" : "Low";
+  const burnoutColor2 = burnoutRisk >= 75 ? "text-red-400" : burnoutRisk >= 50 ? "text-orange-400" : burnoutRisk >= 25 ? "text-amber-400" : "text-emerald-400";
+
+  const dimLabels: Record<string, string> = {
+    energy: "⚡ Energy",
+    focus: "🎯 Focus",
+    stressControl: "🧘 Stress Control",
+    socialConnection: "🤝 Social",
+    optimism: "🌟 Optimism",
+  };
+
+  return (
+    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card overflow-hidden">
+      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
+      <SectionHeader
+        icon={<Sliders className="h-5 w-5" />}
+        title="What-If Simulator"
+        subtitle="Drag sliders to predict your wellness outcome"
+      />
+
+      <div className="space-y-3 mb-5">
+        {Object.entries(dims).map(([key, val]) => (
+          <div key={key} className="flex items-center gap-3">
+            <span className="w-32 text-[11px] text-text-secondary shrink-0">{dimLabels[key]}</span>
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={val}
+              onChange={(e) => setDims((d) => ({ ...d, [key]: Number(e.target.value) }))}
+              className="flex-1 accent-violet-500"
+            />
+            <span className="w-4 text-center text-[11px] font-bold text-white shrink-0">{val}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-3">
+          <span className="w-32 text-[11px] text-text-secondary shrink-0">🎯 Quests/week</span>
+          <input
+            type="range" min={0} max={21} step={1} value={questsPerWeek}
+            onChange={(e) => setQuestsPerWeek(Number(e.target.value))}
+            className="flex-1 accent-violet-500"
+          />
+          <span className="w-4 text-center text-[11px] font-bold text-white shrink-0">{questsPerWeek}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="w-32 text-[11px] text-text-secondary shrink-0">📺 Entertainment</span>
+          <input
+            type="range" min={0} max={100} step={5} value={entertainmentRatio}
+            onChange={(e) => setEntertainmentRatio(Number(e.target.value))}
+            className="flex-1 accent-violet-500"
+          />
+          <span className="w-8 text-center text-[11px] font-bold text-white shrink-0">{entertainmentRatio}%</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-center">
+          <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Wellness</p>
+          <p className="text-lg font-bold text-emerald-400">{wellnessScore}%</p>
+        </div>
+        <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2 text-center">
+          <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Productivity</p>
+          <p className="text-lg font-bold text-sky-400">{productivityScore}%</p>
+        </div>
+        <div className={`rounded-xl border px-3 py-2 text-center ${burnoutRisk >= 75 ? "border-red-500/20 bg-red-500/5" : burnoutRisk >= 50 ? "border-orange-500/20 bg-orange-500/5" : burnoutRisk >= 25 ? "border-amber-500/20 bg-amber-500/5" : "border-emerald-500/20 bg-emerald-500/5"}`}>
+          <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Burnout Risk</p>
+          <p className={`text-sm font-bold ${burnoutColor2}`}>{burnoutLabel}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -646,12 +925,16 @@ export default function AnalyticsPage() {
   const [streaks, setStreaks] = useState<StreakReport | null>(null);
   const [weeklyReport, setWeeklyReport] =
     useState<WeeklyReport | null>(null);
+  const [synergy, setSynergy] = useState<SynergyReport | null>(null);
+  const [dailyRhythm, setDailyRhythm] = useState<DailyRhythmReport | null>(null);
 
   const [loadingCorr, setLoadingCorr] = useState(true);
   const [loadingBurnout, setLoadingBurnout] = useState(true);
   const [loadingMood, setLoadingMood] = useState(true);
   const [loadingStreaks, setLoadingStreaks] = useState(true);
   const [loadingWeekly, setLoadingWeekly] = useState(true);
+  const [loadingSynergy, setLoadingSynergy] = useState(true);
+  const [loadingRhythm, setLoadingRhythm] = useState(true);
 
   const fetchCorrelation = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -745,18 +1028,52 @@ export default function AnalyticsPage() {
     }
   }, [getAuthHeaders]);
 
+  const fetchSynergy = useCallback(async () => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    setLoadingSynergy(true);
+    try {
+      const res = await fetch("/api/analytics/synergy", { headers, cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { success: boolean; report: SynergyReport };
+        if (data.success) setSynergy(data.report);
+      }
+    } finally {
+      setLoadingSynergy(false);
+    }
+  }, [getAuthHeaders]);
+
+  const fetchDailyRhythm = useCallback(async () => {
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    setLoadingRhythm(true);
+    try {
+      const res = await fetch("/api/analytics/daily-rhythm", { headers, cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { success: boolean; report: DailyRhythmReport };
+        if (data.success) setDailyRhythm(data.report);
+      }
+    } finally {
+      setLoadingRhythm(false);
+    }
+  }, [getAuthHeaders]);
+
   useEffect(() => {
     void fetchCorrelation();
     void fetchBurnout();
     void fetchMoodPatterns();
     void fetchStreaks();
     void fetchWeeklyReport();
+    void fetchSynergy();
+    void fetchDailyRhythm();
   }, [
     fetchCorrelation,
     fetchBurnout,
     fetchMoodPatterns,
     fetchStreaks,
     fetchWeeklyReport,
+    fetchSynergy,
+    fetchDailyRhythm,
   ]);
 
   return (
@@ -806,6 +1123,19 @@ export default function AnalyticsPage() {
         </div>
         <div className="md:col-span-2">
           <StreaksCard report={streaks} loading={loadingStreaks} />
+        </div>
+
+        {/* Row 4: What-If Simulator (full width) */}
+        <div className="md:col-span-3">
+          <SimulatorCard />
+        </div>
+
+        {/* Row 5: Synergy (2/3) + Daily Rhythm (1/3) */}
+        <div className="md:col-span-2">
+          <SynergyCard report={synergy} loading={loadingSynergy} />
+        </div>
+        <div className="md:col-span-1">
+          <DailyRhythmCard report={dailyRhythm} loading={loadingRhythm} />
         </div>
       </div>
     </div>

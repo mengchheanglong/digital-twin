@@ -1,6 +1,12 @@
 ﻿import mongoose, { Document, Model } from 'mongoose';
 import { getRequiredXP } from '@/lib/progression';
 
+export interface CustomDimension {
+  key: string;
+  label: string;
+  emoji: string;
+}
+
 export interface IUser extends Document {
   email: string;
   password: string;
@@ -19,6 +25,7 @@ export interface IUser extends Document {
   passwordChangedAt?: Date | null;
   lastQuestResetDate?: Date;
   timezone: string;
+  customDimensions?: CustomDimension[];
 }
 
 const userSchema = new mongoose.Schema(
@@ -103,6 +110,16 @@ const userSchema = new mongoose.Schema(
     timezone: {
       type: String,
       default: 'Asia/Bangkok',
+    },
+    customDimensions: {
+      type: [
+        {
+          key: { type: String, required: true, trim: true },
+          label: { type: String, required: true, trim: true },
+          emoji: { type: String, required: true, trim: true },
+        },
+      ],
+      default: undefined,
     },
   },
   {
