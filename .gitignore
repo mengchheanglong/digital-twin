@@ -78,6 +78,9 @@ web_modules/
 .next
 out
 
+# Next.js auto-generated type file
+next-env.d.ts
+
 # Nuxt.js build / generate output
 .nuxt
 dist
@@ -137,3 +140,12 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# macOS metadata
+.DS_Store
+
+# Certificate files
+*.pem
+
+# Vercel deployment directory
+.vercel
