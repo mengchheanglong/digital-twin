@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Loader2, Frown, Meh, Smile, Zap, Flame, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Loader2, Frown, Meh, Smile, Zap, Flame, CheckCircle2, MessageSquare, ListChecks, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ResponseEntry {
@@ -110,6 +110,12 @@ export default function DailyPulsePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [animating, setAnimating] = useState(false);
+  // Natural language mode
+  const [mode, setMode] = useState<"guided" | "text">("guided");
+  const [nlText, setNlText] = useState("");
+  const [nlParsing, setNlParsing] = useState(false);
+  const [nlParsed, setNlParsed] = useState<Record<string, number> | null>(null);
+  const [nlError, setNlError] = useState("");
 
   const completionPercent = useMemo(() => {
     if (!questions.length) return 0;
@@ -137,6 +143,35 @@ export default function DailyPulsePage() {
   }, [requireAuth, router]);
 
   useEffect(() => { void fetchQuestions(); }, [fetchQuestions]);
+
+  const parseNLText = async () => {
+    if (!nlText.trim()) return;
+    const headers = getAuthHeaders();
+    if (!headers) return;
+    setNlParsing(true);
+    setNlError("");
+    setNlParsed(null);
+    try {
+      const res = await axios.post("/api/checkin/parse", { text: nlText }, { headers });
+      if (res.data?.success) {
+        setNlParsed(res.data.dimensions as Record<string, number>);
+      }
+    } catch {
+      setNlError("AI parsing failed. Please try again or use guided mode.");
+    } finally {
+      setNlParsing(false);
+    }
+  };
+
+  const submitNLCheckIn = async () => {
+    if (!nlParsed) return;
+    const orderedKeys = ["energy", "focus", "stressControl", "socialConnection", "optimism"];
+    const ratings = orderedKeys.map((k) => nlParsed[k] ?? 3);
+    const entries: ResponseEntry[] = questions.length
+      ? questions.map((q, i) => ({ question: q, rating: ratings[i] ?? 3 }))
+      : orderedKeys.map((k, i) => ({ question: k, rating: ratings[i] ?? 3 }));
+    await submitCheckIn(entries);
+  };
 
   const submitCheckIn = async (entries: ResponseEntry[]) => {
     setSubmitting(true);
@@ -202,7 +237,7 @@ export default function DailyPulsePage() {
   return (
     <div className="flex min-h-[85vh] flex-col items-center justify-center px-4 py-10 text-text-primary">
       {/* Header */}
-      <div className="mb-10 text-center animate-fade-in">
+      <div className="mb-8 text-center animate-fade-in">
         <div className="inline-flex items-center gap-2 rounded-full border border-accent-primary/25 bg-accent-primary/8 px-4 py-1.5 text-xs font-semibold text-accent-glow mb-4">
           <span className="h-1.5 w-1.5 rounded-full bg-accent-primary animate-pulse" />
           Daily Check-In
@@ -211,7 +246,110 @@ export default function DailyPulsePage() {
         <p className="mt-2 text-sm text-text-secondary">A quick pulse to understand your current state.</p>
       </div>
 
-      {/* Progress + Question Card */}
+      {/* Mode Toggle */}
+      <div className="mb-6 flex rounded-xl border border-white/5 bg-bg-panel p-1 gap-1 animate-fade-in">
+        <button
+          onClick={() => setMode("guided")}
+          className={[
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            mode === "guided" ? "bg-accent-primary text-white" : "text-text-muted hover:text-white",
+          ].join(" ")}
+        >
+          <ListChecks className="h-3.5 w-3.5" /> Guided
+        </button>
+        <button
+          onClick={() => setMode("text")}
+          className={[
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+            mode === "text" ? "bg-accent-primary text-white" : "text-text-muted hover:text-white",
+          ].join(" ")}
+        >
+          <MessageSquare className="h-3.5 w-3.5" /> Natural Language
+        </button>
+      </div>
+
+      {/* Natural Language Mode */}
+      {mode === "text" && (
+        <div className="w-full max-w-lg animate-fade-in space-y-4">
+          <div className="rounded-2xl border border-white/5 bg-bg-card p-6 shadow-2xl space-y-4">
+            <p className="text-sm text-text-secondary">
+              Just describe how you&apos;re feeling in your own words. Your twin will extract your wellness scores automatically.
+            </p>
+            <textarea
+              value={nlText}
+              onChange={(e) => setNlText(e.target.value)}
+              placeholder="e.g. I'm feeling pretty drained today and my focus is low, but I'm weirdly optimistic about the week ahead..."
+              className="w-full resize-none rounded-xl border border-border bg-bg-panel px-4 py-3 text-sm text-white placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 transition-colors"
+              rows={4}
+              maxLength={1000}
+            />
+            {nlError && <p className="text-xs text-status-error">{nlError}</p>}
+
+            {/* Parsed preview */}
+            {nlParsed && (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2 animate-fade-in">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400 mb-2">
+                  <Sparkles className="h-3.5 w-3.5" /> AI extracted these scores — adjust if needed
+                </div>
+                {[
+                  { key: "energy", label: "Energy", emoji: "⚡" },
+                  { key: "focus", label: "Focus", emoji: "🎯" },
+                  { key: "stressControl", label: "Stress Control", emoji: "🧘" },
+                  { key: "socialConnection", label: "Social Connection", emoji: "🤝" },
+                  { key: "optimism", label: "Optimism", emoji: "🌟" },
+                ].map(({ key, label, emoji }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-sm w-32 text-text-secondary">{emoji} {label}</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((v) => (
+                        <button
+                          key={v}
+                          onClick={() => setNlParsed((prev) => prev ? { ...prev, [key]: v } : prev)}
+                          className={[
+                            "h-7 w-7 rounded-lg text-xs font-bold border transition-all",
+                            nlParsed[key] === v
+                              ? "bg-accent-primary border-accent-primary text-white"
+                              : "bg-white/5 border-white/10 text-text-muted hover:bg-white/10",
+                          ].join(" ")}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => void parseNLText()}
+                disabled={nlParsing || !nlText.trim()}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold bg-white/5 border border-white/10 text-text-secondary hover:text-white hover:bg-white/10 disabled:opacity-50 transition-all"
+              >
+                {nlParsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {nlParsing ? "Parsing…" : "Parse with AI"}
+              </button>
+              {nlParsed && (
+                <button
+                  onClick={() => void submitNLCheckIn()}
+                  disabled={submitting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold bg-accent-primary text-white hover:bg-accent-hover disabled:opacity-50 transition-all"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {submitting ? "Submitting…" : "Submit Check-In"}
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-center text-xs text-text-muted/60">
+            Your twin learns from your words — be as honest as you like.
+          </p>
+        </div>
+      )}
+
+      {/* Guided Mode */}
+      {mode === "guided" && (
       <div className="w-full max-w-lg animate-fade-in">
         {/* Progress Steps */}
         <div className="mb-6 flex items-center gap-1.5">
@@ -341,6 +479,7 @@ export default function DailyPulsePage() {
           Take a moment to reflect honestly — your twin learns from every answer.
         </p>
       </div>
+      )} {/* end guided mode */}
     </div>
   );
 }
