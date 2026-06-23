@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import CheckIn from '@/lib/models/CheckIn';
 import { unauthorized, serverError } from '@/lib/api-response';
+import { getUTCDayFromDayKey } from '@/lib/progression';
 import mongoose from 'mongoose';
 
 export const dynamic = 'force-dynamic';
@@ -49,7 +50,7 @@ async function generatePatternInsights(
   const dowTotals: number[] = new Array(7).fill(0);
   const dowCounts: number[] = new Array(7).fill(0);
   for (const c of recentCheckIns) {
-    const dow = new Date(c.dayKey).getDay();
+    const dow = getUTCDayFromDayKey(c.dayKey);
     dowTotals[dow] += c.percentage;
     dowCounts[dow]++;
   }
@@ -176,7 +177,7 @@ function getFallbackInsights(
   const dowTotals: number[] = new Array(7).fill(0);
   const dowCounts: number[] = new Array(7).fill(0);
   for (const c of checkIns) {
-    const dow = new Date(c.dayKey).getDay();
+    const dow = getUTCDayFromDayKey(c.dayKey);
     dowTotals[dow] += c.percentage;
     dowCounts[dow]++;
   }

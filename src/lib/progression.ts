@@ -103,6 +103,26 @@ export function getDayKey(date: Date): string {
 }
 
 /**
+ * Returns the day of the week (0-6, where 0 is Sunday) for a YYYY-MM-DD dayKey.
+ * Uses Sakamoto's algorithm for high-performance deterministic calculation
+ * without Date object overhead or timezone ambiguity.
+ */
+export function getUTCDayFromDayKey(dayKey: string): number {
+  if (!dayKey || dayKey.length < 10) return 0;
+
+  // Fast extraction of Y, M, D
+  let y = parseInt(dayKey.substring(0, 4), 10);
+  const m = parseInt(dayKey.substring(5, 7), 10);
+  const d = parseInt(dayKey.substring(8, 10), 10);
+
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return 0;
+
+  const t = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
+  if (m < 3) y -= 1;
+  return (y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) + t[m - 1] + d) % 7;
+}
+
+/**
  * Returns the local-calendar YYYY-MM-DD string for `date` as seen in `timezone`.
  * Falls back to `getDayKey` (server UTC) if the timezone is invalid.
  */
