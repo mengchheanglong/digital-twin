@@ -142,8 +142,14 @@ Return ONLY valid JSON, no markdown, no explanation.`;
     const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
     // Strip any markdown code fences
     const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    return JSON.parse(cleaned) as MemorySynthesis;
-  } catch {
+    try {
+      return JSON.parse(cleaned) as MemorySynthesis;
+    } catch (e) {
+      console.error('Error parsing memory synthesis JSON:', e);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error in synthesizeWithGemini:', error);
     return null;
   }
 }

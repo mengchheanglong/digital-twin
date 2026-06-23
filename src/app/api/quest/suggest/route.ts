@@ -115,10 +115,7 @@ Keep goals under 60 characters. Do not suggest quests already listed above.`;
         .join('')
         .trim() ?? '[]';
 
-    const clean = text
-      .replace(/```(?:json)?\n?/g, '')
-      .replace(/```/g, '')
-      .trim();
+    const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
     let suggestions: QuestSuggestion[] = [];
     try {

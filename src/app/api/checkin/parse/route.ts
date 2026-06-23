@@ -65,7 +65,14 @@ No explanation, no markdown.`;
     const data = (await res.json()) as GeminiResponse;
     const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
     const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = JSON.parse(cleaned) as Record<string, unknown>;
+    } catch (e) {
+      console.error('Error parsing check-in dimensions JSON:', e);
+      return null;
+    }
     return {
       energy: clampRating(parsed.energy),
       focus: clampRating(parsed.focus),
