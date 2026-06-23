@@ -345,16 +345,16 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
 
         {/* Theme Toggle */}
         <div
-          className={[
-            "flex items-center transition-all duration-500 ease-apple",
-            isExpanded ? "justify-start px-[6px]" : "justify-center",
-          ].join(" ")}
+          title={!isExpanded ? "Theme" : undefined}
+          className="w-full flex items-center rounded-xl px-[6px] py-1.5 transition-all duration-500 ease-apple overflow-hidden"
         >
-          {mounted ? (
-            <ThemeToggle size="sm" />
-          ) : (
-            <div className="h-8 w-8 rounded-xl border border-border bg-bg-card" />
-          )}
+          <div className="shrink-0 flex h-8 w-8 items-center justify-center">
+            {mounted ? (
+              <ThemeToggle size="sm" className="shrink-0" />
+            ) : (
+              <div className="h-8 w-8 shrink-0 rounded-xl border border-border bg-bg-card" />
+            )}
+          </div>
           <span
             className={`transition-all duration-500 ease-apple overflow-hidden whitespace-nowrap text-sm font-medium text-text-secondary ${
               isExpanded
