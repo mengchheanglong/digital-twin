@@ -22,8 +22,6 @@ async function dbConnect() {
 
   if (!uri) {
     console.error('❌ MONGODB_URI is not defined in .env file');
-  } else {
-      console.log('Attempting to connect to MongoDB...');
   }
 
 
@@ -39,7 +37,6 @@ async function dbConnect() {
 
   try {
     cached.conn = await cached.promise;
-    console.log(`✅ MongoDB Connected to ${cached.conn.connection.host}`);
   } catch (e) {
     cached.promise = null;
     console.error('❌ MongoDB Connection Error:', e);
