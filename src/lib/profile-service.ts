@@ -1,11 +1,11 @@
 import { computeDailyStreak, deriveBadges, getMoodFromCheckIn } from '@/lib/progression';
-import CheckIn from '@/lib/models/CheckIn';
+import CheckIn, { ICheckIn } from '@/lib/models/CheckIn';
 import Quest from '@/lib/models/Quest';
-import User from '@/lib/models/User';
+import User, { IUser } from '@/lib/models/User';
 import { formatJoinDate } from '@/lib/date';
 
-export async function buildProfile(userId: string, userObj?: Record<string, any>) {
-  let user = userObj;
+export async function buildProfile(userId: string, userObj?: Partial<IUser> | null) {
+  let user: Partial<IUser> | null = userObj || null;
 
   if (!user) {
     user = await User.findById(userId)
@@ -25,7 +25,7 @@ export async function buildProfile(userId: string, userObj?: Record<string, any>
         .sort({ date: -1 })
         .limit(180)
         .select('date overallScore ratings')
-        .lean(),
+        .lean() as Promise<Partial<ICheckIn>[]>,
       Quest.countDocuments({
         userId,
         completed: true,
