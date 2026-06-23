@@ -4,7 +4,7 @@ interface SendEmailOptions {
   html: string;
 }
 
-export const sendEmail = async ({ to, subject, html }: SendEmailOptions): Promise<{ success: boolean; error?: any }> => {
+export const sendEmail = async ({ to, subject, html }: SendEmailOptions): Promise<{ success: boolean; error?: unknown }> => {
   console.log('----------------------------------------');
   console.log('📧 EMAILS ARE DISABLED (SIMPLIFIED MODE)');
   console.log(`To: ${to}`);
