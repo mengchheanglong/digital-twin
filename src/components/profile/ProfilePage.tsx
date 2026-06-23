@@ -37,8 +37,8 @@ export function ProfilePage({ profile }: ProfilePageProps) {
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-10 relative">
       {/* Majestic Profile Ambient Glow */}
-      <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-[400px] w-full max-w-3xl rounded-full bg-gradient-to-b from-accent-primary/20 via-purple-500/5 to-transparent blur-[100px]" />
-      
+      <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-[400px] w-full max-w-3xl rounded-full bg-gradient-to-b from-accent-primary/20 via-accent-primary/5 to-transparent blur-[100px]" />
+
       <div className="relative z-10">
         <ProfileHeader
           name={profile.name}

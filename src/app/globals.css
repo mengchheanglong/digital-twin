@@ -1,35 +1,153 @@
 @import "tailwindcss";
 
 @theme {
-  /* Discord Dark Base Colors */
-  --color-bg-base: #0F111A; /* Main Background */
-  --color-bg-sidebar: #0B0D14; /* Sidebar Background */
-  --color-bg-panel: #151823; /* Secondary Background */
-  --color-bg-card: #1C1F2B; /* Card Background */
-  --color-border: #2A2E3F; /* Subtle Divider */
+  /* === TYPOGRAPHY === */
+  --font-sans: "Plus Jakarta Sans", "Sora", "Manrope", "Inter", "Segoe UI", system-ui, sans-serif;
 
-  /* Purple Accent System */
-  --color-accent-primary: #8B5CF6; /* Soft Purple */
-  --color-accent-hover: #A78BFA; /* Brighter Purple */
-  --color-accent-glow: #C4B5FD; /* Light Lavender */
-  --color-accent-deep: #6D28D9; /* Dark Purple */
+  /* === RADIUS === */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
 
-  /* Text Colors */
-  --color-text-primary: #E5E7EB; /* Soft White */
-  --color-text-secondary: #9CA3AF; /* Muted Gray */
-  --color-text-muted: #6B7280; /* Dark Gray */
+  /* === DURATION === */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
 
-  /* Status Colors */
-  --color-status-success: #34D399; /* Teal */
-  --color-status-warning: #FBBF24; /* Amber */
-  --color-status-error: #F87171; /* Soft Red */
+  /* === DARK MODE (default) === */
+  --color-bg-base: #0B0D14;
+  --color-bg-sidebar: #080A10;
+  --color-bg-panel: #11131C;
+  --color-bg-card: #181B26;
+  --color-bg-input: #0E1018;
+  --color-bg-hover: rgba(255, 255, 255, 0.04);
+  --color-bg-active: rgba(255, 255, 255, 0.08);
 
-  /* Shadows */
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-glow: 0 0 15px rgba(139, 92, 246, 0.4); /* Purple Glow */
-  --shadow-glow-soft: 0 0 10px rgba(139, 92, 246, 0.2);
+  --color-text-primary: #F0F1F5;
+  --color-text-secondary: #9AA3B2;
+  --color-text-muted: #5E6778;
+  --color-text-inverse: #0B0D14;
+  --color-text-link: #9B82FD;
 
-  --font-sans: "Inter", "Sora", "Segoe UI", sans-serif;
+  --color-border: #252A3A;
+  --color-border-subtle: #1A1E2E;
+  --color-border-hover: #3A4056;
+
+  --color-accent-primary: #7C5CFC;
+  --color-accent-hover: #9B82FD;
+  --color-accent-glow: #B9A8FE;
+  --color-accent-deep: #5E3FDB;
+  --color-accent-subtle: rgba(124, 92, 252, 0.15);
+
+  --color-status-success: #34D399;
+  --color-status-warning: #FBBF24;
+  --color-status-warm: #F97316;
+  --color-status-error: #F87171;
+  --color-status-info: #60A5FA;
+
+  --color-surface-0: #000000;
+  --color-surface-50: #080A10;
+  --color-surface-100: #0B0D14;
+  --color-surface-200: #11131C;
+  --color-surface-300: #181B26;
+  --color-surface-400: #252A3A;
+  --color-surface-500: #3A4056;
+  --color-surface-600: #5E6778;
+  --color-surface-700: #9AA3B2;
+  --color-surface-800: #F0F1F5;
+  --color-surface-900: #FFFFFF;
+
+  --color-ink-0: #FFFFFF;
+  --color-ink-50: #F0F1F5;
+  --color-ink-100: #9AA3B2;
+  --color-ink-200: #5E6778;
+  --color-ink-300: #3A4056;
+  --color-ink-400: #252A3A;
+  --color-ink-500: #181B26;
+  --color-ink-600: #11131C;
+  --color-ink-700: #0B0D14;
+  --color-ink-800: #080A10;
+  --color-ink-900: #000000;
+
+  /* === SHADOWS === */
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 18px 34px -22px rgba(124, 92, 252, 0.25);
+  --shadow-stripe: 0 50px 100px -20px rgba(50, 50, 93, 0.12), 0 30px 60px -30px rgba(0, 0, 0, 0.15), inset 0 -2px 6px 0 rgba(10, 37, 64, 0.05);
+  --shadow-stripe-hover: 0 50px 100px -20px rgba(50, 50, 93, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.2), inset 0 -2px 6px 0 rgba(10, 37, 64, 0.05);
+  --shadow-glow: 0 0 20px rgba(124, 92, 252, 0.35);
+  --shadow-glow-soft: 0 0 10px rgba(124, 92, 252, 0.2);
+  --shadow-inner-glow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/* === LIGHT MODE OVERRIDES === */
+[data-theme="light"] {
+  --color-bg-base: #F8F9FC;
+  --color-bg-sidebar: #FFFFFF;
+  --color-bg-panel: #F1F3F8;
+  --color-bg-card: #FFFFFF;
+  --color-bg-input: #F8F9FC;
+  --color-bg-hover: rgba(0, 0, 0, 0.03);
+  --color-bg-active: rgba(0, 0, 0, 0.06);
+
+  --color-text-primary: #0F111A;
+  --color-text-secondary: #4B5163;
+  --color-text-muted: #8B92A5;
+  --color-text-inverse: #FFFFFF;
+  --color-text-link: #6D4FE0;
+
+  --color-border: #E2E5EC;
+  --color-border-subtle: #F0F1F5;
+  --color-border-hover: #D1D5E0;
+
+  --color-accent-primary: #734BFF;
+  --color-accent-hover: #5A32E6;
+  --color-accent-glow: #9B82FD;
+  --color-accent-deep: #4C32B5;
+  --color-accent-subtle: rgba(115, 75, 255, 0.12);
+
+  --color-status-success: #10B981;
+  --color-status-warning: #D97706;
+  --color-status-warm: #EA580C;
+  --color-status-error: #EF4444;
+  --color-status-info: #3B82F6;
+
+  --color-surface-0: #FFFFFF;
+  --color-surface-50: #F8F9FC;
+  --color-surface-100: #F1F3F8;
+  --color-surface-200: #E2E5EC;
+  --color-surface-300: #D1D5E0;
+  --color-surface-400: #B8BEC9;
+  --color-surface-500: #8B92A5;
+  --color-surface-600: #4B5163;
+  --color-surface-700: #2A2E3F;
+  --color-surface-800: #11131C;
+  --color-surface-900: #0B0D14;
+
+  --color-ink-0: #0B0D14;
+  --color-ink-50: #11131C;
+  --color-ink-100: #2A2E3F;
+  --color-ink-200: #4B5163;
+  --color-ink-300: #8B92A5;
+  --color-ink-400: #B8BEC9;
+  --color-ink-500: #D1D5E0;
+  --color-ink-600: #E2E5EC;
+  --color-ink-700: #F1F3F8;
+  --color-ink-800: #F8F9FC;
+  --color-ink-900: #FFFFFF;
+
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --shadow-lift: 0 18px 34px -22px rgba(124, 92, 252, 0.18);
+  --shadow-stripe: 0 50px 100px -20px rgba(50, 50, 93, 0.08), 0 30px 60px -30px rgba(0, 0, 0, 0.08), inset 0 -2px 6px 0 rgba(10, 37, 64, 0.03);
+  --shadow-stripe-hover: 0 50px 100px -20px rgba(50, 50, 93, 0.14), 0 30px 60px -30px rgba(0, 0, 0, 0.1), inset 0 -2px 6px 0 rgba(10, 37, 64, 0.03);
+  --shadow-glow: 0 0 20px rgba(124, 92, 252, 0.25);
+  --shadow-glow-soft: 0 0 10px rgba(124, 92, 252, 0.15);
+  --shadow-inner-glow: inset 0 1px 1px rgba(0, 0, 0, 0.03);
 }
 
 :root {
@@ -41,32 +159,37 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   min-height: 100vh;
   margin: 0;
   color: var(--color-text-primary);
   font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
   background-color: var(--color-bg-base);
-  /* No noise, clean flat background */
+  transition: background-color var(--duration-slow) ease, color var(--duration-slow) ease;
 }
 
-/* Discord Style Utils */
+/* === LEGACY / BACKWARD-COMPATIBLE UTILITY CLASSES === */
 
 /* Card Enclosure */
 .card-discord {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  transition: transform var(--duration-normal) ease, box-shadow var(--duration-normal) ease, border-color var(--duration-normal) ease;
 }
 
 .card-discord:hover {
   border-color: var(--color-accent-deep);
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-elevated);
 }
 
 /* Buttons */
@@ -79,15 +202,15 @@ body {
   font-weight: 600;
   font-size: 0.95rem;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: all var(--duration-normal) ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-discord-primary:hover {
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+  box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
   filter: brightness(1.1);
 }
@@ -105,11 +228,11 @@ body {
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
   padding: 0.7rem 1.4rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .btn-discord-secondary:hover {
@@ -123,31 +246,32 @@ body {
   width: 100%;
   background: var(--color-bg-base);
   border: 1px solid var(--color-border);
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   color: var(--color-text-primary);
   font-size: 0.95rem;
-  transition: all 200ms ease;
+  transition: all var(--duration-normal) ease;
 }
 
 .input-discord:focus {
   outline: none;
   border-color: var(--color-accent-primary);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 0 2px var(--color-accent-subtle);
 }
 
 .input-discord::placeholder {
   color: var(--color-text-muted);
 }
 
-/* Animations - Subtle/Calm */
-.animate-fade-in {
-  animation: fadeIn 300ms ease-out forwards;
-}
+/* === ANIMATIONS === */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 300ms ease-out forwards;
 }
 
 @keyframes twinAuraPulse {
@@ -158,13 +282,13 @@ body {
 
 @keyframes twinCtaPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.44), 0 6px 18px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 0 rgba(124, 92, 252, 0.44), 0 6px 18px rgba(0, 0, 0, 0.3);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0), 0 10px 28px rgba(139, 92, 246, 0.42);
+    box-shadow: 0 0 0 8px rgba(124, 92, 252, 0), 0 10px 28px rgba(124, 92, 252, 0.42);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0), 0 6px 18px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 0 rgba(124, 92, 252, 0), 0 6px 18px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -175,41 +299,6 @@ body {
 .twin-cta-pulse {
   animation: twinCtaPulse 3.9s ease-in-out infinite;
 }
-
-/* Hide scrollbar utility */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-bg-base);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-bg-card);
-  border-radius: 999px;
-  border: 2px solid var(--color-bg-base);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
-/* === NEW ANIMATIONS & UTILITIES === */
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -246,7 +335,7 @@ body {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 25%, rgba(139, 92, 246, 0.08) 50%, transparent 75%);
+  background: linear-gradient(90deg, transparent 25%, var(--color-accent-subtle) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -267,15 +356,15 @@ body {
 .dot-bounce-2 { animation: dot-bounce 1.2s ease-in-out infinite 0.2s; }
 .dot-bounce-3 { animation: dot-bounce 1.2s ease-in-out infinite 0.4s; }
 
-/* Glass card */
+/* === GLASS === */
 .glass {
-  background: rgba(28, 31, 43, 0.7);
+  background: color-mix(in srgb, var(--color-bg-card) 70%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(42, 46, 63, 0.8);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
 }
 
-/* Gradient text */
+/* === GRADIENT TEXT === */
 .text-gradient {
   background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-glow));
   -webkit-background-clip: text;
@@ -284,30 +373,30 @@ body {
 }
 
 .text-gradient-warm {
-  background: linear-gradient(135deg, #F59E0B, #F97316);
+  background: linear-gradient(135deg, var(--color-status-warning), var(--color-status-warm));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Focus ring utility */
+/* === FOCUS RING === */
 .focus-ring:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
 }
 
-/* Glow ring animation for CTA buttons */
+/* === GLOW RING ANIMATION FOR CTA BUTTONS === */
 @keyframes ring-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5), 0 4px 14px rgba(139, 92, 246, 0.3); }
-  60% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0), 0 6px 20px rgba(139, 92, 246, 0.4); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0), 0 4px 14px rgba(139, 92, 246, 0.3); }
+  0% { box-shadow: 0 0 0 0 rgba(124, 92, 252, 0.5), 0 4px 14px rgba(124, 92, 252, 0.3); }
+  60% { box-shadow: 0 0 0 8px rgba(124, 92, 252, 0), 0 6px 20px rgba(124, 92, 252, 0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(124, 92, 252, 0), 0 4px 14px rgba(124, 92, 252, 0.3); }
 }
 
 .btn-glow {
   animation: ring-pulse 2.8s ease-in-out infinite;
 }
 
-/* Progress bar shimmer */
+/* === PROGRESS BAR SHIMMER === */
 @keyframes progress-shine {
   0% { background-position: -100% 0; }
   100% { background-position: 200% 0; }
@@ -324,8 +413,46 @@ body {
   animation: progress-shine 2s linear infinite;
 }
 
+/* === EASING UTILITIES === */
 .ease-apple {
   transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.ease-spring {
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ease-bounce {
+  transition-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+  border: 2px solid var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* === ANIMAL PROGRESSION PHYSICS === */
@@ -368,3 +495,71 @@ body {
   100% { transform: translateY(0) rotate(0deg); }
 }
 .animate-animal-fly { animation: animal-fly 2.5s ease-in-out infinite; }
+
+/* === PREFERS REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* === NEW DESIGN SYSTEM UTILITIES === */
+
+/* Surface textures */
+.surface-raised {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.surface-elevated {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-elevated);
+}
+
+/* Interactive hover lift */
+.interactive-lift {
+  transition: transform var(--duration-normal) ease, box-shadow var(--duration-normal) ease, border-color var(--duration-normal) ease;
+}
+.interactive-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+}
+.interactive-lift:active {
+  transform: translateY(0);
+}
+
+/* Status surface tints */
+.surface-success {
+  background: color-mix(in srgb, var(--color-status-success) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-success) 25%, transparent);
+  color: var(--color-status-success);
+}
+
+.surface-warning {
+  background: color-mix(in srgb, var(--color-status-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-warning) 25%, transparent);
+  color: var(--color-status-warning);
+}
+
+.surface-error {
+  background: color-mix(in srgb, var(--color-status-error) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-error) 25%, transparent);
+  color: var(--color-status-error);
+}
+
+.surface-info {
+  background: color-mix(in srgb, var(--color-status-info) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-info) 25%, transparent);
+  color: var(--color-status-info);
+}
+
+.surface-accent {
+  background: var(--color-accent-subtle);
+  border: 1px solid color-mix(in srgb, var(--color-accent-primary) 25%, transparent);
+  color: var(--color-accent-primary);
+}

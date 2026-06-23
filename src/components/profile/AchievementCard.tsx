@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Lock } from "lucide-react";
 
 export interface AchievementCardProps {
   id: string;
@@ -29,7 +30,6 @@ export function AchievementCard({
   unlockedAt,
   colorClass,
 }: AchievementCardProps) {
-  // Calculate progress percentage
   const progressPercent = progress
     ? Math.round((progress.current / progress.target) * 100)
     : 0;
@@ -41,23 +41,24 @@ export function AchievementCard({
         group relative flex items-start gap-4 rounded-2xl p-5
         transition-all duration-500 ease-apple backdrop-blur-xl overflow-hidden shadow-card
         ${isUnlocked
-          ? "border border-white/5 bg-bg-card/80 hover:border-accent-primary/40 hover:shadow-stripe-hover hover:-translate-y-1"
-          : "border border-dashed border-white/10 bg-bg-panel/10 opacity-70 hover:opacity-100 hover:border-white/20 hover:shadow-stripe hover:-translate-y-0.5"
+          ? "border border-border bg-bg-card/80 hover:border-accent-primary/40 hover:shadow-elevated hover:-translate-y-1"
+          : "border border-dashed border-border-subtle bg-bg-panel/30 opacity-70 hover:opacity-100 hover:border-border hover:shadow-card hover:-translate-y-0.5"
         }
       `}
     >
       {/* Ambient glass glow */}
       {isUnlocked && (
-        <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-accent-primary/20 blur-[50px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-60" />
+        <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-accent-primary/10 blur-[50px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-60" />
       )}
+
       {/* Badge Icon */}
       <div
         className={`
-          relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-inner ring-1 ring-white/10
+          relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full shadow-inner ring-1 ring-border
           transition-transform duration-500 ease-spring group-hover:scale-110 group-hover:rotate-6
           ${isUnlocked
-            ? colorClass || "bg-gradient-to-br from-accent-primary/20 to-purple-500/20 text-accent-primary"
-            : "bg-bg-base/50 text-text-muted grayscale"
+            ? colorClass || "surface-accent"
+            : "bg-bg-base text-text-muted grayscale"
           }
         `}
       >
@@ -67,6 +68,11 @@ export function AchievementCard({
           </span>
         ) : (
           icon
+        )}
+        {!isUnlocked && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-bg-base/60">
+            <Lock className="h-4 w-4 text-text-muted" />
+          </div>
         )}
       </div>
 
@@ -83,13 +89,13 @@ export function AchievementCard({
         {/* Progress Bar (when applicable) */}
         {progress && (
           <div className="mt-2">
-            <div className="flex justify-between text-xs text-text-muted mb-1">
+            <div className="mb-1 flex justify-between text-xs text-text-muted">
               <span>Progress</span>
               <span>{progress.current} / {progress.target}</span>
             </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-bg-base/50">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-input ring-1 ring-border/50">
               <div
-                className="h-full rounded-full bg-accent-primary transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-accent-primary to-accent-hover transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>

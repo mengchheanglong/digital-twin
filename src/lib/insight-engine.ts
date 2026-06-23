@@ -4,6 +4,7 @@ import CheckIn from './models/CheckIn';
 import UserInsightState from './models/UserInsightState';
 import dbConnect from './db';
 import { CHECKIN_DIMENSIONS } from './progression';
+import { hasDeepSeekApiKey, requestDeepSeekChat } from './deepseek';
 
 // Category classifications for productivity calculation
 const PRODUCTIVE_CATEGORIES = [
@@ -49,14 +50,6 @@ export interface CheckInDimensions {
   stressControl: number;
   socialConnection: number;
   optimism: number;
-}
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-  }>;
 }
 
 /**
@@ -270,11 +263,10 @@ async function computeCheckInDimensions(userId: string): Promise<CheckInDimensio
 }
 
 /**
- * Generate reflection using Gemini AI
+ * Generate reflection using DeepSeek AI
  */
 async function generateReflection(insights: InsightData, dimensions?: CheckInDimensions | null): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  if (!hasDeepSeekApiKey()) {
     return 'Your twin is waiting for more daily signals before sharing a full reflection.';
   }
 
@@ -296,50 +288,20 @@ async function generateReflection(insights: InsightData, dimensions?: CheckInDim
 ${dimensionLines ? `${dimensionLines}\n` : ''}
 Keep it encouraging and personal. Be specific about their interests and progress.`;
 
-  const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
-
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const result = await requestDeepSeekChat({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a supportive digital twin that provides personalized daily reflections. Keep responses to exactly 3 sentences. Be encouraging but honest.',
         },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [
-              {
-                text: 'You are a supportive digital twin that provides personalized daily reflections. Keep responses to exactly 3 sentences. Be encouraging but honest.',
-              },
-            ],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: prompt }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.9,
-            maxOutputTokens: 200,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      return "Your twin is processing today's pattern. Reflection will appear shortly.";
-    }
-
-    const data = (await response.json()) as GeminiResponse;
-    const text = data.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || '')
-      .join('\n')
-      .trim();
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      topP: 0.9,
+      maxTokens: 200,
+    });
+    const text = result.text;
 
     return text || "Your twin is still tracing today's pattern. Add a little more activity to sharpen the reflection.";
   } catch (error) {
@@ -364,11 +326,11 @@ export interface UpdateInsightOptions {
  * 3. Generate AI reflection
  * 4. Save/update UserInsightState
  *
- * Skips the full update (including the Gemini AI call) if the state was
+ * Skips the full update (including the DeepSeek AI call) if the state was
  * refreshed within the last 30 minutes, unless `force` is true.
  *
  * The cache check is performed atomically: we only proceed if we can
- * claim the update slot, preventing redundant concurrent Gemini calls.
+ * claim the update slot, preventing redundant concurrent DeepSeek calls.
  */
 export async function updateUserInsight(
   userId: string,

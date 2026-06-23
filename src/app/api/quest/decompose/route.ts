@@ -4,14 +4,9 @@ import { verifyTokenWithRevocation } from '@/lib/auth';
 import { badRequest, unauthorized, serverError } from '@/lib/api-response';
 import Quest from '@/lib/models/Quest';
 import dbConnect from '@/lib/db';
+import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from '@/lib/deepseek';
 
 export const dynamic = 'force-dynamic';
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
 
 export async function POST(req: Request) {
   try {
@@ -38,8 +33,7 @@ export async function POST(req: Request) {
       return badRequest('Quest not found.');
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    if (!hasDeepSeekApiKey()) {
       return NextResponse.json({
         steps: [
           'Break your goal into small daily actions',
@@ -50,29 +44,21 @@ export async function POST(req: Request) {
       });
     }
 
-    const model = String(
-      process.env.GEMINI_MODEL ?? 'gemini-2.0-flash',
-    ).trim();
-
     const prompt = `Break down this ${quest.duration} quest goal into 4-5 concrete, actionable sub-steps:
 Goal: "${quest.goal}"
 Return ONLY a JSON array of strings, each being one specific action step.
 Example: ["Step 1 description", "Step 2 description"]
 Keep each step concise (under 15 words). Do not include markdown or explanation.`;
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 300 },
-        }),
-      },
-    );
-
-    if (!response.ok) {
+    let text = '[]';
+    try {
+      const result = await requestDeepSeekChat({
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        maxTokens: 300,
+      });
+      text = result.text;
+    } catch {
       return NextResponse.json({
         steps: [
           'Define your first milestone',
@@ -83,14 +69,7 @@ Keep each step concise (under 15 words). Do not include markdown or explanation.
       });
     }
 
-    const data = (await response.json()) as GeminiResponse;
-    const text =
-      data.candidates?.[0]?.content?.parts
-        ?.map((p) => p.text ?? '')
-        .join('')
-        .trim() ?? '[]';
-
-    const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const clean = stripJsonCodeFences(text);
 
     let steps: string[] = [];
     try {

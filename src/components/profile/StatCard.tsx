@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export type StatColor = "amber" | "emerald" | "violet" | "cyan";
+export type StatColor = "warning" | "success" | "accent" | "info";
 
 export interface StatCardProps {
   icon: React.ReactNode;
@@ -15,86 +15,72 @@ export interface StatCardProps {
   };
 }
 
-// Color mapping for different stat types
-const colorMap: Record<StatColor, { iconBg: string; iconColor: string }> = {
-  amber: {
-    iconBg: "bg-amber-500/20",
-    iconColor: "text-amber-400",
-  },
-  emerald: {
-    iconBg: "bg-emerald-500/20",
-    iconColor: "text-emerald-400",
-  },
-  violet: {
-    iconBg: "bg-violet-500/20",
-    iconColor: "text-violet-400",
-  },
-  cyan: {
-    iconBg: "bg-cyan-500/20",
-    iconColor: "text-cyan-400",
-  },
+const surfaceMap: Record<StatColor, string> = {
+  warning: "surface-warning",
+  success: "surface-success",
+  accent: "surface-accent",
+  info: "surface-info",
 };
 
-/**
- * StatCard - Displays individual statistics with icon, value, and label
- * Used in a 2x2 grid layout for main stats
+const trendColorMap = {
+  up: "text-status-success",
+  down: "text-status-error",
+};
 
 /**
  * StatCard - Displays individual statistics with icon, value, and label
  * Used in a 2x2 grid layout for main stats
  */
 export function StatCard({ icon, value, label, color, trend }: StatCardProps) {
-  const colors = colorMap[color];
+  const surfaceClass = surfaceMap[color];
   const compactValue = typeof value === "string" && value.length > 10;
 
   return (
     <div
       className={`
-        group relative flex flex-col rounded-2xl p-5 
-        bg-bg-card/80 border border-white/5 backdrop-blur-xl 
+        group relative flex flex-col rounded-2xl p-5
+        bg-bg-card/80 border border-border backdrop-blur-xl
         hover:border-accent-primary/30 transition-all duration-500 ease-apple
-        hover:-translate-y-1 hover:shadow-stripe-hover shadow-card overflow-hidden
+        hover:-translate-y-1 hover:shadow-elevated shadow-card overflow-hidden
       `}
     >
       {/* Ambient background glow */}
-      <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/5 blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-100 group-hover:bg-accent-primary/20" />
+      <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-accent-primary/10 blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-100" />
+
       {/* Icon Wrapper */}
       <div
         className={`
-          flex h-11 w-11 items-center justify-center rounded-xl shadow-inner ring-1 ring-white/10
+          relative z-10 flex h-11 w-11 items-center justify-center rounded-xl shadow-inner ring-1 ring-border
           transition-transform duration-500 ease-spring group-hover:scale-110 group-hover:rotate-3
-          ${colors.iconBg}
+          ${surfaceClass}
         `}
       >
-        <span className={colors.iconColor}>{icon}</span>
+        {icon}
       </div>
 
       {/* Value */}
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className={`${compactValue ? "text-lg" : "text-2xl"} font-bold text-white`}>
+      <div className="relative z-10 mt-3 flex items-baseline gap-2">
+        <span className={`${compactValue ? "text-lg" : "text-2xl"} font-bold text-text-primary`}>
           {value}
         </span>
-        
+
         {/* Trend indicator */}
         {trend && (
-          <span
-            className={`
-              text-sm font-medium
-              ${trend.direction === "up" ? "text-emerald-400" : "text-red-400"}
-            `}
-          >
+          <span className={`text-sm font-medium ${trendColorMap[trend.direction]}`}>
             {trend.direction === "up" ? "+" : "-"} {trend.value}%
           </span>
         )}
       </div>
 
       {/* Label */}
-      <span className="mt-0.5 text-sm font-medium text-gray-400">{label}</span>
+      <span className="relative z-10 mt-0.5 text-sm font-medium text-text-secondary">
+        {label}
+      </span>
 
       {/* Subtle gradient overlay on hover */}
       <div
         className={`
-          absolute inset-0 rounded-2xl bg-linear-to-br from-white/5 to-transparent
+          absolute inset-0 rounded-2xl bg-gradient-to-br from-bg-hover to-transparent
           opacity-0 group-hover:opacity-100 transition-opacity duration-300
           pointer-events-none
         `}

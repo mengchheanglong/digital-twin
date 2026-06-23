@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Brain,
   Calendar,
   Flag,
-  Loader2,
   Plus,
   RefreshCw,
   Sparkles,
@@ -18,6 +17,12 @@ import {
   Heart,
   Users,
   Sun,
+  Briefcase,
+  Plane,
+  Trophy,
+  AlertTriangle,
+  MoreHorizontal,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -26,10 +31,21 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import {
+  Button,
+  Card,
+  Badge,
+  Skeleton,
+  EmptyState,
+  FormField,
+  Input,
+  Textarea,
+  useToast,
+} from "@/components/ui";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +81,6 @@ const TIMELINE_DAYS = 90;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Parse a YYYY-MM-DD date string at noon local time to avoid TZ edge cases. */
 function parseDay(dateStr: string): Date {
   return new Date(dateStr + "T12:00:00");
 }
@@ -87,11 +102,11 @@ const DIMENSION_LABELS: Record<(typeof DIMENSION_KEYS)[number], string> = {
 };
 
 const DIMENSION_COLORS: Record<(typeof DIMENSION_KEYS)[number], string> = {
-  energy: "#FBBF24",
-  focus: "#8B5CF6",
-  stressControl: "#34D399",
-  socialConnection: "#60A5FA",
-  optimism: "#F472B6",
+  energy: "var(--color-status-warning)",
+  focus: "var(--color-accent-primary)",
+  stressControl: "var(--color-status-success)",
+  socialConnection: "var(--color-status-info)",
+  optimism: "var(--color-accent-glow)",
 };
 
 const DIMENSION_ICONS: Record<(typeof DIMENSION_KEYS)[number], React.ReactNode> = {
@@ -104,11 +119,11 @@ const DIMENSION_ICONS: Record<(typeof DIMENSION_KEYS)[number], React.ReactNode> 
 
 function heatmapColor(percentage: number, hasData: boolean): string {
   if (!hasData) return "bg-bg-panel border border-border/30";
-  if (percentage >= 80) return "bg-violet-600/90 border border-violet-500/50";
-  if (percentage >= 65) return "bg-violet-500/60 border border-violet-400/40";
-  if (percentage >= 50) return "bg-amber-500/50 border border-amber-400/40";
-  if (percentage >= 35) return "bg-orange-500/50 border border-orange-400/40";
-  return "bg-red-500/40 border border-red-400/30";
+  if (percentage >= 80) return "bg-accent-primary/70 border border-accent-primary/40";
+  if (percentage >= 65) return "bg-status-info/50 border border-status-info/40";
+  if (percentage >= 50) return "bg-status-success/50 border border-status-success/40";
+  if (percentage >= 35) return "bg-status-warning/50 border border-status-warning/40";
+  return "bg-status-error/40 border border-status-error/30";
 }
 
 function heatmapLabel(percentage: number, hasData: boolean): string {
@@ -120,39 +135,68 @@ function heatmapLabel(percentage: number, hasData: boolean): string {
   return "Critical";
 }
 
-function insightTypeStyle(type: PatternInsight["type"]): {
-  border: string;
-  bg: string;
-  badge: string;
-  icon: React.ReactNode;
-} {
+const CATEGORY_META: Record<
+  string,
+  { icon: React.ReactNode; classes: string }
+> = {
+  career: {
+    icon: <Briefcase className="h-3.5 w-3.5" />,
+    classes: "text-status-info bg-status-info/10 border-status-info/20",
+  },
+  health: {
+    icon: <Heart className="h-3.5 w-3.5" />,
+    classes: "text-status-success bg-status-success/10 border-status-success/20",
+  },
+  relationship: {
+    icon: <Users className="h-3.5 w-3.5" />,
+    classes: "text-status-error bg-status-error/10 border-status-error/20",
+  },
+  personal: {
+    icon: <User className="h-3.5 w-3.5" />,
+    classes: "text-accent-primary bg-accent-primary/10 border-accent-primary/20",
+  },
+  travel: {
+    icon: <Plane className="h-3.5 w-3.5" />,
+    classes: "text-status-info bg-status-info/10 border-status-info/20",
+  },
+  achievement: {
+    icon: <Trophy className="h-3.5 w-3.5" />,
+    classes: "text-status-warning bg-status-warning/10 border-status-warning/20",
+  },
+  challenge: {
+    icon: <AlertTriangle className="h-3.5 w-3.5" />,
+    classes: "text-status-warning bg-status-warning/10 border-status-warning/20",
+  },
+  other: {
+    icon: <MoreHorizontal className="h-3.5 w-3.5" />,
+    classes: "text-text-muted bg-bg-panel border-border",
+  },
+};
+
+function insightTypeMeta(type: PatternInsight["type"]) {
   switch (type) {
     case "strength":
       return {
-        border: "border-status-success/30",
-        bg: "bg-status-success/5",
-        badge: "bg-status-success/20 text-status-success",
+        bar: "bg-status-success",
+        badgeTone: "success" as const,
         icon: <Heart className="h-4 w-4 text-status-success" />,
       };
     case "opportunity":
       return {
-        border: "border-accent-primary/30",
-        bg: "bg-accent-primary/5",
-        badge: "bg-accent-primary/20 text-accent-glow",
+        bar: "bg-accent-primary",
+        badgeTone: "accent" as const,
         icon: <Sparkles className="h-4 w-4 text-accent-primary" />,
       };
     case "warning":
       return {
-        border: "border-status-warning/30",
-        bg: "bg-status-warning/5",
-        badge: "bg-status-warning/20 text-status-warning",
+        bar: "bg-status-warning",
+        badgeTone: "warning" as const,
         icon: <Activity className="h-4 w-4 text-status-warning" />,
       };
     default:
       return {
-        border: "border-border",
-        bg: "bg-bg-panel/40",
-        badge: "bg-bg-panel text-text-secondary",
+        bar: "bg-text-muted",
+        badgeTone: "default" as const,
         icon: <Brain className="h-4 w-4 text-text-secondary" />,
       };
   }
@@ -192,7 +236,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border border-border bg-bg-card px-3 py-2.5 shadow-lg text-xs">
+    <div className="rounded-xl border border-border bg-bg-card px-3 py-2.5 shadow-elevated text-xs">
       <p className="mb-1.5 font-semibold text-text-secondary">{label}</p>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-1.5 py-0.5">
@@ -201,7 +245,7 @@ function ChartTooltip({
             style={{ backgroundColor: p.color }}
           />
           <span className="text-text-muted capitalize">{p.name}:</span>
-          <span className="font-medium text-white">{p.value}/5</span>
+          <span className="font-medium text-text-primary">{p.value}/5</span>
         </div>
       ))}
     </div>
@@ -212,7 +256,6 @@ function ChartTooltip({
 
 function HeatCell({ day }: { day: TimelineDay }) {
   const [showTip, setShowTip] = useState(false);
-  const tipRef = useRef<HTMLDivElement>(null);
   const colorClass = heatmapColor(day.percentage, day.hasData);
 
   const formattedDate = parseDay(day.date).toLocaleDateString("en-US", {
@@ -224,16 +267,13 @@ function HeatCell({ day }: { day: TimelineDay }) {
   return (
     <div className="relative">
       <div
-        className={`h-4 w-4 rounded-sm cursor-pointer transition-transform hover:scale-125 ${colorClass}`}
+        className={`h-5 w-5 rounded-md cursor-pointer transition-all duration-200 ease-apple hover:scale-125 hover:shadow-glow-soft ${colorClass}`}
         onMouseEnter={() => setShowTip(true)}
         onMouseLeave={() => setShowTip(false)}
       />
       {showTip && (
-        <div
-          ref={tipRef}
-          className="absolute bottom-full left-1/2 z-50 -translate-x-1/2 mb-1.5 w-max max-w-[160px] rounded-lg border border-border bg-bg-card px-2.5 py-1.5 text-[11px] shadow-lg pointer-events-none"
-        >
-          <p className="font-semibold text-white">{formattedDate}</p>
+        <div className="absolute bottom-full left-1/2 z-50 -translate-x-1/2 mb-1.5 w-max max-w-[180px] rounded-lg border border-border bg-bg-card px-2.5 py-1.5 text-[11px] shadow-elevated pointer-events-none animate-scale-in">
+          <p className="font-semibold text-text-primary">{formattedDate}</p>
           {day.hasData ? (
             <>
               <p className="text-text-secondary">
@@ -254,7 +294,8 @@ function HeatCell({ day }: { day: TimelineDay }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TimelinePage() {
-  const { getAuthHeaders } = useAuth();
+  const { requireAuth, signOut } = useAuth();
+  const { toast } = useToast();
   const [days, setDays] = useState<TimelineDay[]>([]);
   const [insights, setInsights] = useState<PatternInsight[]>([]);
   const [chartWindow, setChartWindow] = useState<7 | 14 | 30>(30);
@@ -277,58 +318,78 @@ export default function TimelinePage() {
     setLoadingDays(true);
     setErrorDays(null);
     try {
-      const headers = getAuthHeaders();
+      const headers = requireAuth();
+      if (!headers) return;
       const res = await fetch("/api/timeline/checkin", {
-        headers: headers ?? {},
+        headers,
         cache: "no-store",
       });
+      if (res.status === 401) {
+        signOut();
+        return;
+      }
       if (!res.ok) throw new Error("Failed to load timeline data");
       const data = await res.json();
       setDays(data.days ?? []);
     } catch {
-      setErrorDays("Could not load your wellness timeline.");
+      const msg = "Could not load your wellness timeline.";
+      setErrorDays(msg);
+      toast({ title: "Error", description: msg, variant: "error" });
     } finally {
       setLoadingDays(false);
     }
-  }, [getAuthHeaders]);
+  }, [requireAuth, signOut, toast]);
 
   const fetchInsights = useCallback(async () => {
     setLoadingInsights(true);
     setErrorInsights(null);
     try {
-      const headers = getAuthHeaders();
+      const headers = requireAuth();
+      if (!headers) return;
       const res = await fetch("/api/timeline/insights", {
-        headers: headers ?? {},
+        headers,
         cache: "no-store",
       });
+      if (res.status === 401) {
+        signOut();
+        return;
+      }
       if (!res.ok) throw new Error("Failed to load insights");
       const data = await res.json();
       setInsights(data.insights ?? []);
     } catch {
-      setErrorInsights("Could not load pattern insights.");
+      const msg = "Could not load pattern insights.";
+      setErrorInsights(msg);
+      toast({ title: "Error", description: msg, variant: "error" });
     } finally {
       setLoadingInsights(false);
     }
-  }, [getAuthHeaders]);
+  }, [requireAuth, signOut, toast]);
 
   const fetchLifeEvents = useCallback(async () => {
     setLoadingEvents(true);
     try {
-      const headers = getAuthHeaders();
+      const headers = requireAuth();
       if (!headers) return;
       const res = await fetch("/api/life-events?limit=50", { headers, cache: "no-store" });
+      if (res.status === 401) {
+        signOut();
+        return;
+      }
       if (res.ok) {
         const data = (await res.json()) as { events: LifeEvent[] };
         setLifeEvents(data.events ?? []);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load life events.", variant: "error" });
     } finally {
       setLoadingEvents(false);
     }
-  }, [getAuthHeaders]);
+  }, [requireAuth, signOut, toast]);
 
   const handleAddEvent = async () => {
     if (!newEventTitle.trim()) return;
-    const headers = getAuthHeaders();
+    const headers = requireAuth();
     if (!headers) return;
     setAddingEvent(true);
     try {
@@ -349,17 +410,29 @@ export default function TimelinePage() {
         setNewEventNotes("");
         setShowAddForm(false);
         void fetchLifeEvents();
+      } else {
+        toast({ title: "Error", description: "Failed to save event.", variant: "error" });
       }
+    } catch {
+      toast({ title: "Error", description: "Failed to save event.", variant: "error" });
     } finally {
       setAddingEvent(false);
     }
   };
 
   const handleDeleteEvent = async (id: string) => {
-    const headers = getAuthHeaders();
+    const headers = requireAuth();
     if (!headers) return;
-    await fetch(`/api/life-events/${id}`, { method: "DELETE", headers });
-    setLifeEvents((ev) => ev.filter((e) => e._id !== id));
+    try {
+      const res = await fetch(`/api/life-events/${id}`, { method: "DELETE", headers });
+      if (res.ok) {
+        setLifeEvents((ev) => ev.filter((e) => e._id !== id));
+      } else {
+        toast({ title: "Error", description: "Failed to delete event.", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to delete event.", variant: "error" });
+    }
   };
 
   useEffect(() => {
@@ -371,14 +444,11 @@ export default function TimelinePage() {
   // Partition TIMELINE_DAYS days into columns (weeks), Sunday-first
   const grid: (TimelineDay | null)[][] = [];
   if (days.length === TIMELINE_DAYS) {
-    // Find what day of week the first day is
     const firstDow = parseDay(days[0].date).getDay(); // 0=Sun
-    // Pad the start with nulls
     const padded: (TimelineDay | null)[] = [
       ...new Array(firstDow).fill(null),
       ...days,
     ];
-    // Split into weeks
     for (let i = 0; i < padded.length; i += 7) {
       grid.push(padded.slice(i, i + 7));
     }
@@ -410,37 +480,34 @@ export default function TimelinePage() {
   const isLoading = loadingDays || loadingInsights;
 
   return (
-    <main className="min-h-screen bg-bg-base px-6 py-8 max-w-6xl mx-auto">
+    <main className="min-h-screen bg-bg-base px-6 py-8 max-w-6xl mx-auto animate-fade-in">
       {/* ── Header ──────────────────────────────────────────── */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
             <Calendar className="h-6 w-6 text-accent-primary" />
-            Wellness Timeline
+            Timeline
           </h1>
           <p className="mt-1 text-sm text-text-secondary">
             A living visual portrait of your digital self — 90 days at a glance
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<RefreshCw className="h-4 w-4" />}
           onClick={() => {
             void fetchDays();
             void fetchInsights();
           }}
-          disabled={isLoading}
-          className="flex items-center gap-2 rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm text-text-secondary hover:border-accent-primary/40 hover:text-white transition-all"
+          loading={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
           Refresh
-        </button>
+        </Button>
       </div>
 
       {/* ── Summary Bar ─────────────────────────────────────── */}
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
             label: `Check-ins (${TIMELINE_DAYS}d)`,
@@ -457,374 +524,400 @@ export default function TimelinePage() {
             value:
               trendDir === "improving" ? "↑ Improving" : trendDir === "declining" ? "↓ Declining" : "→ Stable",
             sub: `${Math.abs(Math.round(recentAvg - olderAvg))}% vs prior week`,
-            color:
-              trendDir === "improving"
-                ? "text-status-success"
-                : trendDir === "declining"
-                  ? "text-status-error"
-                  : "text-text-secondary",
+            tone: trendDir === "improving" ? "success" : trendDir === "declining" ? "error" : "muted",
           },
-        ].map(({ label, value, sub, color }) => (
-          <div
-            key={label}
-            className="rounded-xl border border-border bg-bg-card p-4"
-          >
+        ].map(({ label, value, sub, tone }) => (
+          <Card key={label} variant="elevated" className="p-4">
             <p className="text-xs font-medium text-text-muted uppercase tracking-wide">
               {label}
             </p>
-            <p className={`mt-1 text-xl font-bold ${color ?? "text-white"}`}>
-              {loadingDays ? <Loader2 className="h-5 w-5 animate-spin text-text-muted" /> : value}
-            </p>
+            <div className={`mt-1 text-xl font-bold ${tone === "success" ? "text-status-success" : tone === "error" ? "text-status-error" : "text-text-primary"}`}>
+              {loadingDays ? <Skeleton width={80} height={24} rounded="md" /> : value}
+            </div>
             <p className="mt-0.5 text-xs text-text-muted">{sub}</p>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* ── Calendar Heatmap ────────────────────────────────── */}
-      <section className="mb-6 rounded-xl border border-border bg-bg-card p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-accent-primary" />
-            {TIMELINE_DAYS}-Day Wellness Calendar
-          </h2>
-          {/* Legend */}
-          <div className="flex items-center gap-2 text-xs text-text-muted">
-            <span>Less</span>
-            {[
-              "bg-bg-panel border border-border/30",
-              "bg-red-500/40",
-              "bg-amber-500/50",
-              "bg-violet-500/60",
-              "bg-violet-600/90",
-            ].map((cls, i) => (
-              <div key={i} className={`h-3.5 w-3.5 rounded-sm ${cls}`} />
-            ))}
-            <span>More</span>
+      <section className="mb-6">
+        <Card variant="default" className="p-5">
+          <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-accent-primary" />
+              {TIMELINE_DAYS}-Day Wellness Calendar
+            </h2>
+            {/* Legend */}
+            <div className="flex items-center gap-2 text-xs text-text-muted">
+              <span>Less</span>
+              {[
+                "bg-bg-panel border border-border/30",
+                "bg-status-error/40 border border-status-error/30",
+                "bg-status-warning/50 border border-status-warning/40",
+                "bg-status-success/50 border border-status-success/40",
+                "bg-accent-primary/70 border border-accent-primary/40",
+              ].map((cls, i) => (
+                <div key={i} className={`h-3.5 w-3.5 rounded-sm ${cls}`} />
+              ))}
+              <span>More</span>
+            </div>
           </div>
-        </div>
 
-        {loadingDays ? (
-          <div className="flex items-center justify-center h-24">
-            <Loader2 className="h-6 w-6 animate-spin text-accent-primary" />
-          </div>
-        ) : errorDays ? (
-          <p className="text-center text-sm text-status-error py-8">{errorDays}</p>
-        ) : (
-          <>
-            {/* Day-of-week labels */}
-            <div className="mb-1 ml-0 flex gap-1">
-              {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-                <div
-                  key={i}
-                  className="h-4 w-4 flex items-center justify-center text-[9px] text-text-muted font-medium"
-                >
-                  {d}
-                </div>
-              ))}
+          {loadingDays ? (
+            <div className="flex items-center justify-center h-32">
+              <Skeleton width="100%" height={96} rounded="lg" />
             </div>
-            {/* Grid: each row is a day of week, each col is a week */}
-            <div className="flex gap-1">
-              {grid.map((week, wi) => (
-                <div key={wi} className="flex flex-col gap-1">
-                  {week.map((day, di) =>
-                    day ? (
-                      <HeatCell key={day.date} day={day} />
-                    ) : (
-                      <div key={`empty-${wi}-${di}`} className="h-4 w-4" />
-                    )
-                  )}
-                </div>
-              ))}
+          ) : errorDays ? (
+            <EmptyState
+              icon={<Calendar className="h-8 w-8" />}
+              title="Could not load timeline"
+              description={errorDays}
+            />
+          ) : (
+            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+              {/* Day-of-week labels */}
+              <div className="flex flex-col gap-1 pr-1">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                  <div
+                    key={i}
+                    className="h-5 w-5 flex items-center justify-center text-[9px] text-text-muted font-medium"
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              {/* Weeks */}
+              <div className="flex gap-1">
+                {grid.map((week, wi) => (
+                  <div key={wi} className="flex flex-col gap-1">
+                    {week.map((day, di) =>
+                      day ? (
+                        <HeatCell key={day.date} day={day} />
+                      ) : (
+                        <div key={`empty-${wi}-${di}`} className="h-5 w-5" />
+                      )
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </>
-        )}
+          )}
+        </Card>
       </section>
 
       {/* ── Dimension Trend Chart ───────────────────────────── */}
-      <section className="mb-6 rounded-xl border border-border bg-bg-card p-5">
-        <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Activity className="h-4 w-4 text-accent-primary" />
-            Wellness Dimensions Over Time
-          </h2>
-          <div className="flex gap-1.5">
-            {([7, 14, 30] as const).map((w) => (
-              <button
-                key={w}
-                onClick={() => setChartWindow(w)}
-                className={[
-                  "rounded-lg px-3 py-1 text-xs font-medium transition-all",
-                  chartWindow === w
-                    ? "bg-accent-primary/20 text-accent-glow border border-accent-primary/40"
-                    : "bg-bg-panel text-text-muted border border-border hover:text-white",
-                ].join(" ")}
+      <section className="mb-6">
+        <Card variant="default" className="p-5">
+          <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
+              <Activity className="h-4 w-4 text-accent-primary" />
+              Wellness Dimensions Over Time
+            </h2>
+            <div className="flex gap-1.5">
+              {([7, 14, 30] as const).map((w) => (
+                <Button
+                  key={w}
+                  size="sm"
+                  variant={chartWindow === w ? "primary" : "secondary"}
+                  onClick={() => setChartWindow(w)}
+                >
+                  {w}d
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {loadingDays ? (
+            <div className="flex items-center justify-center h-48">
+              <Skeleton width="100%" height={192} rounded="lg" />
+            </div>
+          ) : chartData.length === 0 ? (
+            <EmptyState
+              icon={<Calendar className="h-8 w-8" />}
+              title="No check-in data yet"
+              description="Start your first check-in to see trends."
+            />
+          ) : (
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 4, right: 8, left: -24, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={[1, 5]}
+                    ticks={[1, 2, 3, 4, 5]}
+                    tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <RechartsTooltip content={<ChartTooltip />} />
+                  <Legend
+                    wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                    formatter={(value) =>
+                      DIMENSION_LABELS[value as keyof typeof DIMENSION_LABELS] ?? value
+                    }
+                  />
+                  {DIMENSION_KEYS.map((key) => (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      stroke={DIMENSION_COLORS[key]}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, strokeWidth: 0 }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Dimension legend chips */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {DIMENSION_KEYS.map((key) => (
+              <div
+                key={key}
+                className="flex items-center gap-1.5 rounded-full border border-border/60 bg-bg-panel/60 px-2.5 py-1 text-[11px]"
               >
-                {w}d
-              </button>
+                <span style={{ color: DIMENSION_COLORS[key] }}>
+                  {DIMENSION_ICONS[key]}
+                </span>
+                <span className="text-text-secondary">{DIMENSION_LABELS[key]}</span>
+              </div>
             ))}
           </div>
-        </div>
-
-        {loadingDays ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-6 w-6 animate-spin text-accent-primary" />
-          </div>
-        ) : chartData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-text-muted text-sm gap-2">
-            <Calendar className="h-8 w-8 opacity-40" />
-            <p>No check-in data yet. Start your first check-in to see trends.</p>
-          </div>
-        ) : (
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{ top: 4, right: 8, left: -24, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(42,46,63,0.8)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: "#6B7280", fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  domain={[1, 5]}
-                  ticks={[1, 2, 3, 4, 5]}
-                  tick={{ fill: "#6B7280", fontSize: 10 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
-                  formatter={(value) =>
-                    DIMENSION_LABELS[value as keyof typeof DIMENSION_LABELS] ?? value
-                  }
-                />
-                {DIMENSION_KEYS.map((key) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={DIMENSION_COLORS[key]}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0 }}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {/* Dimension legend chips */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {DIMENSION_KEYS.map((key) => (
-            <div
-              key={key}
-              className="flex items-center gap-1.5 rounded-full border border-border/60 bg-bg-panel/60 px-2.5 py-1 text-[11px]"
-            >
-              <span style={{ color: DIMENSION_COLORS[key] }}>
-                {DIMENSION_ICONS[key]}
-              </span>
-              <span className="text-text-secondary">{DIMENSION_LABELS[key]}</span>
-            </div>
-          ))}
-        </div>
+        </Card>
       </section>
 
       {/* ── AI Pattern Insights ─────────────────────────────── */}
-      <section className="rounded-xl border border-border bg-bg-card p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent-primary" />
-            AI Pattern Insights
-          </h2>
-          {!loadingInsights && (
-            <span className="text-[11px] text-text-muted">
-              Powered by Gemini · based on your last 30 days
-            </span>
-          )}
-        </div>
-
-        {loadingInsights ? (
-          <div className="flex items-center justify-center h-24">
-            <div className="flex items-center gap-2 text-text-muted text-sm">
-              <Loader2 className="h-5 w-5 animate-spin text-accent-primary" />
-              Analysing your patterns…
-            </div>
-          </div>
-        ) : errorInsights ? (
-          <p className="text-center text-sm text-status-error py-6">{errorInsights}</p>
-        ) : insights.length === 0 ? (
-          <p className="text-center text-sm text-text-muted py-6">
-            Complete more check-ins to unlock AI pattern insights.
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {insights.map((insight) => {
-              const style = insightTypeStyle(insight.type);
-              return (
-                <div
-                  key={insight.id}
-                  className={`rounded-xl border p-4 transition-all hover:shadow-md ${style.border} ${style.bg}`}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    {style.icon}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${style.badge}`}
-                    >
-                      {insight.type}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-white mb-1">
-                    {insight.title}
-                  </h3>
-                  <p className="text-xs text-text-secondary leading-relaxed">
-                    {insight.description}
-                  </p>
-                  {insight.dimension && (
-                    <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-bg-panel/80 border border-border/40 px-2 py-0.5 text-[10px] text-text-muted">
-                      {insight.dimension}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Trend summary footer */}
-        {!loadingDays && !errorDays && daysWithData.length >= 2 && (
-          <div className="mt-4 flex items-center gap-2 rounded-lg border border-border/40 bg-bg-panel/40 px-3 py-2.5 text-xs text-text-muted">
-            {trendDir === "improving" ? (
-              <TrendingUp className="h-4 w-4 text-status-success flex-shrink-0" />
-            ) : trendDir === "declining" ? (
-              <TrendingDown className="h-4 w-4 text-status-error flex-shrink-0" />
-            ) : (
-              <Minus className="h-4 w-4 flex-shrink-0" />
+      <section className="mb-6">
+        <Card variant="default" className="p-5">
+          <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-accent-primary" />
+              AI Pattern Insights
+            </h2>
+            {!loadingInsights && (
+              <span className="text-[11px] text-text-muted">
+                Powered by DeepSeek · based on your last 30 days
+              </span>
             )}
-            <span>
-              Your 7-day average ({Math.round(recentAvg)}%) is{" "}
-              {trendDir === "improving"
-                ? `up ${Math.abs(Math.round(recentAvg - olderAvg))}%`
-                : trendDir === "declining"
-                  ? `down ${Math.abs(Math.round(recentAvg - olderAvg))}%`
-                  : "holding steady"}{" "}
-              compared to the prior week.
-            </span>
           </div>
-        )}
+
+          {loadingInsights ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} width="100%" height={120} rounded="xl" />
+              ))}
+            </div>
+          ) : errorInsights ? (
+            <EmptyState
+              icon={<Sparkles className="h-8 w-8" />}
+              title="Insights unavailable"
+              description={errorInsights}
+            />
+          ) : insights.length === 0 ? (
+            <EmptyState
+              icon={<Sparkles className="h-8 w-8" />}
+              title="No insights yet"
+              description="Complete more check-ins to unlock AI pattern insights."
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {insights.map((insight, idx) => {
+                const meta = insightTypeMeta(insight.type);
+                return (
+                  <Card
+                    key={insight.id}
+                    variant="interactive"
+                    className="relative overflow-hidden p-4"
+                    style={{ animationDelay: `${idx * 80}ms` }}
+                  >
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${meta.bar}`} />
+                    <div className="flex items-center justify-between mb-2">
+                      {meta.icon}
+                      <Badge tone={meta.badgeTone}>{insight.type}</Badge>
+                    </div>
+                    <h3 className="text-sm font-semibold text-text-primary mb-1">
+                      {insight.title}
+                    </h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      {insight.description}
+                    </p>
+                    {insight.dimension && (
+                      <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-bg-panel/80 border border-border/40 px-2 py-0.5 text-[10px] text-text-muted">
+                        {insight.dimension}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Trend summary footer */}
+          {!loadingDays && !errorDays && daysWithData.length >= 2 && (
+            <div className="mt-4 flex items-center gap-2 rounded-lg border border-border/40 bg-bg-panel/40 px-3 py-2.5 text-xs text-text-muted">
+              {trendDir === "improving" ? (
+                <TrendingUp className="h-4 w-4 text-status-success flex-shrink-0" />
+              ) : trendDir === "declining" ? (
+                <TrendingDown className="h-4 w-4 text-status-error flex-shrink-0" />
+              ) : (
+                <Minus className="h-4 w-4 flex-shrink-0" />
+              )}
+              <span>
+                Your 7-day average ({Math.round(recentAvg)}%) is{" "}
+                {trendDir === "improving"
+                  ? `up ${Math.abs(Math.round(recentAvg - olderAvg))}%`
+                  : trendDir === "declining"
+                    ? `down ${Math.abs(Math.round(recentAvg - olderAvg))}%`
+                    : "holding steady"}{" "}
+                compared to the prior week.
+              </span>
+            </div>
+          )}
+        </Card>
       </section>
 
       {/* ── Life Events Section ──────────────────────────────── */}
       <section className="mt-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-            <Flag className="h-5 w-5 text-rose-400" />
+          <h2 className="flex items-center gap-2 text-lg font-bold text-text-primary">
+            <Flag className="h-5 w-5 text-status-error" />
             Life Events
           </h2>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Plus className="h-3.5 w-3.5" />}
             onClick={() => setShowAddForm((v) => !v)}
-            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-white hover:bg-white/10 transition-colors"
           >
-            <Plus className="h-3.5 w-3.5" />
             Add Event
-          </button>
+          </Button>
         </div>
 
         {/* Add event form */}
         {showAddForm && (
-          <div className="mb-4 rounded-2xl border border-white/5 bg-bg-panel p-4 space-y-3 animate-fade-in">
-            <input
-              value={newEventTitle}
-              onChange={(e) => setNewEventTitle(e.target.value)}
-              placeholder="Event title (e.g. Started new job)"
-              className="w-full rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 transition-colors"
-              maxLength={200}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={newEventCategory}
-                onChange={(e) => setNewEventCategory(e.target.value)}
-                className="rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-primary/50 transition-colors"
+          <Card variant="default" className="mb-4 p-4 animate-fade-in">
+            <div className="space-y-3">
+              <FormField>
+                <Input
+                  value={newEventTitle}
+                  onChange={(e) => setNewEventTitle(e.target.value)}
+                  placeholder="Event title (e.g. Started new job)"
+                  maxLength={200}
+                />
+              </FormField>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField>
+                  <select
+                    value={newEventCategory}
+                    onChange={(e) => setNewEventCategory(e.target.value)}
+                    className="w-full bg-bg-input border border-border text-text-primary rounded-xl px-4 py-2.5 text-sm transition-all duration-200 ease-apple focus:outline-none focus:ring-2 focus:border-accent-primary focus:ring-accent-subtle"
+                  >
+                    {["career", "health", "relationship", "personal", "travel", "achievement", "challenge", "other"].map((c) => (
+                      <option key={c} value={c} className="capitalize">
+                        {c.charAt(0).toUpperCase() + c.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField>
+                  <Input
+                    type="date"
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
+                  />
+                </FormField>
+              </div>
+              <FormField>
+                <Textarea
+                  value={newEventNotes}
+                  onChange={(e) => setNewEventNotes(e.target.value)}
+                  placeholder="Notes (optional)"
+                  rows={2}
+                  maxLength={1000}
+                  resize="none"
+                />
+              </FormField>
+              <Button
+                fullWidth
+                onClick={() => void handleAddEvent()}
+                loading={addingEvent}
+                disabled={!newEventTitle.trim()}
               >
-                {["career", "health", "relationship", "personal", "travel", "achievement", "challenge", "other"].map((c) => (
-                  <option key={c} value={c} className="capitalize">{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                ))}
-              </select>
-              <input
-                type="date"
-                value={newEventDate}
-                onChange={(e) => setNewEventDate(e.target.value)}
-                className="rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-primary/50 transition-colors"
-              />
+                Save Event
+              </Button>
             </div>
-            <textarea
-              value={newEventNotes}
-              onChange={(e) => setNewEventNotes(e.target.value)}
-              placeholder="Notes (optional)"
-              rows={2}
-              maxLength={1000}
-              className="w-full resize-none rounded-xl border border-border bg-bg-base px-3 py-2 text-sm text-white placeholder:text-text-muted focus:outline-none focus:border-accent-primary/50 transition-colors"
-            />
-            <button
-              onClick={() => void handleAddEvent()}
-              disabled={addingEvent || !newEventTitle.trim()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-primary py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-colors"
-            >
-              {addingEvent ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              {addingEvent ? "Saving…" : "Save Event"}
-            </button>
-          </div>
+          </Card>
         )}
 
         {/* Events list */}
         {loadingEvents ? (
-          <div className="animate-pulse space-y-2">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-border" />)}
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} width="100%" height={56} rounded="xl" />
+            ))}
           </div>
         ) : lifeEvents.length === 0 ? (
-          <div className="rounded-xl border border-white/5 bg-bg-panel px-4 py-6 text-center text-sm text-text-muted">
-            No life events recorded yet. Add milestones to see how they affect your wellness.
-          </div>
+          <EmptyState
+            icon={<Flag className="h-8 w-8" />}
+            title="No life events yet"
+            description="Add milestones to see how they affect your wellness."
+          />
         ) : (
           <div className="space-y-2">
             {lifeEvents.map((event) => {
-              const categoryColors: Record<string, string> = {
-                career: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-                health: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-                relationship: "text-rose-400 bg-rose-500/10 border-rose-500/20",
-                personal: "text-violet-400 bg-violet-500/10 border-violet-500/20",
-                travel: "text-sky-400 bg-sky-500/10 border-sky-500/20",
-                achievement: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-                challenge: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-                other: "text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
-              };
+              const meta = CATEGORY_META[event.category] ?? CATEGORY_META.other;
               return (
-                <div key={event._id} className="flex items-start gap-3 rounded-xl border border-white/5 bg-bg-panel px-4 py-3">
-                  <span className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize shrink-0 ${categoryColors[event.category] ?? categoryColors.other}`}>
+                <Card
+                  key={event._id}
+                  variant="default"
+                  className="flex items-start gap-3 px-4 py-3"
+                >
+                  <span
+                    className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize shrink-0 flex items-center gap-1 ${meta.classes}`}
+                  >
+                    {meta.icon}
                     {event.category}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{event.title}</p>
-                    <p className="text-[11px] text-text-muted">{new Date(event.date).toLocaleDateString()}</p>
-                    {event.notes && <p className="text-xs text-text-secondary mt-0.5 truncate">{event.notes}</p>}
+                    <p className="text-sm font-semibold text-text-primary truncate">
+                      {event.title}
+                    </p>
+                    <p className="text-[11px] text-text-muted">
+                      {new Date(event.date).toLocaleDateString()}
+                    </p>
+                    {event.notes && (
+                      <p className="text-xs text-text-secondary mt-0.5 truncate">
+                        {event.notes}
+                      </p>
+                    )}
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-text-muted hover:text-status-error"
                     onClick={() => void handleDeleteEvent(event._id)}
-                    className="text-text-muted hover:text-status-error transition-colors shrink-0"
-                    title="Delete event"
+                    aria-label="Delete event"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               );
             })}
           </div>

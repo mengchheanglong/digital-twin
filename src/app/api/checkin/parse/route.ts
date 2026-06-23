@@ -2,14 +2,9 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError, badRequest } from '@/lib/api-response';
+import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from '@/lib/deepseek';
 
 export const dynamic = 'force-dynamic';
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
 
 interface ParsedDimensions {
   energy: number;
@@ -30,10 +25,7 @@ function clampRating(v: unknown): number {
 }
 
 async function parseDimensionsFromText(text: string): Promise<ParsedDimensions | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-
-  const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
+  if (!hasDeepSeekApiKey()) return null;
 
   const prompt = `You are a wellness assessment assistant. Given the following text describing how someone feels, extract scores for 5 wellness dimensions on a scale of 1-5 (1=very low, 3=neutral, 5=very high).
 
@@ -50,21 +42,12 @@ Return ONLY valid JSON like: {"energy":4,"focus":3,"stressControl":2,"socialConn
 No explanation, no markdown.`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 100 },
-        }),
-      },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as GeminiResponse;
-    const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
-    const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const result = await requestDeepSeekChat({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      maxTokens: 100,
+    });
+    const cleaned = stripJsonCodeFences(result.text);
 
     let parsed: Record<string, unknown> = {};
     try {

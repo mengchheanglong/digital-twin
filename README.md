@@ -1,6 +1,6 @@
 # Digital Twin
 
-Digital Twin is a Next.js 14 application for personal reflection and habit tracking. It combines JWT-based authentication, daily check-ins, quest progression, profile stats, event-driven insight generation, and a Gemini-powered companion chat in a single dashboard.
+Digital Twin is a Next.js 14 application for personal reflection and habit tracking. It combines JWT-based authentication, daily check-ins, quest progression, profile stats, event-driven insight generation, and a DeepSeek-powered companion chat in a single dashboard.
 
 ## Current Product Scope
 
@@ -8,7 +8,7 @@ Digital Twin is a Next.js 14 application for personal reflection and habit track
 - Daily check-in flow with one submission per day and historical review
 - Quest system with create, progress, complete, delete, and daily reset support
 - Insight dashboard with daily status, reflection, trend, focus, and entertainment ratio
-- Companion chat with persisted conversations and Gemini model fallback handling
+- Companion chat with persisted conversations and DeepSeek model fallback handling
 - Profile page with level, XP, streak, mood, quest stats, and earned badges
 - Event ingestion endpoint for updating insight state from app activity
 
@@ -19,7 +19,7 @@ Digital Twin is a Next.js 14 application for personal reflection and habit track
 - TypeScript
 - Tailwind CSS
 - MongoDB with Mongoose
-- Google Gemini API
+- DeepSeek API
 
 ## App Routes
 
@@ -89,23 +89,19 @@ Create a `.env` file in the project root.
 ```env
 JWT_SECRET=your_jwt_secret
 MONGODB_URI=mongodb://localhost:27017/digital-twin
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
-```
-
-Optional:
-
-```env
-GEMINI_FALLBACK_MODELS=gemini-2.0-flash,gemini-flash-latest
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 ```
 
 Notes:
 
 - `JWT_SECRET` is required for auth.
 - `MONGODB_URI` is required for all app data.
-- `GEMINI_API_KEY` is required for companion chat.
-- Insight reflection falls back to static text when Gemini is unavailable.
-- `GEMINI_MODEL` is used first, then fallback models are tried in order.
+- `DEEPSEEK_API_KEY` is required for companion chat.
+- Insight reflection falls back to static text when DeepSeek is unavailable.
+- `DEEPSEEK_MODEL` defaults to `deepseek-v4-flash`.
+- `DEEPSEEK_BASE_URL` defaults to `https://api.deepseek.com/v1`.
 
 ## Getting Started
 

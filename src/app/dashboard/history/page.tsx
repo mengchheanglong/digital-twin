@@ -1,10 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { Clock } from "lucide-react";
+import { Clock, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { CHECKIN_DIMENSIONS } from "@/lib/progression";
+import { Card } from "@/components/ui";
+import { ProgressBar } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
+import { Badge } from "@/components/ui";
 
 interface HistoryItem {
   id: string;
@@ -12,6 +18,35 @@ interface HistoryItem {
   overallScore: number;
   percentage: number;
   ratings: number[];
+}
+
+function HistorySkeleton() {
+  return (
+    <div className="space-y-4 p-6">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="p-5 space-y-4">
+            <div className="flex items-start justify-between">
+              <Skeleton width={120} height={18} rounded="md" />
+              <Skeleton width={50} height={22} rounded="md" />
+            </div>
+            <Skeleton width="100%" height={6} rounded="full" />
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: 5 }).map((_, j) => (
+                <Skeleton key={j} width={60} height={20} rounded="full" />
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getRatingColor(rating: number): string {
+  if (rating >= 4) return "bg-status-success/15 text-status-success border-status-success/25";
+  if (rating === 3) return "bg-status-warning/15 text-status-warning border-status-warning/25";
+  return "bg-status-error/15 text-status-error border-status-error/25";
 }
 
 export default function HistoryPage() {
@@ -48,65 +83,125 @@ export default function HistoryPage() {
     void fetchHistory();
   }, [fetchHistory]);
 
+  const summary = useMemo(() => {
+    if (!history.length) return null;
+    const total = history.length;
+    const avgScore = history.reduce((sum, item) => sum + item.overallScore, 0) / total;
+    const avgPercent = history.reduce((sum, item) => sum + item.percentage, 0) / total;
+    return { total, avgScore: Math.round(avgScore * 10) / 10, avgPercent: Math.round(avgPercent) };
+  }, [history]);
+
   return (
-    <div className="mx-auto w-full max-w-3xl animate-fade-in">
-      <section className="overflow-hidden text-left rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl shadow-card relative transition-all duration-500 ease-apple hover:shadow-stripe-hover hover:-translate-y-1">
-        <div className="absolute top-0 w-full h-1/2 bg-linear-to-b from-accent-primary/5 to-transparent pointer-events-none" />
-        
-        <header className="flex items-center gap-3 border-b border-border/50 px-6 py-5 relative z-10">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary shadow-inner">
-            <Clock className="h-5 w-5" />
+    <div className="mx-auto w-full max-w-4xl animate-fade-in">
+      <Card variant="elevated" className="relative overflow-hidden">
+        <div className="pointer-events-none absolute top-0 h-1/2 w-full bg-gradient-to-b from-accent-primary/5 to-transparent" />
+
+        <header className="relative z-10 flex flex-col gap-4 border-b border-border/50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary shadow-inner ring-1 ring-accent-primary/20">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-text-primary">Check-in History</h1>
+              <p className="mt-0.5 text-xs text-text-muted">Chronological record of your emotional checks.</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">Pulse History</h1>
-            <p className="text-xs text-text-muted mt-0.5">Chronological record of your emotional checks.</p>
-          </div>
+
+          {summary && (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 rounded-lg bg-bg-panel px-3 py-1.5 text-xs font-semibold text-text-secondary ring-1 ring-border">
+                <TrendingUp className="h-3.5 w-3.5 text-status-success" />
+                Avg {summary.avgScore}/25
+              </div>
+              <div className="rounded-lg bg-bg-panel px-3 py-1.5 text-xs font-semibold text-text-secondary ring-1 ring-border">
+                {summary.total} check-ins
+              </div>
+            </div>
+          )}
         </header>
 
-        <div className="space-y-4 p-6 relative z-10">
+        <div className="relative z-10 space-y-4 p-6">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <p className="text-sm font-medium text-text-muted animate-pulse">Loading history...</p>
-            </div>
+            <HistorySkeleton />
           ) : error ? (
-            <p className="rounded-xl border border-status-error/30 bg-status-error/10 px-4 py-3 text-sm font-medium text-status-error">{error}</p>
-          ) : !history.length ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/50 bg-bg-panel/30 py-12 text-center">
-              <Clock className="h-8 w-8 text-text-muted mb-3 opacity-50" />
-              <p className="text-sm font-medium text-text-secondary">No history available yet.</p>
+            <div className="rounded-xl border border-status-error/20 bg-status-error/10 px-4 py-3 text-sm font-medium text-status-error">
+              {error}
             </div>
+          ) : !history.length ? (
+            <EmptyState
+              icon={<Clock className="h-8 w-8" />}
+              title="No check-ins yet"
+              description="Start your first daily check-in to build your history and track your growth over time."
+              action={{
+                label: "Start Check-in",
+                onClick: () => router.push("/dashboard/checkin"),
+              }}
+            />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {history.map((item) => (
-                <article key={item.id} className="group flex flex-col justify-between rounded-xl border border-white/5 bg-bg-panel/50 backdrop-blur-md p-5 transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-accent-primary/30 hover:bg-bg-panel/80 hover:shadow-stripe-hover">
-                  <div className="flex items-start justify-between mb-3">
-                    <p className="text-sm font-bold tracking-tight text-white group-hover:text-accent-primary transition-colors">
-                      {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </p>
-                    <span className="flex items-center rounded-md bg-accent-primary/10 px-2 py-0.5 text-xs font-black text-accent-primary border border-accent-primary/20">
-                      {item.overallScore}/25
-                    </span>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-xs font-bold text-text-secondary mb-1.5">
-                      <span className="uppercase tracking-wider text-[10px]">Vitality</span>
-                      <span className="text-text-primary">{item.percentage}%</span>
+              {history.map((item, index) => {
+                const dateObj = new Date(item.date);
+                const dateLabel = dateObj.toLocaleDateString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: dateObj.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+                });
+
+                return (
+                  <article
+                    key={item.id}
+                    className="group flex flex-col justify-between rounded-xl border border-border bg-bg-panel/60 p-5 backdrop-blur-md transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-accent-primary/30 hover:bg-bg-panel hover:shadow-elevated"
+                    style={{
+                      animation: "fadeIn 300ms ease-out forwards",
+                      animationDelay: `${Math.min(index * 60, 600)}ms`,
+                      opacity: 0,
+                    }}
+                  >
+                    <div className="mb-3 flex items-start justify-between">
+                      <p className="text-sm font-bold tracking-tight text-text-primary transition-colors group-hover:text-accent-primary">
+                        {dateLabel}
+                      </p>
+                      <Badge tone="accent">
+                        {item.overallScore}/25
+                      </Badge>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg-base border border-border/50">
-                      <div
-                        className="h-full rounded-full bg-accent-primary transition-all duration-500 shadow-inner"
-                        style={{ width: `${item.percentage}%` }}
+
+                    <div className="space-y-3">
+                      <ProgressBar
+                        value={item.percentage}
+                        max={100}
+                        showPercentage
+                        size="sm"
+                        className="opacity-80 group-hover:opacity-100 transition-opacity"
                       />
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.ratings.map((rating, ri) => {
+                          const dimension = CHECKIN_DIMENSIONS[ri] ?? "metric";
+                          const label = dimension.charAt(0).toUpperCase() + dimension.slice(1);
+                          return (
+                            <span
+                              key={dimension}
+                              className={`
+                                inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider
+                                ${getRatingColor(rating)}
+                              `}
+                              title={`${label}: ${rating}`}
+                            >
+                              {label}: {rating}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <p className="mt-3 text-[11px] font-semibold text-text-muted">Metrics: {item.ratings.join(" • ")}</p>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
-      </section>
+      </Card>
     </div>
   );
 }

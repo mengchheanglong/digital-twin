@@ -1,15 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
-  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Frown,
+  PenLine,
   Plus,
+  Smile,
+  Sparkles,
   Tag,
+  ThumbsUp,
   Trash2,
   X,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  Badge,
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  FormField,
+  Input,
+  Pill,
+  Skeleton,
+  Textarea,
+  useToast,
+} from "@/components/ui";
 
 interface JournalEntry {
   _id: string;
@@ -21,14 +42,32 @@ interface JournalEntry {
   dayKey: string;
 }
 
-const MOOD_OPTIONS = [
-  { emoji: "🤩", label: "Excellent" },
-  { emoji: "😄", label: "Great" },
-  { emoji: "🙂", label: "Good" },
-  { emoji: "😐", label: "Neutral" },
-  { emoji: "😔", label: "Low" },
-  { emoji: "😰", label: "Stressed" },
+type MoodTone = "warning" | "success" | "info" | "default" | "error" | "accent";
+
+interface MoodOption {
+  emoji: string;
+  label: string;
+  icon: LucideIcon;
+  tone: MoodTone;
+}
+
+const MOOD_OPTIONS: MoodOption[] = [
+  { emoji: "🤩", label: "Excellent", icon: Sparkles, tone: "warning" },
+  { emoji: "😄", label: "Great", icon: Smile, tone: "success" },
+  { emoji: "🙂", label: "Good", icon: ThumbsUp, tone: "info" },
+  { emoji: "😐", label: "Neutral", icon: PenLine, tone: "default" },
+  { emoji: "😔", label: "Low", icon: Frown, tone: "error" },
+  { emoji: "😰", label: "Stressed", icon: Zap, tone: "accent" },
 ];
+
+function moodValue(option: MoodOption): string {
+  return `${option.emoji} ${option.label}`;
+}
+
+function findMoodOption(mood?: string): MoodOption | undefined {
+  if (!mood) return undefined;
+  return MOOD_OPTIONS.find((m) => mood.includes(m.label));
+}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, {
@@ -39,6 +78,38 @@ function formatDate(dateStr: string): string {
   });
 }
 
+/* ───────── Loading Skeleton ───────── */
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl border border-border bg-bg-card p-5 space-y-3 animate-fade-in"
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Skeleton width={48} height={20} rounded="full" />
+              <Skeleton width={80} height={14} rounded="md" />
+            </div>
+            <Skeleton width={28} height={28} rounded="lg" />
+          </div>
+          <Skeleton width="50%" height={18} rounded="md" />
+          <Skeleton width="100%" height={60} rounded="md" />
+          <div className="flex gap-1.5 pt-1">
+            <Skeleton width={48} height={20} rounded="full" />
+            <Skeleton width={56} height={20} rounded="full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ───────── Entry Card ───────── */
+
 function EntryCard({
   entry,
   onDelete,
@@ -46,120 +117,167 @@ function EntryCard({
   entry: JournalEntry;
   onDelete: (id: string) => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
 
   const handleDelete = async () => {
     const headers = getAuthHeaders();
     if (!headers) return;
     setDeleting(true);
     try {
-      await fetch(`/api/journal/${entry._id}`, {
+      const res = await fetch(`/api/journal/${entry._id}`, {
         method: "DELETE",
         headers,
       });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { msg?: string };
+        toast({
+          title: "Delete failed",
+          description: data.msg ?? "Could not delete entry.",
+          variant: "error",
+        });
+        return;
+      }
       onDelete(entry._id);
+      toast({ title: "Entry deleted", variant: "success" });
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "Network error. Please try again.",
+        variant: "error",
+      });
     } finally {
       setDeleting(false);
-      setConfirming(false);
+      setConfirmOpen(false);
     }
   };
 
+  const moodOpt = findMoodOption(entry.mood);
+  const MoodIcon = moodOpt?.icon;
+  const isLong = entry.content.length > 200;
+
   return (
-    <div className="rounded-2xl border border-border bg-bg-card p-5 transition-all hover:border-accent-primary/30 animate-fade-in">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            {entry.mood && (
-              <span className="text-base">{entry.mood.split(" ")[0]}</span>
-            )}
-            <span className="text-xs text-text-muted">
-              {formatDate(entry.date)}
-            </span>
+    <>
+      <Card variant="interactive" className="p-5 animate-fade-in">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              {moodOpt && MoodIcon && (
+                <Pill tone={moodOpt.tone}>
+                  <MoodIcon size={12} />
+                  <span>{moodOpt.label}</span>
+                </Pill>
+              )}
+              {!moodOpt && entry.mood && (
+                <Pill tone="default">
+                  <span>{entry.mood}</span>
+                </Pill>
+              )}
+              <span className="text-xs text-text-muted">
+                {formatDate(entry.date)}
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-text-primary truncate">
+              {entry.title}
+            </h3>
           </div>
-          <h3 className="text-sm font-bold text-white truncate">
-            {entry.title}
-          </h3>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmOpen(true)}
+            className="shrink-0 text-text-muted hover:text-status-error hover:bg-status-error/10"
+            aria-label="Delete entry"
+          >
+            <Trash2 size={16} />
+          </Button>
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {confirming ? (
-            <>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-xs text-red-400 hover:text-red-300 font-semibold"
-              >
-                {deleting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  "Confirm"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                className="text-xs text-text-muted hover:text-white ml-1"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              className="text-text-muted hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-500/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <p
-        className={`text-sm text-text-secondary mt-2 leading-relaxed ${!expanded ? "line-clamp-3" : ""}`}
-      >
-        {entry.content}
-      </p>
-
-      {entry.content.length > 200 && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-1 text-xs text-accent-primary hover:text-accent-hover"
+        {/* Content with expand/collapse */}
+        <div
+          className={`overflow-hidden transition-all duration-500 ease-apple ${
+            expanded ? "max-h-[1000px] opacity-100 mt-3" : "max-h-[4.5rem] opacity-100 mt-2"
+          }`}
         >
-          {expanded ? "Show less" : "Read more"}
-        </button>
-      )}
-
-      {entry.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {entry.tags.map((tag) => (
-            <span
-              key={tag}
-              className="flex items-center gap-1 rounded-lg bg-bg-panel border border-border px-2 py-0.5 text-[11px] text-text-muted"
-            >
-              <Tag className="h-2.5 w-2.5" />
-              {tag}
-            </span>
-          ))}
+          <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+            {entry.content}
+          </p>
         </div>
-      )}
-    </div>
+
+        {isLong && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-1.5 text-xs font-semibold text-accent-primary hover:text-accent-hover transition-colors"
+          >
+            {expanded ? "Show less" : "Read more"}
+          </button>
+        )}
+
+        {entry.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {entry.tags.map((tag) => (
+              <Badge key={tag} tone="default">
+                <Tag size={10} />
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Delete confirmation */}
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Delete entry?"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={deleting}
+              onClick={handleDelete}
+            >
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-text-secondary">
+          This will permanently remove <strong className="text-text-primary">{entry.title}</strong>.
+          This action cannot be undone.
+        </p>
+      </Dialog>
+    </>
   );
 }
 
-function NewEntryForm({
+/* ───────── New Entry Dialog ───────── */
+
+function NewEntryDialog({
+  open,
+  onClose,
   onSave,
-  onCancel,
 }: {
+  open: boolean;
+  onClose: () => void;
   onSave: (entry: JournalEntry) => void;
-  onCancel: () => void;
 }) {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
@@ -170,8 +288,17 @@ function NewEntryForm({
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    titleRef.current?.focus();
-  }, []);
+    if (open) {
+      setTitle("");
+      setContent("");
+      setSelectedMood("");
+      setTagInput("");
+      setTags([]);
+      setError("");
+      setSaving(false);
+      setTimeout(() => titleRef.current?.focus(), 50);
+    }
+  }, [open]);
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase();
@@ -217,77 +344,114 @@ function NewEntryForm({
       });
 
       if (!res.ok) {
-        const data = (await res.json()) as { msg?: string };
+        const data = (await res.json().catch(() => ({}))) as { msg?: string };
         setError(data.msg ?? "Failed to save entry.");
+        toast({
+          title: "Save failed",
+          description: data.msg ?? "Could not save entry.",
+          variant: "error",
+        });
         return;
       }
 
       const data = (await res.json()) as { entry: JournalEntry };
       onSave(data.entry);
+      toast({ title: "Entry saved", variant: "success" });
+    } catch {
+      setError("Network error. Please try again.");
+      toast({
+        title: "Save failed",
+        description: "Network error. Please try again.",
+        variant: "error",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl border border-accent-primary/30 bg-bg-card p-6 animate-fade-in"
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="New Journal Entry"
+      size="lg"
+      footer={
+        <>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            loading={saving}
+            leftIcon={<Plus size={16} />}
+            onClick={(e) => {
+              // Dialog footer buttons are outside the form, so we trigger submit manually
+              const form = document.getElementById("new-entry-form") as HTMLFormElement | null;
+              form?.requestSubmit();
+            }}
+          >
+            Save Entry
+          </Button>
+        </>
+      }
     >
-      <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-4">
-        New Entry
-      </h2>
+      <form id="new-entry-form" onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="rounded-xl border border-status-error/20 bg-status-error/10 px-3 py-2 text-sm text-status-error animate-fade-in">
+            {error}
+          </div>
+        )}
 
-      {error && (
-        <div className="mb-3 rounded-xl border border-status-error/20 bg-status-error/10 px-3 py-2 text-sm text-status-error">
-          {error}
-        </div>
-      )}
+        <FormField label="Title" htmlFor="journal-title">
+          <Input
+            ref={titleRef}
+            id="journal-title"
+            type="text"
+            maxLength={200}
+            placeholder="Give your entry a title…"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </FormField>
 
-      <div className="space-y-4">
-        <input
-          ref={titleRef}
-          type="text"
-          maxLength={200}
-          placeholder="Entry title…"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-xl border border-border bg-bg-panel px-4 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
-        />
-
-        <textarea
-          rows={6}
-          maxLength={5000}
-          placeholder="Write your reflection…"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full rounded-xl border border-border bg-bg-panel px-4 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all resize-none"
-        />
+        <FormField label="Content" htmlFor="journal-content">
+          <Textarea
+            id="journal-content"
+            rows={6}
+            maxLength={5000}
+            placeholder="Write your reflection…"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            resize="none"
+          />
+        </FormField>
 
         {/* Mood picker */}
         <div>
-          <p className="text-xs text-text-muted mb-2">
+          <p className="text-xs font-semibold text-text-primary mb-2">
             How are you feeling?
           </p>
           <div className="flex flex-wrap gap-2">
             {MOOD_OPTIONS.map((m) => {
-              const value = `${m.emoji} ${m.label}`;
+              const value = moodValue(m);
+              const Icon = m.icon;
+              const active = selectedMood === value;
               return (
                 <button
                   key={m.label}
                   type="button"
                   onClick={() =>
-                    setSelectedMood((prev) =>
-                      prev === value ? "" : value,
-                    )
+                    setSelectedMood((prev) => (prev === value ? "" : value))
                   }
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium border transition-all ${
-                    selectedMood === value
-                      ? "border-accent-primary bg-accent-primary/10 text-white"
-                      : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50"
-                  }`}
+                  className={[
+                    "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium border transition-all duration-200 ease-apple",
+                    active
+                      ? "border-accent-primary bg-accent-subtle text-accent-primary shadow-glow-soft"
+                      : "border-border bg-bg-input text-text-secondary hover:border-border-hover hover:text-text-primary",
+                  ].join(" ")}
                 >
-                  <span>{m.emoji}</span>
+                  <Icon size={14} />
                   <span>{m.label}</span>
                 </button>
               );
@@ -297,10 +461,18 @@ function NewEntryForm({
 
         {/* Tags */}
         <div>
+          <p className="text-xs font-semibold text-text-primary mb-2">
+            Tags
+            {tags.length > 0 && (
+              <span className="ml-1.5 text-text-muted font-normal">
+                ({tags.length}/10)
+              </span>
+            )}
+          </p>
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
-              placeholder="Add a tag…"
+              placeholder="Add a tag and press Enter…"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
@@ -309,65 +481,46 @@ function NewEntryForm({
                   addTag();
                 }
               }}
-              className="flex-1 rounded-xl border border-border bg-bg-panel px-3 py-2 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none transition-all"
+              className="flex-1"
             />
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               type="button"
               onClick={addTag}
-              className="rounded-xl border border-border bg-bg-panel px-3 py-2 text-sm text-text-secondary hover:text-white hover:border-accent-primary/50 transition-all"
+              disabled={!tagInput.trim() || tags.length >= 10}
             >
               Add
-            </button>
+            </Button>
           </div>
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
               {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-1 rounded-lg bg-accent-primary/10 border border-accent-primary/20 px-2 py-0.5 text-xs text-accent-primary"
-                >
-                  {tag}
+                <Pill key={tag} tone="accent">
+                  <span>{tag}</span>
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="ml-0.5 hover:text-white"
+                    className="ml-0.5 rounded-full hover:bg-accent-primary/20 p-0.5 transition-colors"
+                    aria-label={`Remove tag ${tag}`}
                   >
-                    <X className="h-2.5 w-2.5" />
+                    <X size={10} />
                   </button>
-                </span>
+                </Pill>
               ))}
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex justify-end gap-2 mt-5">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm font-semibold text-text-secondary hover:text-white transition-all"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-all"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-          {saving ? "Saving…" : "Save Entry"}
-        </button>
-      </div>
-    </form>
+      </form>
+    </Dialog>
   );
 }
 
+/* ───────── Main Page ───────── */
+
 export default function JournalPage() {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -381,23 +534,37 @@ export default function JournalPage() {
       if (!headers) return;
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/journal?page=${p}&limit=${LIMIT}`,
-          { headers, cache: "no-store" },
-        );
+        const res = await fetch(`/api/journal?page=${p}&limit=${LIMIT}`, {
+          headers,
+          cache: "no-store",
+        });
         if (res.ok) {
           const data = (await res.json()) as {
             entries: JournalEntry[];
-            total: number;
+            total?: number;
+            pagination?: { page: number; limit: number; total: number; totalPages: number };
           };
           setEntries(data.entries);
-          setTotal(data.total);
+          setTotal(data.total ?? data.pagination?.total ?? 0);
+        } else {
+          const data = (await res.json().catch(() => ({}))) as { msg?: string };
+          toast({
+            title: "Failed to load entries",
+            description: data.msg ?? "Something went wrong.",
+            variant: "error",
+          });
         }
+      } catch {
+        toast({
+          title: "Failed to load entries",
+          description: "Network error. Please try again.",
+          variant: "error",
+        });
       } finally {
         setLoading(false);
       }
     },
-    [getAuthHeaders],
+    [getAuthHeaders, toast],
   );
 
   useEffect(() => {
@@ -420,13 +587,13 @@ export default function JournalPage() {
   return (
     <div className="mx-auto w-full max-w-3xl animate-fade-in space-y-6 pb-10 text-text-primary">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
-            <BookOpen className="h-6 w-6" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-subtle text-accent-primary border border-accent-primary/20 shadow-glow-soft">
+            <BookOpen size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">
               Journal
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
@@ -435,50 +602,36 @@ export default function JournalPage() {
           </div>
         </div>
 
-        {!showForm && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-all shadow-[0_0_15px_rgba(139,92,246,0.2)]"
-          >
-            <Plus className="h-4 w-4" />
-            New Entry
-          </button>
-        )}
+        <Button
+          variant="primary"
+          size="md"
+          leftIcon={<Plus size={18} />}
+          onClick={() => setShowForm(true)}
+        >
+          New Entry
+        </Button>
       </div>
 
-      {/* New entry form */}
-      {showForm && (
-        <NewEntryForm
-          onSave={handleSave}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
+      {/* New entry dialog */}
+      <NewEntryDialog
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSave={handleSave}
+      />
 
       {/* Entries */}
       {loading ? (
-        <div className="flex h-40 items-center justify-center rounded-2xl border border-border bg-bg-card">
-          <Loader2 className="h-5 w-5 animate-spin text-accent-primary" />
-        </div>
+        <LoadingSkeleton />
       ) : entries.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-bg-card p-10 text-center">
-          <BookOpen className="h-10 w-10 text-text-muted mx-auto mb-3" />
-          <p className="text-sm font-semibold text-white">
-            No journal entries yet
-          </p>
-          <p className="text-xs text-text-muted mt-1">
-            Write your first reflection to start building a record.
-          </p>
-          {!showForm && (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="mt-4 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-all"
-            >
-              Write Entry
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={<BookOpen size={28} />}
+          title="No journal entries yet"
+          description="Start writing your thoughts to build a personal record of your journey."
+          action={{
+            label: "Write Entry",
+            onClick: () => setShowForm(true),
+          }}
+        />
       ) : (
         <div className="space-y-4">
           {entries.map((entry) => (
@@ -493,28 +646,28 @@ export default function JournalPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            type="button"
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<ChevronLeft size={16} />}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm text-text-secondary hover:text-white disabled:opacity-40 transition-all"
           >
             Previous
-          </button>
-          <span className="text-sm text-text-muted">
-            {page} / {totalPages}
+          </Button>
+          <span className="text-sm font-semibold text-text-muted tabular-nums">
+            Page {page} of {totalPages}
           </span>
-          <button
-            type="button"
-            onClick={() =>
-              setPage((p) => Math.min(totalPages, p + 1))
-            }
+          <Button
+            variant="ghost"
+            size="sm"
+            rightIcon={<ChevronRight size={16} />}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm text-text-secondary hover:text-white disabled:opacity-40 transition-all"
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
     </div>

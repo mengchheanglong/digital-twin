@@ -1,7 +1,17 @@
 "use client";
 
 import { ReactNode } from "react";
-import { AlertCircle, ArrowRight, Bot, CheckCircle2, MessageSquareQuote, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  Lock,
+  MessageSquareQuote,
+  Sparkles,
+  Target,
+} from "lucide-react";
+import { Button } from "@/components/ui";
 
 interface TodayStatusCardProps {
   completed: boolean;
@@ -20,33 +30,42 @@ interface InsightStatCardProps {
   label: string;
   value: string;
   icon: ReactNode;
-  tone: "violet" | "emerald" | "amber";
+  tone: "violet" | "emerald" | "amber" | "rose";
+  className?: string;
 }
 
 const statToneMap: Record<
   InsightStatCardProps["tone"],
-  { container: string; icon: string; value: string; glow: string; ambient: string }
+  {
+    container: string;
+    icon: string;
+    value: string;
+    ambient: string;
+  }
 > = {
   violet: {
-    container: "border-white/5 hover:border-accent-primary/30",
-    icon: "bg-gradient-to-br from-accent-primary/20 to-purple-500/20 border-white/10 text-accent-primary ring-1 ring-white/5",
-    value: "text-white",
-    glow: "group-hover:shadow-[0_0_40px_rgba(139,92,246,0.15)]",
-    ambient: "bg-accent-primary/20",
+    container: "border-border-subtle hover:border-accent-primary/30",
+    icon: "bg-accent-subtle border-accent-primary/20 text-accent-primary",
+    value: "text-text-primary",
+    ambient: "bg-accent-primary",
   },
   emerald: {
-    container: "border-white/5 hover:border-status-success/30",
-    icon: "bg-gradient-to-br from-status-success/20 to-emerald-400/20 border-white/10 text-status-success ring-1 ring-white/5",
-    value: "text-white",
-    glow: "group-hover:shadow-[0_0_40px_rgba(52,211,153,0.15)]",
-    ambient: "bg-status-success/20",
+    container: "border-border-subtle hover:border-status-success/30",
+    icon: "bg-status-success/10 border-status-success/20 text-status-success",
+    value: "text-text-primary",
+    ambient: "bg-status-success",
   },
   amber: {
-    container: "border-white/5 hover:border-status-warning/30",
-    icon: "bg-gradient-to-br from-status-warning/20 to-yellow-400/20 border-white/10 text-status-warning ring-1 ring-white/5",
-    value: "text-white",
-    glow: "group-hover:shadow-[0_0_40px_rgba(251,191,36,0.15)]",
-    ambient: "bg-status-warning/20",
+    container: "border-border-subtle hover:border-status-warning/30",
+    icon: "bg-status-warning/10 border-status-warning/20 text-status-warning",
+    value: "text-text-primary",
+    ambient: "bg-status-warning",
+  },
+  rose: {
+    container: "border-border-subtle hover:border-status-error/30",
+    icon: "bg-status-error/10 border-status-error/20 text-status-error",
+    value: "text-text-primary",
+    ambient: "bg-status-error",
   },
 };
 
@@ -63,21 +82,21 @@ export function TodayStatusCard({
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-2xl border p-7 transition-all duration-500 ease-apple backdrop-blur-xl",
+        "group relative overflow-hidden rounded-2xl border p-7 transition-all duration-500 ease-apple",
         completed
-          ? "bg-bg-card border-white/5 hover:border-status-success/30 shadow-card hover:shadow-stripe-hover hover:-translate-y-1"
-          : "bg-bg-card border-white/5 hover:border-status-warning/30 shadow-card hover:shadow-stripe-hover hover:-translate-y-1",
+          ? "bg-bg-card border-border-subtle hover:border-status-success/30 shadow-card hover:shadow-elevated hover:-translate-y-1"
+          : "bg-bg-card border-border-subtle hover:border-status-warning/30 shadow-card hover:shadow-elevated hover:-translate-y-1",
       ].join(" ")}
     >
       {/* Ambient glow blobs */}
       <div
         className={[
           "pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-[60px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-70 group-hover:scale-110",
-          completed ? "bg-status-success/30" : "bg-status-warning/30",
+          completed ? "bg-status-success/20" : "bg-status-warning/20",
         ].join(" ")}
       />
       {!completed && (
-        <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-status-warning/20 blur-[50px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-60 group-hover:scale-110" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-status-warning/10 blur-[50px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-60 group-hover:scale-110" />
       )}
 
       <div className="relative z-10">
@@ -87,7 +106,7 @@ export function TodayStatusCard({
             <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-text-muted mb-2">
               Today&apos;s Log
             </p>
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
+            <h2 className="text-2xl font-bold text-text-primary sm:text-3xl tracking-tight">
               {completed ? "All Logged" : "Not Logged Yet"}
             </h2>
           </div>
@@ -118,13 +137,13 @@ export function TodayStatusCard({
                 {activityCount} {activityCount === 1 ? "activity" : "activities"} logged
               </MetaTag>
               <MetaTag>Theme: {mainTheme || "General"}</MetaTag>
-              <span className="inline-flex items-center gap-1.5 rounded-xl border border-status-success/30 bg-status-success/8 px-3 py-1 text-[11px] font-bold text-status-success">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-status-success/30 bg-status-success/10 px-3 py-1 text-[11px] font-bold text-status-success">
                 <Sparkles className="h-3 w-3" />
                 Reflection unlocked
               </span>
             </>
           ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-xl border border-status-warning/30 bg-status-warning/8 px-3 py-1 text-[11px] font-bold text-status-warning">
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-status-warning/30 bg-status-warning/10 px-3 py-1 text-[11px] font-bold text-status-warning">
               <span className="h-1.5 w-1.5 rounded-full bg-status-warning animate-pulse" />
               Waiting for today&apos;s data
             </span>
@@ -134,14 +153,14 @@ export function TodayStatusCard({
         {/* CTA */}
         {!completed && (
           <div className="mt-6">
-            <button
-              type="button"
+            <Button
               onClick={onStartCheckIn}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent-primary to-purple-500 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 ease-apple hover:scale-[1.02] hover:shadow-glow active:scale-[0.97] ring-1 ring-white/20 shadow-sm"
+              size="md"
+              rightIcon={<ArrowRight className="h-4 w-4 transition-transform duration-300 ease-apple group-hover:translate-x-1" />}
+              className="btn-glow"
             >
               Start Daily Check-In
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-apple group-hover:translate-x-1" />
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -161,17 +180,17 @@ export function ReflectionCard({ reflection, className = "" }: ReflectionCardPro
   return (
     <article
       className={[
-        "group relative overflow-hidden rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple",
-        "hover:border-accent-primary/30 hover:shadow-stripe-hover hover:-translate-y-1",
+        "group relative overflow-hidden rounded-2xl border border-border-subtle bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple",
+        "hover:border-accent-primary/30 hover:shadow-elevated hover:-translate-y-1",
         className,
       ].join(" ")}
     >
       {/* Background glow */}
-      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] transition-all duration-700 ease-apple opacity-30 group-hover:opacity-70 group-hover:scale-110" />
+      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-accent-primary/15 blur-[60px] transition-all duration-700 ease-apple opacity-40 group-hover:opacity-70 group-hover:scale-110" />
 
       <div className="relative z-10">
         {/* Badge */}
-        <div className="mb-5 inline-flex items-center gap-2 rounded-xl border border-accent-primary/30 bg-accent-primary/8 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-accent-primary">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-xl border border-accent-primary/30 bg-accent-subtle px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-accent-primary">
           <Bot className="h-3.5 w-3.5" />
           Daily Reflection
         </div>
@@ -189,24 +208,30 @@ export function ReflectionCard({ reflection, className = "" }: ReflectionCardPro
   );
 }
 
-export function InsightStatCard({ label, value, icon, tone }: InsightStatCardProps) {
+export function InsightStatCard({ label, value, icon, tone, className = "" }: InsightStatCardProps) {
   const toneStyles = statToneMap[tone];
   return (
     <article
       className={[
         "group relative rounded-2xl border bg-bg-card/80 backdrop-blur-xl p-5 shadow-card transition-all duration-500 ease-apple overflow-hidden",
-        "hover:-translate-y-1 hover:shadow-stripe-hover",
+        "hover:-translate-y-1 hover:shadow-elevated",
         toneStyles.container,
+        className,
       ].join(" ")}
     >
       {/* Ambient background glow */}
-      <div className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-60 group-hover:scale-110 ${toneStyles.ambient}`} />
+      <div
+        className={[
+          "pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-60 group-hover:scale-110",
+          toneStyles.ambient,
+        ].join(" ")}
+      />
 
       <div className="flex items-start justify-between mb-4 relative z-10">
         <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">{label}</p>
         <span
           className={[
-            "inline-flex items-center justify-center rounded-xl p-2 shadow-sm transition-all duration-500 ease-spring group-hover:scale-110 group-hover:rotate-3",
+            "inline-flex items-center justify-center rounded-xl p-2 shadow-sm transition-all duration-500 ease-spring group-hover:scale-110 group-hover:rotate-3 border",
             toneStyles.icon,
           ].join(" ")}
         >
@@ -218,7 +243,7 @@ export function InsightStatCard({ label, value, icon, tone }: InsightStatCardPro
       </p>
 
       {/* Subtle background shimmer on hover */}
-      <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/[0.04] to-transparent transition-transform duration-700 ease-apple group-hover:translate-x-[100%]" />
+      <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-accent-primary/5 to-transparent transition-transform duration-700 ease-apple group-hover:translate-x-[100%]" />
     </article>
   );
 }

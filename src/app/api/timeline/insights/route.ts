@@ -5,14 +5,9 @@ import CheckIn from '@/lib/models/CheckIn';
 import { unauthorized, serverError } from '@/lib/api-response';
 import { getUTCDayFromDayKey } from '@/lib/progression';
 import mongoose from 'mongoose';
+import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from '@/lib/deepseek';
 
 export const dynamic = 'force-dynamic';
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
 
 export interface PatternInsight {
   id: string;
@@ -32,8 +27,7 @@ const DIMENSION_NAMES = ['Energy', 'Focus', 'Stress Control', 'Social Connection
 async function generatePatternInsights(
   checkIns: Array<{ date: Date; ratings: number[]; percentage: number; dayKey: string }>
 ): Promise<PatternInsight[]> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || checkIns.length < 5) {
+  if (!hasDeepSeekApiKey() || checkIns.length < 5) {
     return getFallbackInsights(checkIns);
   }
 
@@ -88,26 +82,14 @@ Return a JSON array of exactly 3 objects. Each object must have:
 Respond ONLY with valid JSON, no markdown, no explanation.`;
 
   try {
-    const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 512 },
-        }),
-      }
-    );
-
-    if (!response.ok) return getFallbackInsights(checkIns);
-
-    const data = (await response.json()) as GeminiResponse;
-    const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('').trim() ?? '';
+    const result = await requestDeepSeekChat({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.4,
+      maxTokens: 512,
+    });
 
     // Strip possible ```json ``` wrappers
-    const jsonStr = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const jsonStr = stripJsonCodeFences(result.text);
 
     let parsed: PatternInsight[] = [];
     try {

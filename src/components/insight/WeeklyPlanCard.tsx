@@ -1,8 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, BrainCircuit, Calendar, ChevronDown, ChevronUp, RefreshCw, Shield, Zap } from "lucide-react";
+import {
+  BookOpen,
+  BrainCircuit,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Shield,
+  Zap,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Badge, Pill, Skeleton, EmptyState } from "@/components/ui";
 
 interface PlannedActivity {
   day: string;
@@ -22,12 +32,20 @@ interface WeeklyPlan {
   generatedAt: string;
 }
 
-const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
-  quest: { icon: <Zap className="h-3 w-3" />, color: "text-violet-400 bg-violet-500/10 border-violet-500/20" },
-  rest: { icon: <Shield className="h-3 w-3" />, color: "text-sky-400 bg-sky-500/10 border-sky-500/20" },
-  social: { icon: <BookOpen className="h-3 w-3" />, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-  focus: { icon: <BrainCircuit className="h-3 w-3" />, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-  reflection: { icon: <BookOpen className="h-3 w-3" />, color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
+const typeConfig: Record<string, { icon: React.ReactNode; tone: "accent" | "info" | "success" | "warning" | "error" }> = {
+  quest: { icon: <Zap className="h-3 w-3" />, tone: "accent" },
+  rest: { icon: <Shield className="h-3 w-3" />, tone: "info" },
+  social: { icon: <BookOpen className="h-3 w-3" />, tone: "success" },
+  focus: { icon: <BrainCircuit className="h-3 w-3" />, tone: "warning" },
+  reflection: { icon: <BookOpen className="h-3 w-3" />, tone: "error" },
+};
+
+const toneSurfaceMap: Record<string, string> = {
+  accent: "bg-accent-subtle border-accent-primary/20 text-accent-primary",
+  info: "bg-status-info/10 border-status-info/20 text-status-info",
+  success: "bg-status-success/10 border-status-success/20 text-status-success",
+  warning: "bg-status-warning/10 border-status-warning/20 text-status-warning",
+  error: "bg-status-error/10 border-status-error/20 text-status-error",
 };
 
 export default function WeeklyPlanCard() {
@@ -59,10 +77,32 @@ export default function WeeklyPlanCard() {
 
   if (loading) {
     return (
-      <div className="animate-pulse rounded-2xl border border-border bg-bg-panel p-6">
-        <div className="mb-3 h-4 w-48 rounded bg-border" />
+      <div className="rounded-2xl border border-border bg-bg-panel p-6 space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Skeleton width={36} height={36} rounded="xl" />
+            <div className="space-y-1.5">
+              <Skeleton width={120} height={16} rounded="md" />
+              <Skeleton width={100} height={12} rounded="md" />
+            </div>
+          </div>
+          <Skeleton width={60} height={24} rounded="full" />
+        </div>
+        <div className="rounded-xl border border-border bg-bg-card p-4 space-y-2">
+          <Skeleton width={80} height={12} rounded="md" />
+          <Skeleton width="70%" height={18} rounded="md" />
+        </div>
+        <Skeleton width="100%" height={14} rounded="md" />
         <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-3 rounded bg-border" />)}
+          <Skeleton width={100} height={12} rounded="md" />
+          <div className="space-y-1.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Skeleton width={16} height={16} rounded="full" />
+                <Skeleton width={`${60 + i * 10}%`} height={14} rounded="md" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -70,39 +110,49 @@ export default function WeeklyPlanCard() {
 
   if (error || !plan) {
     return (
-      <div className="rounded-xl border border-status-error/20 bg-status-error/10 px-4 py-3 text-sm text-status-error">
-        {error ?? "Plan unavailable."}
-      </div>
+      <EmptyState
+        icon={<Calendar className="h-6 w-6 text-text-muted" />}
+        title="Weekly plan unavailable"
+        description={error ?? "Unable to load your weekly blueprint."}
+        action={{
+          label: "Retry",
+          onClick: () => void fetchPlan(),
+        }}
+      />
     );
   }
 
-  const burnoutColors: Record<string, string> = {
-    low: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    moderate: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    high: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-    critical: "text-red-400 bg-red-500/10 border-red-500/20",
-  };
+  const burnoutTone: "success" | "warning" | "error" = (() => {
+    switch (plan.burnoutRisk) {
+      case "low": return "success";
+      case "moderate": return "warning";
+      case "high":
+      case "critical":
+      default:
+        return "error";
+    }
+  })();
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-bg-panel p-6 space-y-5">
+    <div className="rounded-2xl border border-border-subtle bg-bg-panel p-6 space-y-5 animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-subtle border border-accent-primary/20 text-accent-primary">
             <Calendar className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white">Weekly Blueprint</h2>
+            <h2 className="text-sm font-bold text-text-primary">Weekly Blueprint</h2>
             <p className="text-[11px] text-text-muted">Week starting {plan.weekStarting}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize ${burnoutColors[plan.burnoutRisk] ?? burnoutColors.low}`}>
+          <Badge tone={burnoutTone}>
             {plan.burnoutRisk} risk
-          </span>
+          </Badge>
           <button
             onClick={() => void fetchPlan()}
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-text-muted hover:text-white hover:bg-white/10 transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-bg-hover text-text-muted hover:text-text-primary hover:bg-bg-active transition-colors focus-ring"
             title="Regenerate plan"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -111,9 +161,9 @@ export default function WeeklyPlanCard() {
       </div>
 
       {/* Theme */}
-      <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+      <div className="rounded-xl border border-border-subtle bg-bg-hover px-4 py-3">
         <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">This Week&apos;s Theme</p>
-        <p className="text-sm font-semibold text-white">{plan.overallTheme}</p>
+        <p className="text-sm font-semibold text-text-primary">{plan.overallTheme}</p>
       </div>
 
       {/* Narrative */}
@@ -121,8 +171,8 @@ export default function WeeklyPlanCard() {
 
       {/* Recovery protocol */}
       {plan.recoveryProtocol && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-red-400 mb-1">Recovery Protocol</p>
+        <div className="rounded-xl border border-status-error/20 bg-status-error/5 px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-status-error mb-1">Recovery Protocol</p>
           <p className="text-xs text-text-secondary">{plan.recoveryProtocol}</p>
         </div>
       )}
@@ -131,14 +181,12 @@ export default function WeeklyPlanCard() {
       {plan.topPriorityQuests.length > 0 && (
         <div className="space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Priority Quests</p>
-          <div className="space-y-1.5">
+          <div className="flex flex-wrap gap-2">
             {plan.topPriorityQuests.map((q, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-text-secondary">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-violet-500/20 text-[9px] font-bold text-violet-400 shrink-0">
-                  {i + 1}
-                </span>
+              <Pill key={i} tone="accent">
+                <span className="mr-1 text-[10px] opacity-60">{i + 1}.</span>
                 {q}
-              </div>
+              </Pill>
             ))}
           </div>
         </div>
@@ -147,23 +195,29 @@ export default function WeeklyPlanCard() {
       {/* Expand/collapse daily suggestions */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between text-[11px] font-semibold text-text-secondary hover:text-white transition-colors py-1"
+        className="flex w-full items-center justify-between text-[11px] font-semibold text-text-secondary hover:text-text-primary transition-colors py-1 focus-ring rounded-lg"
       >
         <span>Daily Suggestions (7 days)</span>
         {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
-      {expanded && (
-        <div className="space-y-2 animate-fade-in">
+      <div
+        className="grid transition-all duration-500 ease-apple"
+        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden space-y-2">
           {plan.dailySuggestions.map((s, i) => {
             const cfg = typeConfig[s.type] ?? typeConfig.quest;
             return (
-              <div key={i} className="flex gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${cfg.color}`}>
+              <div
+                key={i}
+                className="flex gap-3 rounded-xl border border-border-subtle bg-bg-hover p-3 transition-all duration-300 hover:border-border-hover hover:bg-bg-active"
+              >
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${toneSurfaceMap[cfg.tone]}`}>
                   {cfg.icon}
                 </span>
                 <div>
-                  <p className="text-[11px] font-semibold text-white">{s.day}</p>
+                  <p className="text-[11px] font-semibold text-text-primary">{s.day}</p>
                   <p className="text-[11px] text-text-secondary mt-0.5">{s.suggestion}</p>
                   {s.rationale && (
                     <p className="text-[10px] text-text-muted mt-0.5 italic">{s.rationale}</p>
@@ -173,7 +227,7 @@ export default function WeeklyPlanCard() {
             );
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }

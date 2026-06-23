@@ -5,6 +5,7 @@ import UserInsightState from './models/UserInsightState';
 import { computeBurnoutRisk } from './analytics/burnout';
 import { computeMoodPatterns } from './analytics/mood-patterns';
 import dbConnect from './db';
+import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from './deepseek';
 
 export interface PlannedActivity {
   day: string;
@@ -24,12 +25,6 @@ export interface WeeklyPlan {
   generatedAt: Date;
 }
 
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
-
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 function nextMonday(): Date {
@@ -45,30 +40,22 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-async function generateWithGemini(prompt: string): Promise<string | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
+async function generateWithDeepSeek(prompt: string): Promise<string | null> {
+  if (!hasDeepSeekApiKey()) return null;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: 'You are a caring personal wellness coach. Be concise, specific, and actionable. Always reply with valid JSON only.' }],
-          },
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.5, maxOutputTokens: 1200 },
-        }),
-      },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as GeminiResponse;
-    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
-    return text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const result = await requestDeepSeekChat({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a caring personal wellness coach. Be concise, specific, and actionable. Always reply with valid JSON only.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.5,
+      maxTokens: 1200,
+    });
+    return stripJsonCodeFences(result.text);
   } catch {
     return null;
   }
@@ -132,7 +119,7 @@ ${questList || 'No active quests'}
 
 Return ONLY valid JSON, no markdown.`;
 
-  const raw = await generateWithGemini(prompt);
+  const raw = await generateWithDeepSeek(prompt);
   let parsed: Partial<WeeklyPlan> = {};
   if (raw) {
     try {

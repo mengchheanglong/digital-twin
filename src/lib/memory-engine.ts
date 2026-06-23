@@ -5,12 +5,7 @@ import JournalEntry from './models/JournalEntry';
 import UserInsightState from './models/UserInsightState';
 import UserMemory from './models/UserMemory';
 import dbConnect from './db';
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
+import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from './deepseek';
 
 interface MemorySynthesis {
   summary: string;
@@ -101,11 +96,9 @@ Recent journal excerpts:
 ${journalExcerpts || 'No journal entries'}`;
 }
 
-async function synthesizeWithGemini(context: string, existing: string): Promise<MemorySynthesis | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+async function synthesizeWithDeepSeek(context: string, existing: string): Promise<MemorySynthesis | null> {
+  if (!hasDeepSeekApiKey()) return null;
 
-  const model = String(process.env.GEMINI_MODEL || 'gemini-2.0-flash').trim();
   const prompt = `Based on the following behavioral data for a user, extract a compressed psychological and behavioral model.
 Provide your analysis as VALID JSON matching exactly this schema:
 {
@@ -126,22 +119,13 @@ ${context}
 Return ONLY valid JSON, no markdown, no explanation.`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 800 },
-        }),
-      },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as GeminiResponse;
-    const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+    const result = await requestDeepSeekChat({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      maxTokens: 800,
+    });
     // Strip any markdown code fences
-    const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const cleaned = stripJsonCodeFences(result.text);
     try {
       return JSON.parse(cleaned) as MemorySynthesis;
     } catch (e) {
@@ -149,7 +133,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
       return null;
     }
   } catch (error) {
-    console.error('Error in synthesizeWithGemini:', error);
+    console.error('Error in synthesizeWithDeepSeek:', error);
     return null;
   }
 }
@@ -172,7 +156,7 @@ export async function synthesizeUserMemory(userId: string): Promise<void> {
 
   const context = await buildUserContext(userId);
   const existingSummary = existing?.summary || '';
-  const synthesis = await synthesizeWithGemini(context, existingSummary);
+  const synthesis = await synthesizeWithDeepSeek(context, existingSummary);
 
   if (!synthesis) {
     // Save a basic record so we don't retry immediately

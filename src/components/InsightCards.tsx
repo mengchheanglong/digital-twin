@@ -5,6 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowRight, ArrowUp, Lock, Sparkles, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Skeleton, EmptyState } from "@/components/ui";
 import {
   InsightSectionHeader,
   InsightStatCard,
@@ -99,40 +100,76 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
       }
     };
 
+    const getTrendTone = (trend: string): "emerald" | "amber" | "rose" => {
+      switch (trend) {
+        case "rising":
+          return "emerald";
+        case "dropping":
+          return "rose";
+        case "stable":
+        default:
+          return "amber";
+      }
+    };
+
     // Loading skeleton
     if (loading) {
       return (
         <div className={`space-y-5 ${className}`}>
-          <div className="animate-pulse rounded-2xl border border-border bg-bg-panel p-6">
-            <div className="mb-4 h-4 w-32 rounded bg-border" />
-            <div className="mb-4 h-10 w-48 rounded bg-border" />
-            <div className="h-5 w-4/5 rounded bg-border" />
-          </div>
-          <div className="animate-pulse rounded-2xl border border-border bg-bg-panel p-6">
-            <div className="mb-4 h-4 w-40 rounded bg-border" />
-            <div className="h-5 w-full rounded bg-border" />
-            <div className="mt-3 h-5 w-3/4 rounded bg-border" />
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-xl border border-border bg-bg-panel p-4">
-                <div className="mb-3 h-4 w-24 rounded bg-border" />
-                <div className="h-6 w-3/5 rounded bg-border" />
+          <div className="grid gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-5">
+              <div className="rounded-2xl border border-border bg-bg-card p-7 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <Skeleton width={80} height={12} rounded="md" />
+                    <Skeleton width={160} height={32} rounded="lg" />
+                  </div>
+                  <Skeleton width={80} height={28} rounded="full" />
+                </div>
+                <Skeleton width="80%" height={20} rounded="md" />
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Skeleton width={100} height={24} rounded="xl" />
+                  <Skeleton width={120} height={24} rounded="xl" />
+                </div>
               </div>
-            ))}
+              <div className="rounded-2xl border border-border bg-bg-card p-6 space-y-4">
+                <Skeleton width={140} height={28} rounded="xl" />
+                <Skeleton width="100%" height={20} rounded="md" />
+                <Skeleton width="90%" height={20} rounded="md" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Skeleton width={120} height={28} rounded="xl" />
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-2xl border border-border bg-bg-card p-5 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <Skeleton width={60} height={14} rounded="md" />
+                      <Skeleton width={36} height={36} rounded="xl" />
+                    </div>
+                    <Skeleton width="60%" height={28} rounded="lg" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       );
     }
 
-    // Error state
+    // Error / empty state
     if (error || !insight) {
       return (
-        <div
-          className={`rounded-xl border border-status-error/20 bg-status-error/10 px-4 py-3 text-sm text-status-error ${className}`}
-        >
-          {error || "Insight data unavailable."}
-        </div>
+        <EmptyState
+          className={className}
+          icon={<Sparkles className="h-6 w-6 text-text-muted" />}
+          title="Insights unavailable"
+          description={error || "Your twin is still gathering data. Check back soon."}
+          action={{
+            label: "Try again",
+            onClick: () => void fetchInsight(),
+          }}
+        />
       );
     }
 
@@ -148,25 +185,32 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
       <div className={`grid gap-5 lg:grid-cols-3 ${className}`}>
         {/* Left Column (2/3 width) - Status & Reflection */}
         <div className="flex flex-col gap-5 lg:col-span-2">
-          <TodayStatusCard
-            completed={todaySnapshot.isComplete}
-            activityCount={todaySnapshot.activityCount}
-            mainTheme={todaySnapshot.mainTheme}
-            summary={todaySnapshot.summary}
-            onStartCheckIn={() => router.push("/dashboard/checkin")}
-          />
+          <div className="animate-fade-in" style={{ animationDelay: "0ms" }}>
+            <TodayStatusCard
+              completed={todaySnapshot.isComplete}
+              activityCount={todaySnapshot.activityCount}
+              mainTheme={todaySnapshot.mainTheme}
+              summary={todaySnapshot.summary}
+              onStartCheckIn={() => router.push("/dashboard/checkin")}
+            />
+          </div>
 
           {todaySnapshot.isComplete ? (
-            <ReflectionCard
-              className="flex-1 animate-fade-in"
-              reflection={insight.lastReflection}
-            />
+            <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+              <ReflectionCard
+                className="flex-1"
+                reflection={insight.lastReflection}
+              />
+            </div>
           ) : (
-            <div className="flex-1 animate-fade-in rounded-2xl border border-white/5 bg-bg-card/40 backdrop-blur-xl p-8 flex flex-col items-center justify-center text-center transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover group">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent-primary/10 text-accent-primary ring-1 ring-white/10 shadow-inner group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-500 ease-spring">
+            <div
+              className="flex-1 animate-fade-in rounded-2xl border border-border-subtle bg-bg-card/50 backdrop-blur-xl p-8 flex flex-col items-center justify-center text-center transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-elevated group"
+              style={{ animationDelay: "100ms" }}
+            >
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent-subtle text-accent-primary border border-border-subtle shadow-inner transition-all duration-500 ease-spring group-hover:scale-110">
                 <Lock className="h-6 w-6" />
               </div>
-              <h3 className="mb-1.5 text-lg font-bold text-white tracking-tight">Reflection Locked</h3>
+              <h3 className="mb-1.5 text-lg font-bold text-text-primary tracking-tight">Reflection Locked</h3>
               <p className="text-sm text-text-secondary max-w-sm">
                 Your twin needs today&apos;s check-in to generate deep personalized analysis.
               </p>
@@ -175,7 +219,7 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
         </div>
 
         {/* Right Column (1/3 width) - Insight Stats */}
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 animate-fade-in" style={{ animationDelay: "200ms" }}>
           <div>
             <InsightSectionHeader />
           </div>
@@ -190,7 +234,7 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
               label="Trend"
               value={getTrendLabel(insight.currentTrend)}
               icon={getTrendIcon(insight.currentTrend)}
-              tone="emerald"
+              tone={getTrendTone(insight.currentTrend)}
             />
             <InsightStatCard
               label="Entertainment"
@@ -204,5 +248,7 @@ const InsightCards = forwardRef<InsightCardsHandle, InsightCardsProps>(
     );
   }
 );
+
+InsightCards.displayName = "InsightCards";
 
 export default InsightCards;

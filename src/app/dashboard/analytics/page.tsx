@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Flame,
   Link2,
-  Loader2,
   RefreshCw,
   Sliders,
   Sparkles,
@@ -20,6 +19,13 @@ import {
   Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  Button,
+  Card,
+  Skeleton,
+  EmptyState,
+  useToast,
+} from "@/components/ui";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -158,25 +164,24 @@ function dimensionLabel(dim: string): string {
 }
 
 function burnoutColor(level: string): string {
-  if (level === "critical") return "text-red-400";
-  if (level === "high") return "text-orange-400";
-  if (level === "moderate") return "text-yellow-400";
-  return "text-green-400";
+  if (level === "critical") return "text-status-error";
+  if (level === "high") return "text-status-warning";
+  if (level === "moderate") return "text-status-warning";
+  return "text-status-success";
 }
 
 function burnoutBg(level: string): string {
-  if (level === "critical") return "bg-red-500/10 border-red-500/20";
-  if (level === "high") return "bg-orange-500/10 border-orange-500/20";
-  if (level === "moderate")
-    return "bg-yellow-500/10 border-yellow-500/20";
-  return "bg-green-500/10 border-green-500/20";
+  if (level === "critical") return "bg-status-error/10 border-status-error/20";
+  if (level === "high") return "bg-status-warning/10 border-status-warning/20";
+  if (level === "moderate") return "bg-status-warning/10 border-status-warning/20";
+  return "bg-status-success/10 border-status-success/20";
 }
 
 function trendIcon(trend: string) {
   if (trend === "improving")
-    return <TrendingUp className="h-4 w-4 text-green-400" />;
+    return <TrendingUp className="h-4 w-4 text-status-success" />;
   if (trend === "declining")
-    return <TrendingDown className="h-4 w-4 text-red-400" />;
+    return <TrendingDown className="h-4 w-4 text-status-error" />;
   return <Activity className="h-4 w-4 text-text-muted" />;
 }
 
@@ -197,7 +202,7 @@ function SectionHeader({
         {icon}
       </div>
       <div>
-        <h2 className="text-base font-bold text-white">{title}</h2>
+        <h2 className="text-base font-bold text-text-primary">{title}</h2>
         <p className="text-xs text-text-muted">{subtitle}</p>
       </div>
     </div>
@@ -206,9 +211,9 @@ function SectionHeader({
 
 function LoadingCard() {
   return (
-    <div className="flex h-40 items-center justify-center rounded-2xl border border-border bg-bg-card">
-      <Loader2 className="h-5 w-5 animate-spin text-accent-primary" />
-    </div>
+    <Card variant="default" className="p-6">
+      <Skeleton width="100%" height={160} rounded="lg" />
+    </Card>
   );
 }
 
@@ -224,8 +229,7 @@ function CorrelationCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<BarChart3 className="h-5 w-5" />}
@@ -246,9 +250,7 @@ function CorrelationCard({
         <>
           <div className="space-y-3 mb-4">
             {report.correlations.map((c) => {
-              const pct = Math.round(
-                ((c.coefficient + 1) / 2) * 100,
-              );
+              const pct = Math.round(((c.coefficient + 1) / 2) * 100);
               const isPositive = c.coefficient >= 0;
               return (
                 <div key={c.dimension}>
@@ -257,7 +259,7 @@ function CorrelationCard({
                       {dimensionLabel(c.dimension)}
                     </span>
                     <span
-                      className={`text-xs font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}
+                      className={`text-xs font-bold ${isPositive ? "text-status-success" : "text-status-error"}`}
                     >
                       r = {c.coefficient > 0 ? "+" : ""}
                       {c.coefficient}
@@ -265,7 +267,7 @@ function CorrelationCard({
                   </div>
                   <div className="h-1.5 w-full bg-bg-base rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${isPositive ? "bg-accent-primary" : "bg-orange-500"}`}
+                      className={`h-full rounded-full transition-all duration-700 ${isPositive ? "bg-status-success" : "bg-status-error"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -278,7 +280,7 @@ function CorrelationCard({
           </p>
         </>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -297,21 +299,29 @@ function BurnoutCard({
 
   if (!report)
     return (
-      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
+      <Card variant="glass" className="relative p-6 overflow-hidden">
         <p className="text-sm text-text-muted">
           Could not load burnout data.
         </p>
-      </div>
+      </Card>
     );
 
   return (
-    <div
-      className={`group relative rounded-2xl border backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden ${burnoutBg(report.riskLevel)}`}
+    <Card
+      variant="glass"
+      className={`relative p-6 overflow-hidden group ${burnoutBg(report.riskLevel)}`}
     >
-      {/* Ambient hover aura specific to burnout risk */}
-      <div className={`pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-40 ${burnoutBg(report.riskLevel).split(' ')[0]}`} />
+      <div
+        className={`pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-40 ${
+          report.riskLevel === "critical"
+            ? "bg-status-error"
+            : report.riskLevel === "high"
+            ? "bg-status-warning"
+            : report.riskLevel === "moderate"
+            ? "bg-status-warning"
+            : "bg-status-success"
+        }`}
+      />
       <SectionHeader
         icon={<AlertTriangle className="h-5 w-5" />}
         title="Burnout Risk"
@@ -352,7 +362,7 @@ function BurnoutCard({
         </div>
 
         <div>
-          <p className="text-lg font-bold text-white capitalize">
+          <p className="text-lg font-bold text-text-primary capitalize">
             {report.riskLevel} Risk
           </p>
           <p className="text-xs text-text-secondary">
@@ -364,7 +374,7 @@ function BurnoutCard({
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1 text-xs text-text-muted hover:text-white transition-colors"
+        className="flex items-center gap-1 text-xs text-text-muted hover:text-text-primary transition-colors"
       >
         {expanded ? (
           <ChevronUp className="h-3 w-3" />
@@ -376,11 +386,10 @@ function BurnoutCard({
 
       {expanded && (
         <div className="mt-3 space-y-2">
-          {/* Stage description */}
           {report.stage && (
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 mb-2">
+            <div className="rounded-xl border border-border bg-bg-panel/40 px-3 py-2 mb-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Current Stage</p>
-              <p className="text-xs font-semibold text-white">{report.stage.label}</p>
+              <p className="text-xs font-semibold text-text-primary">{report.stage.label}</p>
               <p className="text-[11px] text-text-secondary mt-0.5">{report.stage.description}</p>
             </div>
           )}
@@ -397,16 +406,15 @@ function BurnoutCard({
                 </div>
                 <div className="h-1 w-full bg-bg-base rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-orange-500 rounded-full"
+                    className="h-full bg-status-warning rounded-full transition-all duration-700"
                     style={{ width: `${f.score}%` }}
                   />
                 </div>
               </div>
             </div>
           ))}
-          {/* Personalized interventions */}
           {report.personalizedInterventions && report.personalizedInterventions.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/5 space-y-1.5">
+            <div className="mt-3 pt-3 border-t border-border space-y-1.5">
               <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">Personalized Actions</p>
               {report.personalizedInterventions.map((intervention, i) => (
                 <div key={i} className="flex items-start gap-2">
@@ -420,7 +428,7 @@ function BurnoutCard({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -436,7 +444,7 @@ function SynergyCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Link2 className="h-5 w-5" />}
@@ -449,12 +457,12 @@ function SynergyCard({
         <div className="space-y-3">
           <p className="text-xs text-text-secondary">{report.message}</p>
           {report.pairs.map((pair, i) => (
-            <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 space-y-1">
+            <div key={i} className="rounded-xl border border-border bg-bg-panel/40 p-3 space-y-1">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs font-semibold text-white">
+                <p className="text-xs font-semibold text-text-primary">
                   {pair.habitA} + {pair.habitB}
                 </p>
-                <span className="shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                <span className="shrink-0 rounded-full bg-status-success/10 border border-status-success/20 px-2 py-0.5 text-[10px] font-bold text-status-success">
                   +{pair.liftPercent}% {pair.dimension}
                 </span>
               </div>
@@ -463,7 +471,7 @@ function SynergyCard({
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -479,7 +487,7 @@ function DailyRhythmCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Flame className="h-5 w-5" />}
@@ -491,7 +499,7 @@ function DailyRhythmCard({
           <p className="text-xs text-text-muted">{report?.message ?? "No micro check-in data yet."}</p>
           <div className="rounded-xl border border-accent-primary/20 bg-accent-primary/5 p-3">
             <p className="text-[11px] text-text-secondary">
-              💡 Use <strong className="text-white">micro check-ins</strong> throughout your day to discover your energy patterns. Log a quick pulse from the check-in page.
+              💡 Use <strong className="text-text-primary">micro check-ins</strong> throughout your day to discover your energy patterns. Log a quick pulse from the check-in page.
             </p>
           </div>
         </div>
@@ -502,13 +510,13 @@ function DailyRhythmCard({
           <div className="flex items-end gap-1 h-24">
             {report.buckets.map((b) => {
               const pct = b.averagePercentage;
-              const barColor = pct >= 65 ? "bg-emerald-500" : pct >= 45 ? "bg-amber-400" : "bg-red-500";
+              const barColor = pct >= 65 ? "bg-status-success" : pct >= 45 ? "bg-status-warning" : "bg-status-error";
               return (
                 <div key={b.hour} className="flex flex-col items-center gap-1 flex-1 group/bar relative">
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden group-hover/bar:block z-10 w-28 rounded-lg border border-white/10 bg-bg-card px-2 py-1.5 text-[10px] text-text-secondary shadow-xl text-center">
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden group-hover/bar:block z-10 w-28 rounded-lg border border-border bg-bg-card px-2 py-1.5 text-[10px] text-text-secondary shadow-elevated text-center">
                     {b.label}: {pct}%<br /><span className="text-[9px] text-text-muted">{b.sampleCount} readings</span>
                   </div>
-                  <div className="relative w-full rounded bg-white/5" style={{ height: 64 }}>
+                  <div className="relative w-full rounded bg-bg-panel" style={{ height: 64 }}>
                     <div
                       className={`absolute bottom-0 w-full rounded transition-all duration-700 ${barColor}`}
                       style={{ height: `${pct}%` }}
@@ -521,27 +529,27 @@ function DailyRhythmCard({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {report.peakEnergyWindow && (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+              <div className="rounded-xl border border-status-warning/20 bg-status-warning/5 px-3 py-2">
                 <p className="text-[9px] text-text-muted uppercase tracking-wider">Peak Energy</p>
-                <p className="text-xs font-bold text-amber-400">{report.peakEnergyWindow}</p>
+                <p className="text-xs font-bold text-status-warning">{report.peakEnergyWindow}</p>
               </div>
             )}
             {report.peakFocusWindow && (
-              <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2">
+              <div className="rounded-xl border border-status-info/20 bg-status-info/5 px-3 py-2">
                 <p className="text-[9px] text-text-muted uppercase tracking-wider">Peak Focus</p>
-                <p className="text-xs font-bold text-sky-400">{report.peakFocusWindow}</p>
+                <p className="text-xs font-bold text-status-info">{report.peakFocusWindow}</p>
               </div>
             )}
             {report.lowestHour && (
-              <div className="rounded-xl border border-zinc-500/20 bg-zinc-500/5 px-3 py-2">
+              <div className="rounded-xl border border-text-muted/20 bg-text-muted/5 px-3 py-2">
                 <p className="text-[9px] text-text-muted uppercase tracking-wider">Lowest Energy</p>
-                <p className="text-xs font-bold text-zinc-400">{report.lowestHour}</p>
+                <p className="text-xs font-bold text-text-muted">{report.lowestHour}</p>
               </div>
             )}
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -556,11 +564,10 @@ function SimulatorCard() {
 
   const avgDim = Object.values(dims).reduce((a, b) => a + b, 0) / 5;
   const wellnessScore = Math.round(((avgDim - 1) / 4) * 100);
-  // productivity = (quests / 14 possible) * 100 * (1 - entertainment/100)
   const productivityScore = Math.round(Math.min(100, (questsPerWeek / 14) * 100) * (1 - entertainmentRatio / 100));
   const burnoutRisk = Math.max(0, Math.round(100 - wellnessScore * 0.5 - productivityScore * 0.5 + entertainmentRatio * 0.2));
   const burnoutLabel = burnoutRisk >= 75 ? "Critical" : burnoutRisk >= 50 ? "High" : burnoutRisk >= 25 ? "Moderate" : "Low";
-  const burnoutColor2 = burnoutRisk >= 75 ? "text-red-400" : burnoutRisk >= 50 ? "text-orange-400" : burnoutRisk >= 25 ? "text-amber-400" : "text-emerald-400";
+  const burnoutColor2 = burnoutRisk >= 75 ? "text-status-error" : burnoutRisk >= 50 ? "text-status-warning" : burnoutRisk >= 25 ? "text-status-warning" : "text-status-success";
 
   const dimLabels: Record<string, string> = {
     energy: "⚡ Energy",
@@ -571,7 +578,7 @@ function SimulatorCard() {
   };
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card overflow-hidden">
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Sliders className="h-5 w-5" />}
@@ -590,9 +597,9 @@ function SimulatorCard() {
               step={1}
               value={val}
               onChange={(e) => setDims((d) => ({ ...d, [key]: Number(e.target.value) }))}
-              className="flex-1 accent-violet-500"
+              className="flex-1 accent-accent-primary"
             />
-            <span className="w-4 text-center text-[11px] font-bold text-white shrink-0">{val}</span>
+            <span className="w-4 text-center text-[11px] font-bold text-text-primary shrink-0">{val}</span>
           </div>
         ))}
         <div className="flex items-center gap-3">
@@ -600,36 +607,36 @@ function SimulatorCard() {
           <input
             type="range" min={0} max={21} step={1} value={questsPerWeek}
             onChange={(e) => setQuestsPerWeek(Number(e.target.value))}
-            className="flex-1 accent-violet-500"
+            className="flex-1 accent-accent-primary"
           />
-          <span className="w-4 text-center text-[11px] font-bold text-white shrink-0">{questsPerWeek}</span>
+          <span className="w-4 text-center text-[11px] font-bold text-text-primary shrink-0">{questsPerWeek}</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="w-32 text-[11px] text-text-secondary shrink-0">📺 Entertainment</span>
           <input
             type="range" min={0} max={100} step={5} value={entertainmentRatio}
             onChange={(e) => setEntertainmentRatio(Number(e.target.value))}
-            className="flex-1 accent-violet-500"
+            className="flex-1 accent-accent-primary"
           />
-          <span className="w-8 text-center text-[11px] font-bold text-white shrink-0">{entertainmentRatio}%</span>
+          <span className="w-8 text-center text-[11px] font-bold text-text-primary shrink-0">{entertainmentRatio}%</span>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-center">
+        <div className="rounded-xl border border-status-success/20 bg-status-success/5 px-3 py-2 text-center">
           <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Wellness</p>
-          <p className="text-lg font-bold text-emerald-400">{wellnessScore}%</p>
+          <p className="text-lg font-bold text-status-success">{wellnessScore}%</p>
         </div>
-        <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 px-3 py-2 text-center">
+        <div className="rounded-xl border border-status-info/20 bg-status-info/5 px-3 py-2 text-center">
           <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Productivity</p>
-          <p className="text-lg font-bold text-sky-400">{productivityScore}%</p>
+          <p className="text-lg font-bold text-status-info">{productivityScore}%</p>
         </div>
-        <div className={`rounded-xl border px-3 py-2 text-center ${burnoutRisk >= 75 ? "border-red-500/20 bg-red-500/5" : burnoutRisk >= 50 ? "border-orange-500/20 bg-orange-500/5" : burnoutRisk >= 25 ? "border-amber-500/20 bg-amber-500/5" : "border-emerald-500/20 bg-emerald-500/5"}`}>
+        <div className={`rounded-xl border px-3 py-2 text-center ${burnoutRisk >= 75 ? "border-status-error/20 bg-status-error/5" : burnoutRisk >= 50 ? "border-status-warning/20 bg-status-warning/5" : burnoutRisk >= 25 ? "border-status-warning/20 bg-status-warning/5" : "border-status-success/20 bg-status-success/5"}`}>
           <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Burnout Risk</p>
           <p className={`text-sm font-bold ${burnoutColor2}`}>{burnoutLabel}</p>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -646,13 +653,13 @@ function MoodPatternsCard({
 
   if (!patterns)
     return (
-      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
-        <p className="text-sm text-text-muted">
-          Could not load mood patterns.
-        </p>
-      </div>
+      <Card variant="glass" className="relative p-6 overflow-hidden">
+        <EmptyState
+          icon={<Brain className="h-8 w-8" />}
+          title="Mood patterns unavailable"
+          description="Could not load mood patterns."
+        />
+      </Card>
     );
 
   const maxScore = Math.max(
@@ -663,8 +670,7 @@ function MoodPatternsCard({
   );
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Brain className="h-5 w-5" />}
@@ -702,11 +708,11 @@ function MoodPatternsCard({
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl bg-green-500/10 border border-green-500/20 px-3 py-2">
+        <div className="rounded-xl bg-status-success/10 border border-status-success/20 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wider text-text-muted mb-0.5">
             Best Day
           </p>
-          <p className="text-sm font-bold text-green-400">
+          <p className="text-sm font-bold text-status-success">
             {patterns.bestDay.dayName}
           </p>
           <p className="text-xs text-text-secondary">
@@ -740,7 +746,7 @@ function MoodPatternsCard({
               : "Stable pattern"}
         </span>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -757,18 +763,17 @@ function StreaksCard({
 
   if (!report)
     return (
-      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
-        <p className="text-sm text-text-muted">
-          Could not load streak data.
-        </p>
-      </div>
+      <Card variant="glass" className="relative p-6 overflow-hidden">
+        <EmptyState
+          icon={<Flame className="h-8 w-8" />}
+          title="Streak data unavailable"
+          description="Could not load streak data."
+        />
+      </Card>
     );
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Flame className="h-5 w-5" />}
@@ -786,7 +791,7 @@ function StreaksCard({
               {streak.name}
             </p>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-bold text-white">
+              <span className="text-xl font-bold text-text-primary">
                 {streak.current}
               </span>
               <span className="text-xs text-text-muted">
@@ -801,14 +806,14 @@ function StreaksCard({
       </div>
 
       {report.overallStreak > 0 && (
-        <div className="mt-4 flex items-center gap-2 rounded-xl bg-orange-500/10 border border-orange-500/20 px-3 py-2">
-          <Flame className="h-4 w-4 text-orange-400" />
-          <span className="text-sm text-orange-400 font-semibold">
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-status-warning/10 border border-status-warning/20 px-3 py-2">
+          <Flame className="h-4 w-4 text-status-warning" />
+          <span className="text-sm text-status-warning font-semibold">
             {report.overallStreak} day overall streak
           </span>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -827,20 +832,19 @@ function WeeklyReportCard({
 
   if (!report)
     return (
-      <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
-        <p className="text-sm text-text-muted">
-          Could not load weekly report.
-        </p>
-      </div>
+      <Card variant="glass" className="relative p-6 overflow-hidden">
+        <EmptyState
+          icon={<Calendar className="h-8 w-8" />}
+          title="Weekly report unavailable"
+          description="Could not load weekly report."
+        />
+      </Card>
     );
 
   const { stats } = report;
 
   return (
-    <div className="group relative rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-6 shadow-card transition-all duration-500 ease-apple hover:-translate-y-1 hover:shadow-stripe-hover overflow-hidden">
-      {/* Ambient hover glow */}
+    <Card variant="glass" className="relative p-6 overflow-hidden group">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <div className="flex items-start justify-between mb-5">
         <SectionHeader
@@ -848,14 +852,14 @@ function WeeklyReportCard({
           title="Weekly Report"
           subtitle={`${new Date(report.weekStart).toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(report.weekEnd).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
         />
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<RefreshCw className="h-3 w-3" />}
           onClick={onRefresh}
-          className="flex items-center gap-1.5 text-xs text-text-muted hover:text-white transition-colors"
         >
-          <RefreshCw className="h-3 w-3" />
           Refresh
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-4">
@@ -883,7 +887,7 @@ function WeeklyReportCard({
             <p className="text-[10px] uppercase tracking-wider text-text-muted">
               {item.label}
             </p>
-            <p className="text-lg font-bold text-white my-0.5">
+            <p className="text-lg font-bold text-text-primary my-0.5">
               {item.value}
             </p>
             <p className="text-[10px] text-text-muted">{item.sub}</p>
@@ -893,9 +897,9 @@ function WeeklyReportCard({
 
       {stats.mostProductiveDay && (
         <div className="flex items-center gap-2 mb-3 text-xs text-text-secondary">
-          <Zap className="h-3.5 w-3.5 text-yellow-400" />
+          <Zap className="h-3.5 w-3.5 text-status-warning" />
           Most productive day:{" "}
-          <span className="font-semibold text-white">
+          <span className="font-semibold text-text-primary">
             {stats.mostProductiveDay}
           </span>
         </div>
@@ -907,7 +911,7 @@ function WeeklyReportCard({
           {report.aiSummary}
         </p>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -915,6 +919,7 @@ function WeeklyReportCard({
 
 export default function AnalyticsPage() {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
 
   const [correlation, setCorrelation] =
     useState<CorrelationReport | null>(null);
@@ -951,10 +956,12 @@ export default function AnalyticsPage() {
         };
         setCorrelation(data.report);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load correlation data.", variant: "error" });
     } finally {
       setLoadingCorr(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   const fetchBurnout = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -969,10 +976,12 @@ export default function AnalyticsPage() {
         const data = (await res.json()) as { report: BurnoutReport };
         setBurnout(data.report);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load burnout data.", variant: "error" });
     } finally {
       setLoadingBurnout(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   const fetchMoodPatterns = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -987,10 +996,12 @@ export default function AnalyticsPage() {
         const data = (await res.json()) as { patterns: MoodPattern };
         setMoodPatterns(data.patterns);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load mood patterns.", variant: "error" });
     } finally {
       setLoadingMood(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   const fetchStreaks = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -1005,10 +1016,12 @@ export default function AnalyticsPage() {
         const data = (await res.json()) as { report: StreakReport };
         setStreaks(data.report);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load streaks.", variant: "error" });
     } finally {
       setLoadingStreaks(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   const fetchWeeklyReport = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -1023,10 +1036,12 @@ export default function AnalyticsPage() {
         const data = (await res.json()) as { report: WeeklyReport };
         setWeeklyReport(data.report);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load weekly report.", variant: "error" });
     } finally {
       setLoadingWeekly(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   const fetchSynergy = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -1038,10 +1053,12 @@ export default function AnalyticsPage() {
         const data = (await res.json()) as { success: boolean; report: SynergyReport };
         if (data.success) setSynergy(data.report);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load synergy data.", variant: "error" });
     } finally {
       setLoadingSynergy(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   const fetchDailyRhythm = useCallback(async () => {
     const headers = getAuthHeaders();
@@ -1053,10 +1070,12 @@ export default function AnalyticsPage() {
         const data = (await res.json()) as { success: boolean; report: DailyRhythmReport };
         if (data.success) setDailyRhythm(data.report);
       }
+    } catch {
+      toast({ title: "Error", description: "Could not load daily rhythm.", variant: "error" });
     } finally {
       setLoadingRhythm(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   useEffect(() => {
     void fetchCorrelation();
@@ -1080,11 +1099,11 @@ export default function AnalyticsPage() {
     <div className="mx-auto w-full max-w-5xl animate-fade-in space-y-6 pb-10 text-text-primary">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-glow-soft">
           <BarChart3 className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">
             Analytics
           </h1>
           <p className="text-sm text-text-secondary mt-0.5">

@@ -1,6 +1,7 @@
 import { RefObject } from "react";
-import { Sparkles, CircleUser } from "lucide-react";
+import { Sparkles, CircleUser, ChevronUp } from "lucide-react";
 import { ChatMessage } from "../types";
+import { Skeleton, Spinner } from "@/components/ui";
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -25,79 +26,118 @@ export function ChatMessageList({
   messagesEndRef,
   scrollContainerRef,
 }: ChatMessageListProps) {
+  const isEmpty = messages.length <= 1 && !activeChatId;
+
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 min-h-0 overflow-y-auto px-4 py-6 scroll-smooth"
-      style={{ background: "var(--color-bg-panel)" }}
+      className="flex-1 min-h-0 overflow-y-auto scroll-smooth"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6">
+        {/* Load more */}
         {hasMoreMessages && !bootstrapping && (
-          <button
-            onClick={() => void loadMoreMessages()}
-            disabled={loadingMore}
-            className="mx-auto rounded-lg border border-border bg-bg-card px-4 py-1.5 text-xs font-semibold text-text-muted hover:text-text-secondary hover:border-accent-primary/30 transition-all"
-          >
-            {loadingMore ? "Loading…" : "Load older messages"}
-          </button>
+          <div className="flex justify-center">
+            <button
+              onClick={() => void loadMoreMessages()}
+              disabled={loadingMore}
+              className="group inline-flex items-center gap-2 rounded-full border border-border bg-bg-card px-4 py-1.5 text-xs font-medium text-text-muted hover:text-text-secondary hover:border-border-hover hover:bg-bg-hover transition-all duration-200 ease-apple disabled:opacity-50"
+            >
+              {loadingMore ? (
+                <Spinner size="sm" />
+              ) : (
+                <>
+                  <ChevronUp className="h-3 w-3 transition-transform group-hover:-translate-y-0.5" />
+                  Load earlier messages
+                </>
+              )}
+            </button>
+          </div>
         )}
 
+        {/* Bootstrapping skeletons */}
         {bootstrapping ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="h-7 w-7 rounded-full border-2 border-accent-primary/30 border-t-accent-primary animate-spin" />
-          </div>
-        ) : messages.length <= 1 && !activeChatId ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-accent-primary/5 rounded-full blur-[80px] pointer-events-none" />
-            <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-primary/25 bg-accent-primary/10 text-accent-primary shadow-[0_0_30px_rgba(139,92,246,0.15)]">
-              <Sparkles className="h-7 w-7" />
+          <div className="flex flex-col gap-5 animate-fade-in">
+            <div className="flex gap-3">
+              <Skeleton width={32} height={32} rounded="full" />
+              <div className="flex flex-col gap-2 flex-1 max-w-[75%]">
+                <Skeleton width="30%" height={12} rounded="md" />
+                <Skeleton width="100%" height={60} rounded="xl" />
+              </div>
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-white">Your Digital Twin is here.</h2>
-            <p className="mt-2 max-w-xs text-sm text-text-secondary leading-relaxed">
-              I know your patterns, moods, and goals. Ask me anything about your journey.
+            <div className="flex gap-3 flex-row-reverse">
+              <Skeleton width={32} height={32} rounded="full" />
+              <div className="flex flex-col gap-2 flex-1 max-w-[75%] items-end">
+                <Skeleton width="20%" height={12} rounded="md" />
+                <Skeleton width="80%" height={40} rounded="xl" />
+              </div>
+            </div>
+          </div>
+        ) : isEmpty ? (
+          /* Empty / Welcome state */
+          <div className="flex flex-1 flex-col items-center justify-center py-16 text-center animate-fade-in">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 rounded-full bg-accent-primary/10 blur-2xl scale-150" />
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-primary to-accent-hover border border-accent-primary/30 shadow-glow">
+                <Sparkles className="h-7 w-7 text-text-inverse" />
+              </div>
+              <div className="absolute inset-0 rounded-2xl bg-accent-primary/20 animate-[twinAuraPulse_3s_ease-in-out_infinite]" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-text-primary">
+              Your Digital Twin is here.
+            </h2>
+            <p className="mt-3 max-w-sm text-sm text-text-secondary leading-relaxed">
+              {messages[0]?.text}
             </p>
           </div>
         ) : (
+          /* Messages */
           messages.map((message) => (
             <div
               key={message.id}
               className={[
-                "flex gap-3 group animate-fade-in",
+                "flex gap-3 animate-fade-in",
                 message.sender === "user" ? "flex-row-reverse" : "flex-row",
               ].join(" ")}
             >
               {/* Avatar */}
               <div
                 className={[
-                  "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-transform duration-200 group-hover:scale-105",
+                  "mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-200 ease-apple",
                   message.sender === "ai"
-                    ? "bg-accent-primary border-accent-primary/60 shadow-[0_0_12px_rgba(139,92,246,0.35)]"
-                    : "bg-bg-card border-border/70 shadow-sm",
+                    ? "bg-gradient-to-br from-accent-primary to-accent-hover border-accent-primary/40 shadow-glow-soft"
+                    : "bg-bg-card border-border shadow-sm",
                 ].join(" ")}
               >
                 {message.sender === "ai" ? (
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
+                  <Sparkles className="h-3.5 w-3.5 text-text-inverse" />
                 ) : (
                   <CircleUser className="h-3.5 w-3.5 text-text-secondary" />
                 )}
               </div>
 
-              {/* Bubble */}
-              <div className={`flex max-w-[78%] flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}>
-                <div className="flex items-baseline gap-2 mb-1.5 px-1">
-                  <span className="text-[12px] font-semibold text-text-secondary">
+              {/* Bubble + meta */}
+              <div
+                className={`flex max-w-[80%] flex-col ${
+                  message.sender === "user" ? "items-end" : "items-start"
+                }`}
+              >
+                <div className="flex items-baseline gap-2 mb-1 px-1">
+                  <span className="text-[11px] font-semibold text-text-secondary">
                     {message.sender === "ai" ? "Digital Twin" : "You"}
                   </span>
                   <span className="text-[10px] text-text-muted">
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(message.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
                 <div
                   className={[
-                    "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                    "px-4 py-2.5 text-sm leading-relaxed transition-all duration-200",
                     message.sender === "user"
-                      ? "bg-accent-primary text-white rounded-tr-sm shadow-[0_2px_8px_rgba(139,92,246,0.3)]"
-                      : "bg-bg-card border border-border/60 text-text-primary rounded-tl-sm shadow-sm",
+                      ? "bg-gradient-to-br from-accent-primary to-accent-hover text-text-inverse rounded-2xl rounded-tr-sm shadow-glow-soft"
+                      : "bg-bg-card border border-border/70 text-text-primary rounded-2xl rounded-tl-sm shadow-sm",
                   ].join(" ")}
                 >
                   {message.text}
@@ -110,12 +150,14 @@ export function ChatMessageList({
         {/* Typing indicator */}
         {isLoading && (
           <div className="flex gap-3 animate-fade-in">
-            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-accent-primary border-accent-primary/60 shadow-[0_0_12px_rgba(139,92,246,0.35)]">
-              <Sparkles className="h-3.5 w-3.5 text-white" />
+            <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary to-accent-hover border border-accent-primary/40 shadow-glow-soft">
+              <Sparkles className="h-3.5 w-3.5 text-text-inverse" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-[12px] font-semibold text-text-secondary mb-1.5 px-1">Digital Twin</span>
-              <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-bg-card border border-border/60 px-4 py-3 shadow-sm">
+              <span className="text-[11px] font-semibold text-text-secondary mb-1 px-1">
+                Digital Twin
+              </span>
+              <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-bg-card border border-border/70 px-4 py-3 shadow-sm">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-primary dot-bounce-1" />
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-primary dot-bounce-2" />
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-primary dot-bounce-3" />

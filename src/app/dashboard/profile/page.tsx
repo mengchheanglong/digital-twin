@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Save, X } from "lucide-react";
 import { ProfilePage, UserProfile } from "@/components/profile";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui";
+import { Card } from "@/components/ui";
+import { FormField } from "@/components/ui";
+import { Input } from "@/components/ui";
+import { Textarea } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
 
 interface LocalUserProfile {
   id: string;
@@ -36,6 +42,70 @@ interface EditFields {
   location: string;
   age: string;
   timezone: string;
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-5xl space-y-6 pb-10">
+      {/* Header skeleton */}
+      <div className="relative flex flex-col items-center overflow-hidden rounded-2xl border border-border bg-bg-card p-8 shadow-card">
+        <div className="absolute top-0 h-1/2 w-full bg-gradient-to-b from-accent-primary/10 to-transparent pointer-events-none" />
+        <Skeleton width={112} height={112} rounded="full" className="mb-6" />
+        <Skeleton width={180} height={32} rounded="lg" className="mb-2" />
+        <Skeleton width={120} height={20} rounded="md" className="mb-8" />
+        <Skeleton width="100%" height={40} rounded="md" className="max-w-sm" />
+      </div>
+
+      {/* Stats + Achievements skeleton */}
+      <div className="grid gap-5 lg:grid-cols-5">
+        <div className="lg:col-span-2">
+          <Card className="h-full p-6 space-y-4">
+            <Skeleton width={100} height={16} rounded="md" />
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton width={44} height={44} rounded="xl" />
+                  <div className="space-y-2">
+                    <Skeleton width={60} height={24} rounded="md" />
+                    <Skeleton width={80} height={14} rounded="md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+        <div className="lg:col-span-3">
+          <Card className="h-full p-6 space-y-4">
+            <Skeleton width={120} height={16} rounded="md" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <Skeleton width={48} height={48} rounded="full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton width="70%" height={18} rounded="md" />
+                    <Skeleton width="90%" height={14} rounded="md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Progression skeleton */}
+      <Card className="p-6 space-y-4">
+        <Skeleton width={160} height={24} rounded="lg" />
+        <div className="flex gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-2">
+              <Skeleton width={64} height={64} rounded="full" />
+              <Skeleton width={80} height={16} rounded="md" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
 }
 
 export default function CharacterPage() {
@@ -145,14 +215,7 @@ export default function CharacterPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex h-60 items-center justify-center">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm text-text-secondary">
-          <Loader2 className="h-4 w-4 animate-spin text-accent-primary" />
-          Initializing Identity Core...
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!profile) {
@@ -188,39 +251,39 @@ export default function CharacterPage() {
       <div className="mb-4 flex justify-end">
         {editing ? (
           <div className="flex gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="md"
+              leftIcon={<X className="h-4 w-4" />}
               onClick={() => setEditing(false)}
               disabled={saving}
-              className="flex items-center gap-1.5 rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm font-semibold text-text-secondary transition-all hover:bg-bg-panel/80 disabled:opacity-50"
             >
-              <X className="h-4 w-4" />
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              leftIcon={saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-1.5 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-accent-hover disabled:opacity-50"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="md"
+            leftIcon={<Pencil className="h-4 w-4" />}
             onClick={startEditing}
-            className="flex items-center gap-1.5 rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm font-semibold text-text-secondary transition-all hover:bg-bg-panel/80 hover:text-white"
           >
-            <Pencil className="h-4 w-4" />
             Edit Profile
-          </button>
+          </Button>
         )}
       </div>
 
       {editing && (
-        <div className="mb-6 rounded-2xl border border-border bg-bg-card p-6 shadow-xl animate-fade-in">
+        <Card variant="elevated" className="mb-6 p-6 animate-fade-in">
           <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-text-muted">Edit Profile</h2>
           {saveError && (
             <div className="mb-4 rounded-xl border border-status-error/20 bg-status-error/10 px-4 py-3 text-sm text-status-error">
@@ -228,79 +291,60 @@ export default function CharacterPage() {
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="edit-name">
-                Name
-              </label>
-              <input
+            <FormField label="Name" htmlFor="edit-name">
+              <Input
                 id="edit-name"
                 type="text"
                 maxLength={40}
                 value={editFields.name}
                 onChange={(e) => setEditFields((f) => ({ ...f, name: e.target.value }))}
-                className="w-full rounded-xl border border-border bg-bg-panel px-3 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
                 placeholder="Your name"
               />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="edit-age">
-                Age
-              </label>
-              <input
+            </FormField>
+            <FormField label="Age" htmlFor="edit-age">
+              <Input
                 id="edit-age"
                 type="number"
                 min={1}
                 max={120}
                 value={editFields.age}
                 onChange={(e) => setEditFields((f) => ({ ...f, age: e.target.value }))}
-                className="w-full rounded-xl border border-border bg-bg-panel px-3 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
                 placeholder="Age"
               />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="edit-location">
-                Location
-              </label>
-              <input
+            </FormField>
+            <FormField label="Location" htmlFor="edit-location">
+              <Input
                 id="edit-location"
                 type="text"
                 maxLength={60}
                 value={editFields.location}
                 onChange={(e) => setEditFields((f) => ({ ...f, location: e.target.value }))}
-                className="w-full rounded-xl border border-border bg-bg-panel px-3 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
                 placeholder="City, Country"
               />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="edit-timezone">
-                Timezone
-              </label>
-              <input
+            </FormField>
+            <FormField label="Timezone" htmlFor="edit-timezone">
+              <Input
                 id="edit-timezone"
                 type="text"
                 maxLength={60}
                 value={editFields.timezone}
                 onChange={(e) => setEditFields((f) => ({ ...f, timezone: e.target.value }))}
-                className="w-full rounded-xl border border-border bg-bg-panel px-3 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
                 placeholder="e.g. Asia/Bangkok"
               />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-text-muted" htmlFor="edit-bio">
-                Bio
-              </label>
-              <textarea
+            </FormField>
+            <FormField label="Bio" htmlFor="edit-bio" className="sm:col-span-2">
+              <Textarea
                 id="edit-bio"
                 rows={3}
                 maxLength={200}
                 value={editFields.bio}
                 onChange={(e) => setEditFields((f) => ({ ...f, bio: e.target.value }))}
-                className="w-full rounded-xl border border-border bg-bg-panel px-3 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all resize-none"
                 placeholder="A short bio about yourself"
+                resize="none"
               />
-            </div>
+            </FormField>
           </div>
-        </div>
+        </Card>
       )}
 
       <ProfilePage profile={profileData} />

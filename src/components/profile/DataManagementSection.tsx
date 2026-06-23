@@ -4,9 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, DownloadCloud, Loader2, ShieldAlert, Trash2 } from "lucide-react";
 import axios from "axios";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui";
+import { Dialog } from "@/components/ui";
+import { Card } from "@/components/ui";
 
 export function DataManagementSection() {
   const router = useRouter();
+  const { getAuthHeaders, signOut } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -16,9 +21,14 @@ export function DataManagementSection() {
     setExporting(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
+      const headers = getAuthHeaders();
+      if (!headers) {
+        router.push("/");
+        return;
+      }
+
       const response = await fetch("/api/export", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
 
       if (!response.ok) {
@@ -31,7 +41,7 @@ export function DataManagementSection() {
       a.href = url;
       const disposition = response.headers.get("Content-Disposition");
       let filename = `digital-twin-export-${new Date().toISOString().split("T")[0]}.json`;
-      
+
       if (disposition && disposition.indexOf("filename=") !== -1) {
         const matches = /filename="([^"]+)"/.exec(disposition);
         if (matches != null && matches[1]) {
@@ -56,17 +66,16 @@ export function DataManagementSection() {
     setDeleting(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete("/api/user", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      // Wipe frontend auth state
-      localStorage.removeItem("token");
-      localStorage.removeItem("userProfile");
-      
-      // Force reload to base sign-in
-      window.location.href = "/?mode=signin";
+      const headers = getAuthHeaders();
+      if (!headers) {
+        router.push("/");
+        return;
+      }
+
+      await axios.delete("/api/user", { headers });
+
+      // Wipe frontend auth state and redirect
+      signOut();
     } catch (err) {
       console.error(err);
       setError("Failed to delete account. Please contact support.");
@@ -77,83 +86,94 @@ export function DataManagementSection() {
 
   return (
     <>
-      <section className="mt-8 rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur-xl p-4 sm:p-5 shadow-card transition-all duration-500 ease-apple relative overflow-hidden">
+      <Card className="relative overflow-hidden p-4 sm:p-5">
         {/* Subtle warning glow */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/5 rounded-full blur-2xl pointer-events-none" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-status-error/5 blur-2xl" />
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+        <div className="relative z-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
-             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/5 text-text-secondary shadow-inner">
-               <ShieldAlert className="h-5 w-5" />
-             </div>
-             <div>
-               <h2 className="text-sm font-bold text-white">Data & Privacy</h2>
-               <p className="text-xs text-text-secondary mt-0.5 max-w-[280px] leading-relaxed">Manage your secure exports and account erasure.</p>
-             </div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bg-hover text-text-secondary shadow-inner ring-1 ring-border">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-text-primary">Data &amp; Privacy</h2>
+              <p className="mt-0.5 max-w-[280px] text-xs leading-relaxed text-text-secondary">
+                Manage your secure exports and account erasure.
+              </p>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-3 shrink-0">
-            <button
+
+          <div className="flex shrink-0 items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DownloadCloud className="h-3.5 w-3.5" />}
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center gap-2 rounded-lg border border-accent-primary/30 bg-accent-primary/10 px-4 py-2 text-xs font-bold text-accent-primary transition-all duration-300 hover:bg-accent-primary hover:text-white hover:shadow-glow disabled:opacity-50"
             >
-              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DownloadCloud className="h-3.5 w-3.5" />}
               Export
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
               onClick={() => setShowConfirm(true)}
               disabled={deleting}
-              className="flex items-center gap-2 rounded-lg border border-white/5 bg-bg-panel/50 px-4 py-2 text-xs font-bold text-text-muted transition-all duration-300 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
             >
-              <Trash2 className="h-3.5 w-3.5" />
               Erase
-            </button>
+            </Button>
           </div>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 relative z-10">
-            <p className="text-xs font-semibold text-red-400">{error}</p>
+          <div className="relative z-10 mt-4 rounded-xl border border-status-error/20 bg-status-error/10 p-3">
+            <p className="text-xs font-semibold text-status-error">{error}</p>
           </div>
         )}
-      </section>
+      </Card>
 
-      {/* Extreme Deletion Modal */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-2500 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-bg-panel p-8 shadow-2xl animate-scale-in">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500 shadow-glow">
-              <AlertTriangle className="h-8 w-8" />
-            </div>
-            
-            <h3 className="mb-3 text-center text-xl font-bold text-white">Permanently Delete Account?</h3>
-            <p className="mb-2 text-center text-sm font-medium text-red-400">
-              WARNING: Extreme Data Loss
-            </p>
-            <p className="mb-8 text-center text-sm text-text-secondary leading-relaxed">
-              If you proceed, every quest, journal entry, chat vector, focus session, and insight metric will be purged from the database instantly. You cannot undo this.
-            </p>
-
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleting}
-                className="w-full rounded-xl bg-red-500 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-red-600 hover:shadow-glow disabled:opacity-50 flex justify-center items-center"
-              >
-                {deleting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Yes, Erase Everything"}
-              </button>
-              <button
-                onClick={() => setShowConfirm(false)}
-                disabled={deleting}
-                className="w-full rounded-xl bg-bg-card px-4 py-3.5 text-sm font-bold text-text-primary transition-all hover:bg-white/5 border border-white/5"
-              >
-                Cancel
-              </button>
-            </div>
+      <Dialog
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        title="Permanently Delete Account?"
+        size="md"
+        footer={
+          <div className="flex w-full flex-col gap-3">
+            <Button
+              variant="danger"
+              size="md"
+              fullWidth
+              loading={deleting}
+              onClick={handleDeleteAccount}
+            >
+              Yes, Erase Everything
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              fullWidth
+              onClick={() => setShowConfirm(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
           </div>
+        }
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-status-error/10 text-status-error shadow-glow">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <p className="mb-2 text-sm font-medium text-status-error">
+            This permanently deletes your account and all data.
+          </p>
+          <p className="text-sm leading-relaxed text-text-secondary">
+            This cannot be undone. Every quest, journal entry, chat vector, focus session, and insight metric will be purged from the database instantly.
+          </p>
         </div>
-      )}
+      </Dialog>
     </>
   );
 }
+
+export default DataManagementSection;

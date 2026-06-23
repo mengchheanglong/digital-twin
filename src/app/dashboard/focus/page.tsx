@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircle2,
-  Clock,
-  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Flame,
   Pause,
   Play,
   Plus,
@@ -14,6 +15,16 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  Button,
+  Card,
+  Badge,
+  Input,
+  Textarea,
+  EmptyState,
+  Skeleton,
+  useToast,
+} from "@/components/ui";
 
 interface FocusSession {
   _id: string;
@@ -69,6 +80,7 @@ function ActiveTimer({
   const [showNotes, setShowNotes] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (paused) return;
@@ -87,9 +99,10 @@ function ActiveTimer({
     };
   }, [paused, totalSeconds]);
 
-  const remaining = Math.max(0, totalSeconds - elapsed);
   const progress = Math.min(100, (elapsed / totalSeconds) * 100);
   const isFinished = elapsed >= totalSeconds;
+  const circumference = 2 * Math.PI * 54; // r=54
+  const strokeDashoffset = circumference - (circumference * progress) / 100;
 
   const handleComplete = async (completed: boolean) => {
     const headers = getAuthHeaders();
@@ -108,25 +121,70 @@ function ActiveTimer({
       if (res.ok) {
         const data = (await res.json()) as { session: FocusSession };
         onComplete(data.session);
+        if (completed) {
+          toast({
+            variant: "success",
+            title: "Session complete",
+            description: `Great work! You focused for ${formatDuration(
+              Math.round(elapsed / 60)
+            )}.`,
+          });
+        }
+      } else {
+        const err = (await res.json()) as { msg?: string };
+        toast({
+          variant: "error",
+          title: "Failed to save session",
+          description: err.msg ?? "Something went wrong.",
+        });
       }
+    } catch {
+      toast({
+        variant: "error",
+        title: "Failed to save session",
+        description: "Network error. Please try again.",
+      });
     } finally {
       setCompleting(false);
     }
   };
 
   return (
-    <div className="rounded-2xl border border-accent-primary/40 bg-bg-card p-6 animate-fade-in">
-      <div className="text-center mb-6">
-        <p className="text-xs text-text-muted uppercase tracking-wider mb-2">
+    <Card
+      variant="elevated"
+      glow
+      className="relative overflow-visible animate-fade-in"
+    >
+      <style>{`
+        @keyframes breathe-ring {
+          0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px var(--color-accent-primary)); }
+          50% { opacity: 0.75; filter: drop-shadow(0 0 14px var(--color-accent-primary)); }
+        }
+        .breathe-active {
+          animation: breathe-ring 3s ease-in-out infinite;
+        }
+      `}</style>
+      <div className="p-6 md:p-8 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-5">
           {session.label}
         </p>
 
         {/* Circular progress */}
-        <div className="relative inline-flex items-center justify-center mb-4">
+        <div className="relative inline-flex items-center justify-center mb-6">
           <svg
-            className="h-36 w-36 -rotate-90"
+            className="h-48 w-48 md:h-56 md:w-56 -rotate-90"
             viewBox="0 0 120 120"
           >
+            <defs>
+              <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="var(--color-accent-primary)" />
+                <stop offset="100%" stopColor="var(--color-accent-glow)" />
+              </linearGradient>
+              <linearGradient id="ringSuccess" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="var(--color-status-success)" />
+                <stop offset="100%" stopColor="var(--color-accent-glow)" />
+              </linearGradient>
+            </defs>
             <circle
               cx="60"
               cy="60"
@@ -141,101 +199,93 @@ function ActiveTimer({
               cy="60"
               r="54"
               fill="none"
-              stroke="currentColor"
+              stroke={isFinished ? "url(#ringSuccess)" : "url(#ringGradient)"}
               strokeWidth="6"
-              strokeDasharray={`${(339.3 * progress) / 100} 339.3`}
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              className={
-                isFinished ? "text-green-400" : "text-accent-primary"
-              }
+              className={`transition-all duration-700 ease-apple ${
+                !paused && !isFinished ? "breathe-active" : ""
+              }`}
             />
           </svg>
           <div className="absolute flex flex-col items-center">
-            <span className="text-3xl font-mono font-bold text-white">
-              {formatTimer(remaining)}
+            <span className="text-4xl md:text-5xl font-mono font-bold text-text-primary tracking-tight">
+              {formatTimer(elapsed)}
             </span>
-            <span className="text-xs text-text-muted mt-0.5">
-              {isFinished ? "Complete!" : "remaining"}
+            <span className="text-xs text-text-muted mt-1 font-medium">
+              {isFinished
+                ? "Goal reached!"
+                : `${formatDuration(session.durationMinutes)} goal`}
             </span>
           </div>
         </div>
 
-        <p className="text-sm text-text-secondary">
-          {formatTimer(elapsed)} elapsed of{" "}
-          {formatDuration(session.durationMinutes)}
+        <p className="text-sm text-text-secondary mb-6">
+          {formatTimer(Math.max(0, totalSeconds - elapsed))} remaining
         </p>
-      </div>
 
-      {showNotes ? (
-        <div className="mb-4">
-          <textarea
-            rows={3}
-            placeholder="Session notes (optional)…"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-xl border border-border bg-bg-panel px-3 py-2 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none transition-all resize-none"
-          />
+        {showNotes ? (
+          <div className="mb-5 max-w-sm mx-auto">
+            <Textarea
+              rows={3}
+              placeholder="Session notes (optional)…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              resize="none"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowNotes(true)}
+            className="mb-5 text-xs text-text-muted hover:text-text-primary transition-colors duration-200"
+          >
+            + Add session notes
+          </button>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            variant="secondary"
+            size="md"
+            leftIcon={paused ? <Play size={16} /> : <Pause size={16} />}
+            onClick={() => setPaused((v) => !v)}
+          >
+            {paused ? "Resume" : "Pause"}
+          </Button>
+
+          <Button
+            variant="success"
+            size="md"
+            loading={completing}
+            leftIcon={<CheckCircle2 size={16} />}
+            onClick={() => void handleComplete(true)}
+          >
+            Complete
+          </Button>
+
+          <Button
+            variant="danger"
+            size="md"
+            loading={completing}
+            leftIcon={<StopCircle size={16} />}
+            onClick={() => void handleComplete(false)}
+            title="Abandon session"
+          >
+            Abandon
+          </Button>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowNotes(true)}
-          className="mb-4 text-xs text-text-muted hover:text-white transition-colors"
-        >
-          + Add session notes
-        </button>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setPaused((v) => !v)}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-border bg-bg-panel py-2.5 text-sm font-semibold text-text-secondary hover:text-white transition-all"
-        >
-          {paused ? (
-            <>
-              <Play className="h-4 w-4" /> Resume
-            </>
-          ) : (
-            <>
-              <Pause className="h-4 w-4" /> Pause
-            </>
-          )}
-        </button>
 
         <button
           type="button"
-          onClick={() => void handleComplete(true)}
-          disabled={completing}
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-semibold text-white hover:bg-green-400 disabled:opacity-50 transition-all"
+          onClick={onAbandon}
+          className="mt-4 text-xs text-text-muted hover:text-status-error transition-colors duration-200"
         >
-          {completing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4" />
-          )}
-          Complete
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void handleComplete(false)}
-          disabled={completing}
-          className="flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-all"
-          title="Abandon session"
-        >
-          <StopCircle className="h-4 w-4" />
+          Discard without saving
         </button>
       </div>
-
-      <button
-        type="button"
-        onClick={onAbandon}
-        className="mt-3 w-full text-xs text-text-muted hover:text-red-400 transition-colors"
-      >
-        Discard without saving
-      </button>
-    </div>
+    </Card>
   );
 }
 
@@ -249,6 +299,7 @@ function StartSessionForm({
   onCancel: () => void;
 }) {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
   const [label, setLabel] = useState("");
   const [duration, setDuration] = useState(25);
   const [customDuration, setCustomDuration] = useState("");
@@ -286,113 +337,125 @@ function StartSessionForm({
       if (!res.ok) {
         const data = (await res.json()) as { msg?: string };
         setError(data.msg ?? "Failed to start session.");
+        toast({
+          variant: "error",
+          title: "Failed to start session",
+          description: data.msg ?? "Something went wrong.",
+        });
         return;
       }
 
       const data = (await res.json()) as { session: FocusSession };
       onStart(data.session);
+    } catch {
+      setError("Network error. Please try again.");
+      toast({
+        variant: "error",
+        title: "Failed to start session",
+        description: "Network error. Please try again.",
+      });
     } finally {
       setStarting(false);
     }
   };
 
   return (
-    <form
-      onSubmit={handleStart}
-      className="rounded-2xl border border-accent-primary/30 bg-bg-card p-6 animate-fade-in"
-    >
-      <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-4">
-        Start Focus Session
-      </h2>
+    <Card variant="elevated" glow className="animate-fade-in">
+      <form onSubmit={handleStart} className="p-6 md:p-8">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-5">
+          Start Focus Session
+        </h2>
 
-      {error && (
-        <div className="mb-3 rounded-xl border border-status-error/20 bg-status-error/10 px-3 py-2 text-sm text-status-error">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-4 rounded-xl border border-status-error/20 bg-status-error/10 px-3 py-2.5 text-sm text-status-error">
+            {error}
+          </div>
+        )}
 
-      <div className="space-y-4">
-        <input
-          autoFocus
-          type="text"
-          maxLength={200}
-          placeholder="What are you focusing on?"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          className="w-full rounded-xl border border-border bg-bg-panel px-4 py-2.5 text-sm text-white placeholder-text-muted focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
-        />
+        <div className="space-y-5">
+          <Input
+            autoFocus
+            type="text"
+            maxLength={200}
+            placeholder="What are you focusing on?"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
 
-        <div>
-          <p className="text-xs text-text-muted mb-2">
-            Duration (minutes)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {PRESET_DURATIONS.map((d) => (
+          <div>
+            <p className="text-xs font-medium text-text-secondary mb-2.5">
+              Duration (minutes)
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {PRESET_DURATIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => {
+                    setDuration(d);
+                    setUseCustom(false);
+                  }}
+                  className={`rounded-xl px-3.5 py-1.5 text-sm font-medium border transition-all duration-200 ease-apple ${
+                    !useCustom && duration === d
+                      ? "border-accent-primary bg-accent-subtle text-text-primary shadow-glow-soft"
+                      : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50 hover:text-text-primary"
+                  }`}
+                >
+                  {d}m
+                </button>
+              ))}
               <button
-                key={d}
                 type="button"
-                onClick={() => {
-                  setDuration(d);
-                  setUseCustom(false);
-                }}
-                className={`rounded-xl px-3 py-1.5 text-sm font-medium border transition-all ${
-                  !useCustom && duration === d
-                    ? "border-accent-primary bg-accent-primary/10 text-white"
-                    : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50"
+                onClick={() => setUseCustom(true)}
+                className={`rounded-xl px-3.5 py-1.5 text-sm font-medium border transition-all duration-200 ease-apple ${
+                  useCustom
+                    ? "border-accent-primary bg-accent-subtle text-text-primary shadow-glow-soft"
+                    : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50 hover:text-text-primary"
                 }`}
               >
-                {d}m
+                Custom
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setUseCustom(true)}
-              className={`rounded-xl px-3 py-1.5 text-sm font-medium border transition-all ${
-                useCustom
-                  ? "border-accent-primary bg-accent-primary/10 text-white"
-                  : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50"
-              }`}
-            >
-              Custom
-            </button>
+            </div>
+
+            {useCustom && (
+              <div className="mt-3">
+                <Input
+                  type="number"
+                  min={1}
+                  max={480}
+                  placeholder="Minutes (1–480)"
+                  value={customDuration}
+                  onChange={(e) => setCustomDuration(e.target.value)}
+                  className="w-40"
+                />
+              </div>
+            )}
           </div>
-
-          {useCustom && (
-            <input
-              type="number"
-              min={1}
-              max={480}
-              placeholder="Minutes (1–480)"
-              value={customDuration}
-              onChange={(e) => setCustomDuration(e.target.value)}
-              className="mt-2 w-32 rounded-xl border border-border bg-bg-panel px-3 py-2 text-sm text-white focus:border-accent-primary focus:outline-none transition-all"
-            />
-          )}
         </div>
-      </div>
 
-      <div className="flex justify-end gap-2 mt-5">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-xl border border-border bg-bg-panel px-4 py-2 text-sm font-semibold text-text-secondary hover:text-white transition-all"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={starting}
-          className="flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover disabled:opacity-50 transition-all"
-        >
-          {starting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          {starting ? "Starting…" : `Start ${effectiveDuration}m Session`}
-        </button>
-      </div>
-    </form>
+        <div className="flex justify-end gap-2 mt-6">
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={starting}
+            leftIcon={<Play size={16} />}
+          >
+            {starting
+              ? "Starting…"
+              : `Start ${effectiveDuration}m Session`}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 
@@ -408,6 +471,7 @@ function SessionItem({
   const { getAuthHeaders } = useAuth();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const handleDelete = async () => {
     const headers = getAuthHeaders();
@@ -427,69 +491,92 @@ function SessionItem({
   const elapsed = session.elapsedMinutes ?? session.durationMinutes;
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-border bg-bg-panel px-4 py-3 hover:border-accent-primary/30 transition-all">
-      <div
-        className={`h-8 w-8 flex-shrink-0 rounded-full flex items-center justify-center ${
-          session.completed
-            ? "bg-green-500/10 text-green-400"
-            : "bg-orange-500/10 text-orange-400"
-        }`}
-      >
-        {session.completed ? (
-          <CheckCircle2 className="h-4 w-4" />
-        ) : (
-          <StopCircle className="h-4 w-4" />
-        )}
-      </div>
+    <Card
+      variant="default"
+      className="animate-slide-left transition-all duration-200 ease-apple"
+    >
+      <div className="px-4 py-3.5 flex items-center gap-4">
+        <div
+          className={`h-9 w-9 flex-shrink-0 rounded-full flex items-center justify-center border ${
+            session.completed
+              ? "bg-status-success/10 text-status-success border-status-success/25"
+              : "bg-status-warning/10 text-status-warning border-status-warning/25"
+          }`}
+        >
+          {session.completed ? (
+            <CheckCircle2 size={16} />
+          ) : (
+            <StopCircle size={16} />
+          )}
+        </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">
-          {session.label}
-        </p>
-        <p className="text-xs text-text-muted">
-          {formatDate(session.startedAt)} ·{" "}
-          {formatDuration(elapsed)} focused
-        </p>
-      </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-text-primary truncate">
+            {session.label}
+          </p>
+          <p className="text-xs text-text-muted mt-0.5">
+            {formatDate(session.startedAt)} · {formatDuration(elapsed)} focused
+          </p>
+        </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-xs text-text-muted">
-          {formatDuration(session.durationMinutes)} goal
-        </span>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <Badge tone={session.completed ? "success" : "default"}>
+            {session.completed ? "Completed" : "Abandoned"}
+          </Badge>
 
-        {confirming ? (
-          <>
+          {session.notes && (
             <button
               type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="text-xs text-red-400 hover:text-red-300 font-semibold"
+              onClick={() => setExpanded((v) => !v)}
+              className="text-text-muted hover:text-text-primary transition-colors duration-200"
+              title={expanded ? "Collapse notes" : "Expand notes"}
             >
-              {deleting ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "Delete"
-              )}
+              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
+          )}
+
+          {confirming ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="danger"
+                size="sm"
+                loading={deleting}
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirming(false)}
+                leftIcon={<X size={14} />}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => setConfirming(false)}
-              className="text-text-muted hover:text-white"
+              onClick={() => setConfirming(true)}
+              className="text-text-muted hover:text-status-error transition-colors duration-200 p-1.5 rounded-lg hover:bg-status-error/10"
+              title="Delete session"
             >
-              <X className="h-3.5 w-3.5" />
+              <Trash2 size={14} />
             </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="text-text-muted hover:text-red-400 transition-colors p-1"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+
+      {expanded && session.notes && (
+        <div className="px-4 pb-4 pt-0">
+          <div className="ml-12 border-l-2 border-border pl-4">
+            <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+              {session.notes}
+            </p>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -497,11 +584,11 @@ function SessionItem({
 
 export default function FocusPage() {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [activeSession, setActiveSession] =
-    useState<FocusSession | null>(null);
+  const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   const fetchSessions = useCallback(async () => {
@@ -520,11 +607,23 @@ export default function FocusPage() {
         };
         setSessions(data.sessions);
         setTotal(data.total);
+      } else {
+        toast({
+          variant: "error",
+          title: "Failed to load sessions",
+          description: "Could not fetch your focus history.",
+        });
       }
+    } catch {
+      toast({
+        variant: "error",
+        title: "Failed to load sessions",
+        description: "Network error. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, toast]);
 
   useEffect(() => {
     void fetchSessions();
@@ -533,6 +632,8 @@ export default function FocusPage() {
   const totalMinutes = sessions
     .filter((s) => s.completed)
     .reduce((sum, s) => sum + (s.elapsedMinutes ?? s.durationMinutes), 0);
+
+  const completedCount = sessions.filter((s) => s.completed).length;
 
   const handleStart = (session: FocusSession) => {
     setActiveSession(session);
@@ -559,11 +660,11 @@ export default function FocusPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-[0_0_15px_rgba(139,92,246,0.15)]">
-            <Timer className="h-6 w-6" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-subtle text-accent-primary border border-accent-primary/20 shadow-glow-soft">
+            <Timer size={24} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">
               Focus
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
@@ -573,14 +674,14 @@ export default function FocusPage() {
         </div>
 
         {!activeSession && !showForm && (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="md"
+            leftIcon={<Plus size={16} />}
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-all shadow-[0_0_15px_rgba(139,92,246,0.2)]"
           >
-            <Plus className="h-4 w-4" />
             Start Session
-          </button>
+          </Button>
         )}
       </div>
 
@@ -603,71 +704,65 @@ export default function FocusPage() {
 
       {/* Stats bar */}
       {sessions.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            {
-              label: "Total Sessions",
-              value: String(total),
-              icon: <Timer className="h-4 w-4" />,
-            },
-            {
-              label: "Completed",
-              value: String(sessions.filter((s) => s.completed).length),
-              icon: (
-                <CheckCircle2 className="h-4 w-4 text-green-400" />
-              ),
-            },
-            {
-              label: "Total Focus",
-              value: formatDuration(totalMinutes),
-              icon: <Clock className="h-4 w-4 text-accent-primary" />,
-            },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-xl border border-border bg-bg-card px-4 py-3 text-center"
-            >
-              <div className="flex justify-center text-text-muted mb-1">
-                {stat.icon}
-              </div>
-              <p className="text-lg font-bold text-white">
-                {stat.value}
-              </p>
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">
-                {stat.label}
-              </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card variant="default" className="px-4 py-4 text-center">
+            <div className="flex justify-center text-text-muted mb-2">
+              <Timer size={18} />
             </div>
-          ))}
+            <p className="text-xl font-bold text-text-primary">{total}</p>
+            <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-0.5">
+              Total Sessions
+            </p>
+          </Card>
+          <Card variant="default" className="px-4 py-4 text-center">
+            <div className="flex justify-center text-status-success mb-2">
+              <CheckCircle2 size={18} />
+            </div>
+            <p className="text-xl font-bold text-text-primary">
+              {completedCount}
+            </p>
+            <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-0.5">
+              Completed
+            </p>
+          </Card>
+          <Card variant="default" className="px-4 py-4 text-center">
+            <div className="flex justify-center text-accent-primary mb-2">
+              <Flame size={18} />
+            </div>
+            <p className="text-xl font-bold text-text-primary">
+              {formatDuration(totalMinutes)}
+            </p>
+            <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-0.5">
+              Total Focus
+            </p>
+          </Card>
         </div>
       )}
 
       {/* History */}
       {loading ? (
-        <div className="flex h-40 items-center justify-center rounded-2xl border border-border bg-bg-card">
-          <Loader2 className="h-5 w-5 animate-spin text-accent-primary" />
+        <div className="space-y-3">
+          <Skeleton height={72} rounded="xl" />
+          <Skeleton height={72} rounded="xl" />
+          <Skeleton height={72} rounded="xl" />
         </div>
       ) : sessions.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-bg-card p-10 text-center">
-          <Timer className="h-10 w-10 text-text-muted mx-auto mb-3" />
-          <p className="text-sm font-semibold text-white">
-            No focus sessions yet
-          </p>
-          <p className="text-xs text-text-muted mt-1">
-            Start your first session to begin building focus habits.
-          </p>
-          {!showForm && !activeSession && (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="mt-4 rounded-xl bg-accent-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent-hover transition-all"
-            >
-              Start Session
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={<Timer size={28} />}
+          title="Ready to focus?"
+          description="Start your first session to begin building focus habits."
+          action={
+            !showForm && !activeSession
+              ? {
+                  label: "Start Session",
+                  onClick: () => setShowForm(true),
+                }
+              : undefined
+          }
+        />
       ) : (
-        <div className="space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted">
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted px-1">
             Session History
           </h2>
           {sessions.map((session) => (

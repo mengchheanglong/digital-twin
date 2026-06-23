@@ -1,6 +1,14 @@
 import { Dispatch, SetStateAction, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import {
+  ArrowUp,
+  Zap,
+  Heart,
+  Target,
+  Lightbulb,
+  Sparkles,
+} from "lucide-react";
 import { quickPrompts } from "../constants";
+import { Button } from "@/components/ui";
 
 interface ChatInputProps {
   input: string;
@@ -10,6 +18,13 @@ interface ChatInputProps {
   messagesCount: number;
   handleSend: () => Promise<void>;
 }
+
+const promptIcons: Record<string, React.ReactNode> = {
+  "How am I doing this week?": <Sparkles className="h-3 w-3" />,
+  "Help me de-stress": <Heart className="h-3 w-3" />,
+  "Build a new habit": <Target className="h-3 w-3" />,
+  "Reflect on my mood": <Lightbulb className="h-3 w-3" />,
+};
 
 export function ChatInput({
   input,
@@ -39,18 +54,23 @@ export function ChatInput({
   const canSend = !!input.trim() && !isLoading && !bootstrapping;
 
   return (
-    <div className="border-t border-border/50 bg-bg-panel px-4 pb-5 pt-3">
+    <div className="border-t border-border bg-bg-panel px-4 pb-5 pt-3 z-20 shrink-0">
       <div className="mx-auto w-full max-w-3xl">
         {/* Quick Prompt Chips */}
-        {messagesCount < 3 && (
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-0.5 scrollbar-hide">
+        {messagesCount < 3 && !bootstrapping && (
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
             {quickPrompts.map((prompt) => (
               <button
                 key={prompt}
                 type="button"
                 onClick={() => setInput(prompt)}
-                className="whitespace-nowrap rounded-full border border-border bg-bg-card/80 px-3 py-1.5 text-xs font-medium text-text-secondary hover:border-accent-primary/40 hover:text-accent-primary hover:bg-accent-primary/5 transition-all"
+                className={[
+                  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ease-apple",
+                  "border-border bg-bg-card text-text-secondary",
+                  "hover:border-accent-primary/40 hover:text-accent-primary hover:bg-accent-subtle hover:shadow-glow-soft",
+                ].join(" ")}
               >
+                {promptIcons[prompt] ?? <Zap className="h-3 w-3" />}
                 {prompt}
               </button>
             ))}
@@ -59,38 +79,37 @@ export function ChatInput({
 
         {/* Input Row */}
         <div className="flex items-end gap-3">
-          <div className={[
-            "relative flex-1 rounded-xl border bg-bg-card transition-all duration-200",
-            input ? "border-accent-primary/40 shadow-[0_0_0_3px_rgba(139,92,246,0.08)]" : "border-border focus-within:border-accent-primary/40 focus-within:shadow-[0_0_0_3px_rgba(139,92,246,0.08)]",
-          ].join(" ")}>
+          <div
+            className={[
+              "relative flex-1 rounded-2xl border bg-bg-card transition-all duration-200 ease-apple",
+              input
+                ? "border-accent-primary/50 shadow-[0_0_0_3px_var(--color-accent-subtle)]"
+                : "border-border focus-within:border-accent-primary/50 focus-within:shadow-[0_0_0_3px_var(--color-accent-subtle)]",
+            ].join(" ")}
+          >
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask your digital twin anything…"
+              placeholder="Ask your Digital Twin anything..."
               rows={1}
-              className="block w-full resize-none bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none max-h-[140px] leading-relaxed"
+              className="block w-full resize-none bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none max-h-[140px] leading-relaxed scrollbar-hide"
             />
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="md"
+            className="h-10 w-10 rounded-full p-0 shrink-0"
             onClick={() => void handleSend()}
             disabled={!canSend}
-            className={[
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-200",
-              canSend
-                ? "bg-accent-primary text-white shadow-lg shadow-accent-primary/30 hover:bg-accent-hover hover:scale-105 active:scale-95"
-                : "bg-bg-card border border-border text-text-muted cursor-not-allowed",
-            ].join(" ")}
-          >
-            <Send className="h-4 w-4" />
-          </button>
+            leftIcon={<ArrowUp className="h-4 w-4" />}
+          />
         </div>
 
-        <p className="mt-2 text-center text-[10px] text-text-muted/50">
-          Press Enter to send · Shift+Enter for new line
+        <p className="mt-2 text-center text-[10px] text-text-muted/60 font-medium tracking-wide">
+          Press Enter to send · Shift + Enter for new line
         </p>
       </div>
     </div>

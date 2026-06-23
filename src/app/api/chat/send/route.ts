@@ -12,6 +12,7 @@ import UserInsightState from '@/lib/models/UserInsightState';
 import UserEvent from '@/lib/models/UserEvent';
 import { badRequest, unauthorized, notFound, serverError, errorResponse, tooManyRequests } from '@/lib/api-response';
 import { MongoRateLimiter } from '@/lib/rate-limit';
+import { DeepSeekChatMessage, requestDeepSeekChat, resolveDeepSeekModelCandidates } from '@/lib/deepseek';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,20 +23,11 @@ interface SendPayload {
   chatId?: string;
 }
 
-interface GeminiPart {
-  text?: string;
-}
-
-interface GeminiContent {
-  role?: 'user' | 'model';
-  parts?: GeminiPart[];
-}
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: GeminiContent;
-    finishReason?: string;
-  }>;
+interface ChatGenerationPayload {
+  messages: DeepSeekChatMessage[];
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
 }
 
 interface ConversationEntry {
@@ -43,10 +35,10 @@ interface ConversationEntry {
   content: string;
 }
 
-interface GeminiGenerationResult {
+interface DeepSeekGenerationResult {
   text: string;
   model: string;
-  finishReason?: string;
+  finishReason?: string | null;
 }
 
 function isObjectId(value: string): boolean {
@@ -61,36 +53,6 @@ function shorten(value: string, maxLength: number): string {
   return `${normalized.slice(0, Math.max(0, maxLength - 1)).trim()}...`;
 }
 
-function uniqueValues(values: string[]): string[] {
-  const seen = new Set<string>();
-  const output: string[] = [];
-  for (const value of values) {
-    const normalized = value.trim();
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-    seen.add(normalized);
-    output.push(normalized);
-  }
-  return output;
-}
-
-function resolveModelCandidates(): string[] {
-  const primary = String(process.env.GEMINI_MODEL || '').trim();
-  const fromEnv = String(process.env.GEMINI_FALLBACK_MODELS || '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return uniqueValues([
-    primary,
-    ...fromEnv,
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-flash-latest',
-  ]);
-}
-
 function wordCount(text: string): number {
   return String(text || '')
     .trim()
@@ -102,13 +64,13 @@ function hasSentenceEnding(text: string): boolean {
   return /[.!?]["')\]]*$/.test(String(text || '').trim());
 }
 
-function isLikelyIncompleteReply(text: string, finishReason?: string): boolean {
+function isLikelyIncompleteReply(text: string, finishReason?: string | null): boolean {
   const normalized = String(text || '').trim();
   if (!normalized) {
     return true;
   }
 
-  if (finishReason === 'MAX_TOKENS') {
+  if (finishReason === 'MAX_TOKENS' || finishReason === 'length') {
     return true;
   }
 
@@ -162,43 +124,18 @@ function extractTopic(message: string): string {
   return words.join(' ');
 }
 
-async function requestGeminiContent(model: string, payload: unknown): Promise<{ text: string; finishReason?: string }> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set.');
-  }
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    },
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error: ${response.status} ${errorText}`);
-  }
-
-  const data = (await response.json()) as GeminiResponse;
-  const primaryCandidate = data.candidates?.[0];
-  const parts = data.candidates?.[0]?.content?.parts || [];
-  const text = parts
-    .map((part) => (typeof part.text === 'string' ? part.text : ''))
-    .join('\n')
-    .trim();
-
-  if (!text) {
-    throw new Error('Gemini API returned an empty response.');
-  }
+async function requestDeepSeekContent(model: string, payload: ChatGenerationPayload): Promise<{ text: string; finishReason?: string | null }> {
+  const result = await requestDeepSeekChat({
+    model,
+    messages: payload.messages,
+    temperature: payload.temperature,
+    topP: payload.topP,
+    maxTokens: payload.maxTokens,
+  });
 
   return {
-    text,
-    finishReason: primaryCandidate?.finishReason,
+    text: result.text,
+    finishReason: result.finishReason,
   };
 }
 
@@ -209,13 +146,18 @@ interface InsightData {
   lastReflection: string;
 }
 
-function buildCompanionPayload(userMessage: string, history: ConversationEntry[], insight?: InsightData | null, memoryContext?: string) {
-  const historyContents: GeminiContent[] = history
+function buildCompanionPayload(
+  userMessage: string,
+  history: ConversationEntry[],
+  insight?: InsightData | null,
+  memoryContext?: string,
+): ChatGenerationPayload {
+  const historyMessages: DeepSeekChatMessage[] = history
     .filter((message) => message.content.trim())
     .slice(-14)
     .map((message) => ({
-      role: message.role === 'ai' ? 'model' : 'user',
-      parts: [{ text: message.content }],
+      role: message.role === 'ai' ? 'assistant' : 'user',
+      content: message.content,
     }));
 
   // Build system prompt with optional insight section
@@ -257,109 +199,81 @@ function buildCompanionPayload(userMessage: string, history: ConversationEntry[]
   systemPromptParts.push('Keep responses concise: 2-5 short sentences unless the user explicitly asks for detail.');
 
   return {
-    systemInstruction: {
-      parts: [
-        {
-          text: systemPromptParts.join(' '),
-        },
-      ],
-    },
-    contents: [
-      ...historyContents,
-      {
-        role: 'user',
-        parts: [{ text: userMessage }],
-      },
+    messages: [
+      { role: 'system', content: systemPromptParts.join(' ') },
+      ...historyMessages,
+      { role: 'user', content: userMessage },
     ],
-    generationConfig: {
-      temperature: 0.7,
-      topP: 0.9,
-      maxOutputTokens: 560,
-    },
+    temperature: 0.7,
+    topP: 0.9,
+    maxTokens: 560,
   };
 }
 
-function buildRepairPayload(userMessage: string, draftReply: string) {
+function buildRepairPayload(userMessage: string, draftReply: string): ChatGenerationPayload {
   return {
-    systemInstruction: {
-      parts: [
-        {
-          text: [
-            'You rewrite an assistant draft so it is complete and readable.',
-            'Output a polished response in 2-5 complete sentences.',
-            'Do not output sentence fragments.',
-            'Keep the meaning practical, calm, and supportive.',
-          ].join(' '),
-        },
-      ],
-    },
-    contents: [
+    messages: [
+      {
+        role: 'system',
+        content: [
+          'You rewrite an assistant draft so it is complete and readable.',
+          'Output a polished response in 2-5 complete sentences.',
+          'Do not output sentence fragments.',
+          'Keep the meaning practical, calm, and supportive.',
+        ].join(' '),
+      },
       {
         role: 'user',
-        parts: [
-          {
-            text: [
-              'User message:',
-              userMessage,
-              '',
-              'Draft reply that may be cut off:',
-              draftReply,
-              '',
-              'Rewrite the reply as a complete response.',
-            ].join('\n'),
-          },
-        ],
+        content: [
+          'User message:',
+          userMessage,
+          '',
+          'Draft reply that may be cut off:',
+          draftReply,
+          '',
+          'Rewrite the reply as a complete response.',
+        ].join('\n'),
       },
     ],
-    generationConfig: {
-      temperature: 0.35,
-      topP: 0.9,
-      maxOutputTokens: 360,
-    },
+    temperature: 0.35,
+    topP: 0.9,
+    maxTokens: 360,
   };
 }
 
-function buildSignalPayload(userMessage: string) {
+function buildSignalPayload(userMessage: string): ChatGenerationPayload {
   return {
-    systemInstruction: {
-      parts: [
-        {
-          text: [
-            'Extract behavioral and emotional signals from the user message.',
-            'Return only JSON with this exact shape:',
-            '[{"signal_type":"stress","intensity":4,"confidence":0.92}]',
-            `Allowed signal_type values: ${CHAT_SIGNAL_TYPES.join(', ')}.`,
-            'Rules:',
-            '1) intensity must be an integer from 1 to 5.',
-            '2) confidence must be a number from 0 to 1.',
-            '3) include at most 4 signals.',
-            '4) return [] if no clear signal exists.',
-            'Do not add markdown, explanation, or extra keys.',
-          ].join(' '),
-        },
-      ],
-    },
-    contents: [
+    messages: [
       {
-        role: 'user',
-        parts: [{ text: userMessage }],
+        role: 'system',
+        content: [
+          'Extract behavioral and emotional signals from the user message.',
+          'Return only JSON with this exact shape:',
+          '[{"signal_type":"stress","intensity":4,"confidence":0.92}]',
+          `Allowed signal_type values: ${CHAT_SIGNAL_TYPES.join(', ')}.`,
+          'Rules:',
+          '1) intensity must be an integer from 1 to 5.',
+          '2) confidence must be a number from 0 to 1.',
+          '3) include at most 4 signals.',
+          '4) return [] if no clear signal exists.',
+          'Do not add markdown, explanation, or extra keys.',
+        ].join(' '),
       },
+      { role: 'user', content: userMessage },
     ],
-    generationConfig: {
-      temperature: 0.1,
-      topP: 0.9,
-      maxOutputTokens: 220,
-    },
+    temperature: 0.1,
+    topP: 0.9,
+    maxTokens: 220,
   };
 }
 
-async function tryGeminiWithFallback(payload: unknown, preferredModel?: string): Promise<GeminiGenerationResult> {
-  const candidates = uniqueValues([preferredModel || '', ...resolveModelCandidates()]);
+async function tryDeepSeekWithFallback(payload: ChatGenerationPayload, preferredModel?: string): Promise<DeepSeekGenerationResult> {
+  const candidates = resolveDeepSeekModelCandidates(preferredModel);
   const modelErrors: string[] = [];
 
   for (const model of candidates) {
     try {
-      const result = await requestGeminiContent(model, payload);
+      const result = await requestDeepSeekContent(model, payload);
       return { text: result.text, model, finishReason: result.finishReason };
     } catch (error) {
       const errorText = error instanceof Error ? error.message : String(error);
@@ -367,16 +281,16 @@ async function tryGeminiWithFallback(payload: unknown, preferredModel?: string):
     }
   }
 
-  throw new Error(`All Gemini model attempts failed. ${modelErrors.join(' | ')}`);
+  throw new Error(`All DeepSeek model attempts failed. ${modelErrors.join(' | ')}`);
 }
 
-async function ensureReplyQuality(userMessage: string, replyResult: GeminiGenerationResult): Promise<GeminiGenerationResult> {
+async function ensureReplyQuality(userMessage: string, replyResult: DeepSeekGenerationResult): Promise<DeepSeekGenerationResult> {
   if (!isLikelyIncompleteReply(replyResult.text, replyResult.finishReason)) {
     return replyResult;
   }
 
   try {
-    const repaired = await tryGeminiWithFallback(buildRepairPayload(userMessage, replyResult.text), replyResult.model);
+    const repaired = await tryDeepSeekWithFallback(buildRepairPayload(userMessage, replyResult.text), replyResult.model);
     if (!isLikelyIncompleteReply(repaired.text, repaired.finishReason)) {
       return repaired;
     }
@@ -397,7 +311,7 @@ async function persistStructuredSignals(
 ) {
   try {
     const extractionPayload = buildSignalPayload(userMessage);
-    const extraction = await tryGeminiWithFallback(extractionPayload, preferredModel);
+    const extraction = await tryDeepSeekWithFallback(extractionPayload, preferredModel);
     const signals = parseSignalResponseText(extraction.text);
 
     if (!signals.length) {
@@ -514,12 +428,12 @@ export async function POST(req: Request) {
         }
       : null;
 
-    let companionResult: GeminiGenerationResult;
+    let companionResult: DeepSeekGenerationResult;
     try {
-      companionResult = await tryGeminiWithFallback(buildCompanionPayload(message, history, insightData, memoryContext || undefined));
+      companionResult = await tryDeepSeekWithFallback(buildCompanionPayload(message, history, insightData, memoryContext || undefined));
       companionResult = await ensureReplyQuality(message, companionResult);
     } catch (llmError) {
-      console.error('Gemini generation failed:', llmError);
+      console.error('DeepSeek generation failed:', llmError);
       return errorResponse('AI service is temporarily unavailable. Please try again.', 502);
     }
 
@@ -530,7 +444,7 @@ export async function POST(req: Request) {
     const userMessageId = String(userMessageObjectId);
 
     // Fire and forget signal extraction — capped at 20 extractions per user per day
-    // to prevent runaway Gemini API usage.
+    // to prevent runaway DeepSeek API usage.
     ChatSignal.countDocuments({
       userId: user.id,
       createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },

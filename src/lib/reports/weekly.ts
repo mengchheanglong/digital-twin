@@ -5,14 +5,7 @@ import JournalEntry from '../models/JournalEntry';
 import FocusSession from '../models/FocusSession';
 import UserInsightState from '../models/UserInsightState';
 import dbConnect from '../db';
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-  }>;
-}
+import { hasDeepSeekApiKey, requestDeepSeekChat } from '../deepseek';
 
 export interface WeeklyStats {
   checkInsLogged: number;
@@ -45,8 +38,7 @@ const DAY_NAMES = [
 ];
 
 async function generateWeeklySummary(stats: WeeklyStats): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  if (!hasDeepSeekApiKey()) {
     return 'Weekly report generated. Keep building your momentum!';
   }
 
@@ -62,33 +54,12 @@ async function generateWeeklySummary(stats: WeeklyStats): Promise<string> {
 Be encouraging, specific, and suggest one actionable improvement for next week.`;
 
   try {
-    const model = String(
-      process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-    ).trim();
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: prompt }] },
-          ],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 250 },
-        }),
-      },
-    );
-
-    if (!response.ok)
-      return 'Weekly report compiled. Review your stats to plan next week!';
-
-    const data = (await response.json()) as GeminiResponse;
-    return (
-      data.candidates?.[0]?.content?.parts
-        ?.map((p) => p.text ?? '')
-        .join('\n')
-        .trim() || 'Another week tracked. Keep building your momentum!'
-    );
+    const result = await requestDeepSeekChat({
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      maxTokens: 250,
+    });
+    return result.text || 'Another week tracked. Keep building your momentum!';
   } catch {
     return 'Weekly summary generated. Keep up the great work!';
   }
