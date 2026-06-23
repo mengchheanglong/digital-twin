@@ -102,6 +102,12 @@ export function getDayKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function getLocalMidnightTime(date: Date): number {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized.getTime();
+}
+
 const tzFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 /**
@@ -165,14 +171,14 @@ export function getDayKeyTz(date: Date, timezone: string): string {
 export function computeDailyStreak(dates: Date[]): number {
   if (!dates.length) return 0;
 
-  const uniqueDays = Array.from(new Set(dates.map((date) => getDayKey(new Date(date)))));
-  const sortedDays = uniqueDays.sort((a, b) => (a < b ? 1 : -1));
+  const uniqueDays = Array.from(new Set(dates.map((date) => getLocalMidnightTime(new Date(date)))));
+  const sortedDays = uniqueDays.sort((a, b) => b - a);
 
   // If the last activity was not today or yesterday, the streak is broken.
-  const todayKey = getDayKey(new Date());
+  const todayKey = getLocalMidnightTime(new Date());
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayKey = getDayKey(yesterdayDate);
+  const yesterdayKey = getLocalMidnightTime(yesterdayDate);
 
   if (sortedDays[0] !== todayKey && sortedDays[0] !== yesterdayKey) {
     return 0;
@@ -180,9 +186,7 @@ export function computeDailyStreak(dates: Date[]): number {
 
   let streak = 1;
   for (let index = 1; index < sortedDays.length; index += 1) {
-    const previous = new Date(`${sortedDays[index - 1]}T00:00:00`);
-    const current = new Date(`${sortedDays[index]}T00:00:00`);
-    const diffDays = Math.round((previous.getTime() - current.getTime()) / 86400000);
+    const diffDays = Math.round((sortedDays[index - 1] - sortedDays[index]) / 86400000);
 
     if (diffDays !== 1) {
       break;

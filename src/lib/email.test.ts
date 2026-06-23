@@ -1,7 +1,6 @@
 import { sendEmail } from './email';
 
 describe('sendEmail logging', () => {
-  const originalEnv = process.env.NODE_ENV;
   const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
   beforeEach(() => {
@@ -9,54 +8,22 @@ describe('sendEmail logging', () => {
   });
 
   afterAll(() => {
-    process.env.NODE_ENV = originalEnv;
     consoleSpy.mockRestore();
   });
 
-  it('logs HTML content in development environment', async () => {
-    // @ts-ignore
-    process.env.NODE_ENV = 'development';
+  it('returns success without logging sensitive email fields', async () => {
+    const to = 'test@example.com';
+    const subject = 'Reset code';
+    const html = '<p>Secret OTP 123456</p>';
 
-    await sendEmail({
-      to: 'test@example.com',
-      subject: 'Test Subject',
-      html: '<p>Sensitive Content</p>'
-    });
+    const result = await sendEmail({ to, subject, html });
+    const combinedLogs = consoleSpy.mock.calls.map((call) => call.join(' ')).join('\n');
 
-    expect(consoleSpy).toHaveBeenCalledWith('HTML Content:');
-    expect(consoleSpy).toHaveBeenCalledWith('<p>Sensitive Content</p>');
-    expect(consoleSpy).toHaveBeenCalledWith('Text Preview:', 'Sensitive Content');
-  });
-
-  it('does NOT log HTML content in production environment', async () => {
-    // @ts-ignore
-    process.env.NODE_ENV = 'production';
-
-    await sendEmail({
-      to: 'test@example.com',
-      subject: 'Test Subject',
-      html: '<p>Sensitive Content</p>'
-    });
-
-    expect(consoleSpy).not.toHaveBeenCalledWith('HTML Content:');
-    expect(consoleSpy).not.toHaveBeenCalledWith('<p>Sensitive Content</p>');
-    expect(consoleSpy).not.toHaveBeenCalledWith('Text Preview:', 'Sensitive Content');
-    expect(consoleSpy).toHaveBeenCalledWith('[Sensitive HTML Content Hidden]');
-  });
-
-  it('does NOT log HTML content in test environment', async () => {
-    // @ts-ignore
-    process.env.NODE_ENV = 'test';
-
-    await sendEmail({
-      to: 'test@example.com',
-      subject: 'Test Subject',
-      html: '<p>Sensitive Content</p>'
-    });
-
-    expect(consoleSpy).not.toHaveBeenCalledWith('HTML Content:');
-    expect(consoleSpy).not.toHaveBeenCalledWith('<p>Sensitive Content</p>');
-    expect(consoleSpy).not.toHaveBeenCalledWith('Text Preview:', 'Sensitive Content');
-    expect(consoleSpy).toHaveBeenCalledWith('[Sensitive HTML Content Hidden]');
+    expect(result).toEqual({ success: true });
+    expect(combinedLogs).not.toContain(to);
+    expect(combinedLogs).not.toContain(subject);
+    expect(combinedLogs).not.toContain(html);
+    expect(combinedLogs).not.toContain('123456');
+    expect(consoleSpy).toHaveBeenCalledWith('Email simulated (simplified mode). Sensitive fields are not logged.');
   });
 });

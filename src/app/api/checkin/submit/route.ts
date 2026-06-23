@@ -70,24 +70,25 @@ export async function POST(req: Request) {
       date: new Date(),
     });
 
-    await checkIn.save();
-
-    // Track check-in event with useful metadata so insight-engine can derive
-    // entertainmentRatio, topInterest, and productivityScore from it.
-    UserEvent.create({
-      userId: user.id,
-      type: 'log_added',
-      metadata: {
-        category: 'checkin',
-        topic: 'daily-check-in',
-      },
-    }).catch((err) => console.error('Failed to create check-in event:', err));
-
-    // Force insight update so the new check-in data is always visible
-    // immediately — never silently skipped by the cache guard.
-    updateUserInsight(user.id, { force: true }).catch(console.error);
-
-    const progression = await adjustUserXP(user.id, percentage);
+    const [progression] = await Promise.all([
+      adjustUserXP(user.id, percentage),
+      checkIn.save(),
+      UserEvent.create({
+        userId: user.id,
+        type: 'log_added',
+        metadata: {
+          category: 'checkin',
+          topic: 'daily-check-in',
+        },
+      }).catch((err) => {
+        console.error('Failed to create check-in event:', err);
+        return null;
+      }),
+      updateUserInsight(user.id, { force: true }).catch((err) => {
+        console.error('Failed to update user insight:', err);
+        return null;
+      }),
+    ]);
 
     return NextResponse.json({
       msg: 'Check-in submitted.',

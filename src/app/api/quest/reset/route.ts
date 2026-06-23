@@ -8,12 +8,9 @@ import QuestLog from '@/lib/models/QuestLog';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Helper function to check if a new day has started in the user's timezone
- */
 function isNewDay(lastResetDate: Date | null, currentTime: Date, tz: string): boolean {
   if (!lastResetDate) {
-    return true; // Never reset before, so it's a "new day"
+    return true;
   }
   
   const lastResetLocal = lastResetDate.toLocaleDateString('en-US', { timeZone: tz });
@@ -26,8 +23,8 @@ function isNewDay(lastResetDate: Date | null, currentTime: Date, tz: string): bo
  * 
  * Checks if a new day has started in the user's timezone and performs daily quest reset:
  * 1. Archive completed daily quests to QuestLog (if not already logged)
- * 2. Delete completed daily quests
- * 3. Reset incomplete daily quests (set completed = false, progress = 0)
+ * 2. Delete completed daily quests with exhausted recurrence
+ * 3. Reset repeatable and incomplete daily quests
  * 4. Update lastQuestResetDate to current time
  */
 export async function POST(req: Request) {
@@ -39,7 +36,6 @@ export async function POST(req: Request) {
       return unauthorized();
     }
 
-    // Get user with timezone info
     const userDoc = await User.findById(user.id);
     if (!userDoc) {
       return notFound('User not found.');
@@ -49,7 +45,6 @@ export async function POST(req: Request) {
     const now = new Date();
     const lastResetDate = userDoc.lastQuestResetDate;
 
-    // Check if a new day has started
     if (!isNewDay(lastResetDate, now, timezone)) {
       return NextResponse.json({
         msg: 'No reset needed - same day.',
@@ -57,16 +52,12 @@ export async function POST(req: Request) {
       });
     }
 
-    // Perform daily reset operations
-    
-    // 1. Find all completed daily quests
     const completedDailyQuests = await Quest.find({
       userId: user.id,
       duration: 'daily',
       completed: true,
     });
 
-    // 2. Archive to QuestLog if not already there
     if (completedDailyQuests.length > 0) {
       const bulkOps = completedDailyQuests.map((quest) => ({
         updateOne: {
@@ -89,13 +80,9 @@ export async function POST(req: Request) {
       await QuestLog.bulkWrite(bulkOps);
     }
 
-    // 3. Delete completed daily quests that have no recurrences left (recurrencesLeft === 0)
-    // 3b. Delete completed daily quests with exactly 1 recurrence left (recurrencesLeft === 1)
-    // 5. Delete non-repeatable completed quests (recurrencesLeft === 0 or 1)
-    // All these can be merged into a single query for efficiency
-    // This removes redundant calls and simplifies stats
     const deleteNonRepeatableResult = await Quest.deleteMany({
       userId: user.id,
+      duration: 'daily',
       completed: true,
       $or: [
         { recurrencesLeft: 0 },
@@ -103,7 +90,6 @@ export async function POST(req: Request) {
       ],
     });
 
-    // 3c. Reset completed daily quests with infinite recurrence (recurrencesLeft is undefined/null or > 1)
     const resetCompletedResult = await Quest.updateMany(
       {
         userId: user.id,
@@ -120,7 +106,6 @@ export async function POST(req: Request) {
       }
     );
 
-    // 4. Reset incomplete daily quests
     const resetResult = await Quest.updateMany(
       {
         userId: user.id,
@@ -132,7 +117,6 @@ export async function POST(req: Request) {
       }
     );
 
-    // 6. Update last reset date
     await User.findByIdAndUpdate(user.id, {
       lastQuestResetDate: now,
     });
@@ -141,7 +125,6 @@ export async function POST(req: Request) {
       msg: 'Daily quest reset completed.',
       reset: true,
       stats: {
-        // Now accurately representing the total deleted count after consolidation
         totalDeleted: deleteNonRepeatableResult.deletedCount,
         completedReset: resetCompletedResult.modifiedCount,
         incompleteReset: resetResult.modifiedCount,

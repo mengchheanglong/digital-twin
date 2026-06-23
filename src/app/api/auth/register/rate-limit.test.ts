@@ -1,75 +1,80 @@
-import { expect, test, describe, mock, beforeEach } from "bun:test";
+import bcrypt from 'bcryptjs';
+import User from '@/lib/models/User';
+import { POST } from './route';
 
-// Mock dependencies before importing the route
-mock.module("@/lib/db", () => ({
-  default: mock(() => Promise.resolve()),
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn(() => Promise.resolve('hashed-password')),
 }));
 
-mock.module("@/lib/api-response", () => ({
-  badRequest: (msg: string) => new Response(JSON.stringify({ msg }), { status: 400 }),
-  tooManyRequests: (msg: string) => new Response(JSON.stringify({ msg }), { status: 429 }),
-  serverError: (err: any, msg: string) => new Response(JSON.stringify({ msg }), { status: 500 }),
-  conflict: (msg: string) => new Response(JSON.stringify({ msg }), { status: 409 }),
+jest.mock('@/lib/db', () => ({
+  __esModule: true,
+  default: jest.fn(() => Promise.resolve()),
 }));
 
-mock.module("@/lib/models/User", () => ({
-  default: {
-    findOne: mock(() => Promise.resolve(null)),
-    prototype: {
-      save: mock(() => Promise.resolve()),
-    },
-  },
+jest.mock('@/lib/auth', () => ({
+  signToken: jest.fn(() => 'mock-token'),
 }));
 
-mock.module("@/lib/auth", () => ({
-  signToken: () => "mock-token",
+jest.mock('@/lib/validation', () => ({
+  validateEmail: jest.fn(() => ({ isValid: true, message: '' })),
+  validatePassword: jest.fn(() => ({ isValid: true, message: '' })),
 }));
 
-mock.module("@/lib/validation", () => ({
-  validateEmail: () => ({ isValid: true }),
-  validatePassword: () => ({ isValid: true }),
+jest.mock('@/lib/progression', () => ({
+  getRequiredXP: jest.fn(() => 100),
 }));
 
-mock.module("@/lib/progression", () => ({
-  getRequiredXP: () => 100,
-}));
+jest.mock('@/lib/models/User', () => {
+  const UserMock = jest.fn().mockImplementation(function UserModel(this: any, data: any) {
+    Object.assign(this, data, {
+      id: 'mock-user-id',
+      save: jest.fn(() => Promise.resolve()),
+    });
+  });
+  (UserMock as any).findOne = jest.fn(() => Promise.resolve(null));
 
-import { POST } from "./route";
+  return {
+    __esModule: true,
+    default: UserMock,
+  };
+});
 
-describe("Registration Rate Limiting", () => {
+describe('Registration rate limiting', () => {
   const createRequest = (ip: string) => {
-    return new Request("http://localhost/api/auth/register", {
-      method: "POST",
+    return new Request('http://localhost/api/auth/register', {
+      method: 'POST',
       headers: {
-        "x-forwarded-for": ip,
-        "Content-Type": "application/json",
+        'x-forwarded-for': ip,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' }),
     });
   };
 
-  test("should allow up to 5 requests and then block the 6th", async () => {
-    const ip = "1.2.3.4";
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (User.findOne as jest.Mock).mockResolvedValue(null);
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
+  });
 
-    // First 5 requests should pass (or at least not fail due to rate limiting)
+  it('allows up to 5 requests and then blocks the 6th from the same IP', async () => {
+    const ip = '1.2.3.4';
+
     for (let i = 0; i < 5; i++) {
-      const req = createRequest(ip);
-      const res = await POST(req);
+      const res = await POST(createRequest(ip));
       expect(res.status).not.toBe(429);
     }
 
-    // 6th request should be rate limited
-    const req6 = createRequest(ip);
-    const res6 = await POST(req6);
+    const res6 = await POST(createRequest(ip));
     expect(res6.status).toBe(429);
-    const data = await res6.json();
-    expect(data.msg).toBe("Too many registration attempts. Please try again later.");
+    await expect(res6.json()).resolves.toEqual({
+      msg: 'Too many registration attempts. Please try again later.',
+    });
   });
 
-  test("should allow requests from different IPs", async () => {
-    const ip2 = "5.6.7.8";
-    const req = createRequest(ip2);
-    const res = await POST(req);
+  it('allows requests from different IPs', async () => {
+    const res = await POST(createRequest('5.6.7.8'));
+
     expect(res.status).not.toBe(429);
   });
 });

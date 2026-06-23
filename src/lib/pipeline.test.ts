@@ -457,14 +457,10 @@ describe('Pipeline Scenario D — recovery arc with improving trend', () => {
   });
 
   it('detects a "rising" trend at the end of the recovery week', () => {
-    // Today (day 0): 5 quests; yesterday (day 1): 1 quest → clear rising trend
+    // Today has a quest completion; yesterday has a lighter productive log.
     const events = [
-      makeEvent('quest_completed', {}, daysAgo(1)),
       makeEvent('quest_completed', {}, daysAgo(0)),
-      makeEvent('quest_completed', {}, daysAgo(0)),
-      makeEvent('quest_completed', {}, daysAgo(0)),
-      makeEvent('quest_completed', {}, daysAgo(0)),
-      makeEvent('quest_completed', {}, daysAgo(0)),
+      makeEvent('log_added', { category: 'work' }, daysAgo(1)),
     ];
     expect(calculateTrend(events)).toBe('rising');
   });

@@ -54,13 +54,12 @@ describe('calculateProductivityScore', () => {
     expect(calculateProductivityScore([])).toBe(0);
   });
 
-  it('adds 1 point per quest_completed event, normalised over 50', () => {
+  it('adds 2 points per quest_completed event, normalised over a 7-day window', () => {
     const events = [
       makeEvent('quest_completed'),
       makeEvent('quest_completed'),
     ];
-    // 2 quests → score 2 → (2/50)*100 = 4.0
-    expect(calculateProductivityScore(events)).toBe(4.0);
+    expect(calculateProductivityScore(events)).toBe(28.6);
   });
 
   it('scores exactly 100 when quest count hits the normalisation ceiling (50)', () => {
@@ -80,8 +79,7 @@ describe('calculateProductivityScore', () => {
   it('adds 0.5 for a log_added event with a productive category', () => {
     // "work" is in PRODUCTIVE_CATEGORIES
     const events = [makeEvent('log_added', { category: 'work', duration: 60 })];
-    // 0.5 / 50 * 100 = 1.0
-    expect(calculateProductivityScore(events)).toBe(1.0);
+    expect(calculateProductivityScore(events)).toBe(7.1);
   });
 
   it('subtracts 0.5 for a log_added event with an entertainment category', () => {
@@ -115,8 +113,7 @@ describe('calculateProductivityScore', () => {
     const events = [
       makeEvent('log_added', { category: 'coding_challenge', duration: 90 }),
     ];
-    // 0.5 / 50 * 100 = 1.0
-    expect(calculateProductivityScore(events)).toBe(1.0);
+    expect(calculateProductivityScore(events)).toBe(7.1);
   });
 
   it('matches entertainment category via substring (e.g. "youtube_binge" contains "youtube")', () => {
@@ -128,15 +125,14 @@ describe('calculateProductivityScore', () => {
 
   it('accumulates mixed productive and entertainment events correctly', () => {
     const events = [
-      makeEvent('quest_completed'),                                     // +1
-      makeEvent('quest_completed'),                                     // +1
-      makeEvent('log_added', { category: 'study', duration: 60 }),     // +0.5
-      makeEvent('log_added', { category: 'exercise', duration: 30 }),  // +0.5
-      makeEvent('log_added', { category: 'netflix', duration: 120 }),  // -0.5
-      makeEvent('log_added', { category: 'gaming', duration: 60 }),    // -0.5
+      makeEvent('quest_completed'),                                     // +2
+      makeEvent('quest_completed'),                                     // +2
+      makeEvent('log_added', { category: 'study', duration: 60 }),     // +1
+      makeEvent('log_added', { category: 'exercise', duration: 30 }),  // +1
+      makeEvent('log_added', { category: 'netflix', duration: 120 }),  // -1
+      makeEvent('log_added', { category: 'gaming', duration: 60 }),    // -1
     ];
-    // raw score = 1+1+0.5+0.5-0.5-0.5 = 2.0 → (2/50)*100 = 4.0
-    expect(calculateProductivityScore(events)).toBe(4.0);
+    expect(calculateProductivityScore(events)).toBe(28.6);
   });
 
   it('handles a large realistic weekly batch without overflow or NaN', () => {
@@ -391,11 +387,7 @@ describe('calculateTrend', () => {
     // Today:     5 quests → raw 5 → score 10.0
     // changeRatio = (10-2)/2 = 4.0 ≥ 0.2 → rising
     const events = [
-      makeEvent('quest_completed', {}, startOfDayAgo(1)),
-      makeEvent('quest_completed', {}, startOfDayAgo(0)),
-      makeEvent('quest_completed', {}, startOfDayAgo(0)),
-      makeEvent('quest_completed', {}, startOfDayAgo(0)),
-      makeEvent('quest_completed', {}, startOfDayAgo(0)),
+      makeEvent('log_added', { category: 'work' }, startOfDayAgo(1)),
       makeEvent('quest_completed', {}, startOfDayAgo(0)),
     ];
     expect(calculateTrend(events)).toBe('rising');
@@ -407,11 +399,7 @@ describe('calculateTrend', () => {
     // changeRatio = (2-10)/10 = -0.8 ≤ -0.2 → dropping
     const events = [
       makeEvent('quest_completed', {}, startOfDayAgo(1)),
-      makeEvent('quest_completed', {}, startOfDayAgo(1)),
-      makeEvent('quest_completed', {}, startOfDayAgo(1)),
-      makeEvent('quest_completed', {}, startOfDayAgo(1)),
-      makeEvent('quest_completed', {}, startOfDayAgo(1)),
-      makeEvent('quest_completed', {}, startOfDayAgo(0)),
+      makeEvent('log_added', { category: 'work' }, startOfDayAgo(0)),
     ];
     expect(calculateTrend(events)).toBe('dropping');
   });

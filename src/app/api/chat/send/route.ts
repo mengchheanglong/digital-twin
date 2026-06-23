@@ -10,9 +10,12 @@ import ChatMessage from '@/lib/models/ChatMessage';
 import ChatSignal from '@/lib/models/ChatSignal';
 import UserInsightState from '@/lib/models/UserInsightState';
 import UserEvent from '@/lib/models/UserEvent';
-import { badRequest, unauthorized, notFound, serverError, errorResponse } from '@/lib/api-response';
+import { badRequest, unauthorized, notFound, serverError, errorResponse, tooManyRequests } from '@/lib/api-response';
+import { MongoRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+const chatSendLimiter = new MongoRateLimiter('chat-send', 60 * 1000, 15);
 
 interface SendPayload {
   message?: string;
@@ -439,6 +442,10 @@ export async function POST(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) {
       return unauthorized('No token, authorization denied.');
+    }
+
+    if (!(await chatSendLimiter.check(user.id))) {
+      return tooManyRequests('Too many chat messages. Please try again later.');
     }
 
     const body = (await req.json()) as SendPayload;

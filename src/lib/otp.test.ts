@@ -1,5 +1,4 @@
 import { randomInt } from "crypto";
-import { describe, it, expect } from "bun:test";
 
 describe("OTP Generation Security", () => {
   it("should generate a 6-digit OTP string", () => {
