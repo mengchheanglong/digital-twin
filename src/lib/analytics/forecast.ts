@@ -34,7 +34,7 @@ function formatDayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function linearRegression(y: number[]): { slope: number; intercept: number } {
+export function linearRegression(y: number[]): { slope: number; intercept: number } {
   const n = y.length;
   if (n < 2) return { slope: 0, intercept: y[0] ?? 50 };
 
