@@ -120,8 +120,6 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
       let shouldDeleteOriginal = false;
       let nextRecurrencesLeft = quest.recurrencesLeft;
-      
-      console.log('[COMPLETE] recurrencesLeft:', quest.recurrencesLeft, '| nextRecurrencesLeft:', nextRecurrencesLeft);
 
       if (!existingFutureQuest) {
         // Handle recurrences
@@ -130,12 +128,10 @@ export async function PUT(req: Request, { params }: RouteContext) {
         if (typeof nextRecurrencesLeft === 'number') {
            if (nextRecurrencesLeft > 0) {
              nextRecurrencesLeft -= 1;
-             console.log('[COMPLETE] After decrement, nextRecurrencesLeft:', nextRecurrencesLeft);
              // If this was the last recurrence, mark for deletion
              if (nextRecurrencesLeft === 0) {
                shouldDeleteOriginal = true;
-               shouldCreate = false; // FIX: Don't create new quest when recurrences exhausted
-               console.log('[COMPLETE] Last recurrence - shouldDeleteOriginal:', shouldDeleteOriginal, 'shouldCreate:', shouldCreate);
+               shouldCreate = false;
              }
            } else {
              shouldCreate = false;
