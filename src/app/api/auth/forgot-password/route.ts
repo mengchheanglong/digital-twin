@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
 import { badRequest, successResponse, serverError, tooManyRequests } from "@/lib/api-response";
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = randomInt(100000, 1000000).toString();
     
     user.resetPasswordToken = otp;
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
