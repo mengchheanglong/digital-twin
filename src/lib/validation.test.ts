@@ -7,14 +7,38 @@ describe("validatePassword", () => {
     expect(result.message).toMatch(/6 characters/i);
   });
 
-  it("accepts a password of exactly 6 characters", () => {
-    const result = validatePassword("abc123");
+  it("rejects a password without uppercase", () => {
+    const result = validatePassword("abc123!");
+    expect(result.isValid).toBe(false);
+    expect(result.message).toMatch(/include uppercase/i);
+  });
+
+  it("rejects a password without lowercase", () => {
+    const result = validatePassword("ABC123!");
+    expect(result.isValid).toBe(false);
+    expect(result.message).toMatch(/include.*lowercase/i);
+  });
+
+  it("rejects a password without a number", () => {
+    const result = validatePassword("abcABC!");
+    expect(result.isValid).toBe(false);
+    expect(result.message).toMatch(/include.*number/i);
+  });
+
+  it("rejects a password without a special character", () => {
+    const result = validatePassword("abcABC123");
+    expect(result.isValid).toBe(false);
+    expect(result.message).toMatch(/include.*special character/i);
+  });
+
+  it("accepts a password meeting all requirements", () => {
+    const result = validatePassword("Abc123!");
     expect(result.isValid).toBe(true);
     expect(result.message).toBe("");
   });
 
-  it("accepts a long password", () => {
-    const result = validatePassword("correctHorseBatteryStaple99!");
+  it("accepts a long secure password", () => {
+    const result = validatePassword("CorrectHorseBatteryStaple99!");
     expect(result.isValid).toBe(true);
   });
 
