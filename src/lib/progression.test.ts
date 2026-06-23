@@ -5,6 +5,7 @@ import {
   applyXPDelta,
   computeDailyStreak,
   getDayKey,
+  getDayKeyTz,
   deriveBadges,
   getMoodFromCheckIn,
 } from "@/lib/progression";
@@ -136,6 +137,42 @@ describe("getDayKey", () => {
   it("zero-pads month and day", () => {
     const key = getDayKey(new Date(2024, 8, 9)); // Sep 9
     expect(key).toBe("2024-09-09");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDayKeyTz
+// ---------------------------------------------------------------------------
+describe("getDayKeyTz", () => {
+  it("returns correct date for a specific timezone", () => {
+    // 2024-05-24 01:00:00 UTC is 2024-05-23 in New York (EDT, -4h)
+    const date = new Date("2024-05-24T01:00:00Z");
+    const key = getDayKeyTz(date, "America/New_York");
+    expect(key).toBe("2024-05-23");
+  });
+
+  it("returns correct date for another timezone", () => {
+    // 2024-05-24 23:00:00 UTC is 2024-05-25 in Tokyo (JST, +9h)
+    const date = new Date("2024-05-24T23:00:00Z");
+    const key = getDayKeyTz(date, "Asia/Tokyo");
+    expect(key).toBe("2024-05-25");
+  });
+
+  it("falls back to getDayKey for invalid timezone", () => {
+    const date = new Date("2024-05-24T12:00:00Z");
+    // getDayKey uses local time or UTC?
+    // progression.ts says: return `${year}-${month}-${day}`; using date.getFullYear() etc.
+    // In many environments this is effectively UTC or local.
+    const key = getDayKeyTz(date, "Invalid/Timezone");
+    expect(key).toBe(getDayKey(date));
+  });
+
+  it("uses the cache correctly (internal behavior, but should still be correct)", () => {
+    const date = new Date("2024-05-24T12:00:00Z");
+    const key1 = getDayKeyTz(date, "America/New_York");
+    const key2 = getDayKeyTz(date, "America/New_York");
+    expect(key1).toBe("2024-05-24");
+    expect(key2).toBe("2024-05-24");
   });
 });
 
