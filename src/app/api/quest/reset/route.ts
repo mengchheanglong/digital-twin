@@ -90,22 +90,17 @@ export async function POST(req: Request) {
     }
 
     // 3. Delete completed daily quests that have no recurrences left (recurrencesLeft === 0)
-    // Only delete where recurrencesLeft === 0 (explicitly zero, not undefined/null)
-    // undefined/null means infinite recurrence - these should be reset, not deleted
-    const deleteResult = await Quest.deleteMany({
-      userId: user.id,
-      duration: 'daily',
-      completed: true,
-      recurrencesLeft: 0,
-    });
-
     // 3b. Delete completed daily quests with exactly 1 recurrence left (recurrencesLeft === 1)
-    // These are quests where the user wanted to repeat only once - after completion, they should be deleted
-    const deleteOneTimeResult = await Quest.deleteMany({
+    // 5. Delete non-repeatable completed quests (recurrencesLeft === 0 or 1)
+    // All these can be merged into a single query for efficiency
+    // This removes redundant calls and simplifies stats
+    const deleteNonRepeatableResult = await Quest.deleteMany({
       userId: user.id,
-      duration: 'daily',
       completed: true,
-      recurrencesLeft: 1,
+      $or: [
+        { recurrencesLeft: 0 },
+        { recurrencesLeft: 1 },
+      ],
     });
 
     // 3c. Reset completed daily quests with infinite recurrence (recurrencesLeft is undefined/null or > 1)
@@ -137,18 +132,6 @@ export async function POST(req: Request) {
       }
     );
 
-    // 5. Delete non-repeatable completed quests (recurrencesLeft === 0 or 1)
-    // recurrencesLeft === 0 means explicitly 0 repeats left
-    // recurrencesLeft === 1 means one-time quest that was just completed
-    const deleteNonRepeatableResult = await Quest.deleteMany({
-      userId: user.id,
-      completed: true,
-      $or: [
-        { recurrencesLeft: 0 },
-        { recurrencesLeft: 1 },
-      ],
-    });
-
     // 6. Update last reset date
     await User.findByIdAndUpdate(user.id, {
       lastQuestResetDate: now,
@@ -158,10 +141,10 @@ export async function POST(req: Request) {
       msg: 'Daily quest reset completed.',
       reset: true,
       stats: {
-        completedDeleted: deleteResult.deletedCount,
+        // Now accurately representing the total deleted count after consolidation
+        totalDeleted: deleteNonRepeatableResult.deletedCount,
         completedReset: resetCompletedResult.modifiedCount,
         incompleteReset: resetResult.modifiedCount,
-        nonRepeatableDeleted: deleteNonRepeatableResult.deletedCount,
       },
     });
   } catch (error) {
