@@ -5,9 +5,13 @@ import { signToken } from '@/lib/auth';
 import { validatePassword, validateEmail } from '@/lib/validation';
 import { getRequiredXP } from '@/lib/progression';
 import User from '@/lib/models/User';
-import { badRequest, conflict, serverError } from '@/lib/api-response';
+import { badRequest, conflict, serverError, tooManyRequests } from '@/lib/api-response';
+import { RateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+// 5 requests per minute
+const registerLimiter = new RateLimiter(60 * 1000, 5);
 
 interface RegisterPayload {
   email?: string;
@@ -28,6 +32,13 @@ function buildNameFromEmail(email: string): string {
 
 export async function POST(req: Request) {
   try {
+    const forwarded = req.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+
+    if (!registerLimiter.check(ip)) {
+      return tooManyRequests('Too many registration attempts. Please try again later.');
+    }
+
     await dbConnect();
 
     const body = (await req.json()) as RegisterPayload;
