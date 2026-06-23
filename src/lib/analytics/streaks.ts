@@ -18,9 +18,8 @@ export interface StreakReport {
   overallStreak: number;
 }
 
-async function getDatesByField(
-  // eslint-disable-next-line
-  model: mongoose.Model<any>,
+async function getDatesByField<T>(
+  model: mongoose.Model<T>,
   userId: mongoose.Types.ObjectId,
   dateField: string,
   extraFilter: Record<string, unknown> = {},
