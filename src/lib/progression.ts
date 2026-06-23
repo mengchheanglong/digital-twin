@@ -102,22 +102,37 @@ export function getDayKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+const tzFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
 /**
  * Returns the local-calendar YYYY-MM-DD string for `date` as seen in `timezone`.
  * Falls back to `getDayKey` (server UTC) if the timezone is invalid.
  */
 export function getDayKeyTz(date: Date, timezone: string): string {
   try {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(date);
+    let formatter = tzFormatterCache.get(timezone);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      tzFormatterCache.set(timezone, formatter);
+    }
 
-    const y = parts.find((p) => p.type === 'year')?.value ?? '';
-    const m = parts.find((p) => p.type === 'month')?.value ?? '';
-    const d = parts.find((p) => p.type === 'day')?.value ?? '';
+    const parts = formatter.formatToParts(date);
+    let y = '';
+    let m = '';
+    let d = '';
+
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (p.type === 'year') y = p.value;
+      else if (p.type === 'month') m = p.value;
+      else if (p.type === 'day') d = p.value;
+    }
+
     if (y && m && d) {
       return `${y}-${m}-${d}`;
     }
