@@ -106,8 +106,15 @@ Respond ONLY with valid JSON, no markdown, no explanation.`;
     const raw = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('').trim() ?? '';
 
     // Strip possible ```json ``` wrappers
-    const jsonStr = raw.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-    const parsed = JSON.parse(jsonStr) as PatternInsight[];
+    const jsonStr = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+    let parsed: PatternInsight[] = [];
+    try {
+      parsed = JSON.parse(jsonStr) as PatternInsight[];
+    } catch (e) {
+      console.error('Error parsing timeline insights JSON:', e);
+      return getFallbackInsights(checkIns);
+    }
 
     if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed.slice(0, 3).map((p, i) => ({
