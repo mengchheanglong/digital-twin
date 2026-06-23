@@ -14,7 +14,64 @@
  * pure numeric classifier and every test case uses real computed values.
  */
 
-import { toRiskLevel } from '@/lib/analytics/burnout';
+import { toRiskLevel, toBurnoutStage } from '@/lib/analytics/burnout';
+
+describe('toBurnoutStage', () => {
+  // ---- thriving stage (0 - 24) -------------------------------------------
+
+  it('returns "thriving" stage for score 0', () => {
+    const stage = toBurnoutStage(0);
+    expect(stage.stage).toBe('thriving');
+    expect(stage.minScore).toBe(0);
+  });
+
+  it('returns "thriving" stage for score 24', () => {
+    expect(toBurnoutStage(24).stage).toBe('thriving');
+  });
+
+  // ---- tiring stage (25 - 49) --------------------------------------------
+
+  it('returns "tiring" stage for score 25', () => {
+    expect(toBurnoutStage(25).stage).toBe('tiring');
+  });
+
+  it('returns "tiring" stage for score 49', () => {
+    expect(toBurnoutStage(49).stage).toBe('tiring');
+  });
+
+  // ---- strained stage (50 - 74) ------------------------------------------
+
+  it('returns "strained" stage for score 50', () => {
+    expect(toBurnoutStage(50).stage).toBe('strained');
+  });
+
+  it('returns "strained" stage for score 74', () => {
+    expect(toBurnoutStage(74).stage).toBe('strained');
+  });
+
+  // ---- overwhelmed stage (75 - 100) --------------------------------------
+
+  it('returns "overwhelmed" stage for score 75', () => {
+    expect(toBurnoutStage(75).stage).toBe('overwhelmed');
+  });
+
+  it('returns "overwhelmed" stage for score 100', () => {
+    expect(toBurnoutStage(100).stage).toBe('overwhelmed');
+  });
+
+  // ---- edge cases --------------------------------------------------------
+
+  it('defaults to first stage for negative scores', () => {
+    // Current implementation: BURNOUT_STAGES[0] if no find match
+    expect(toBurnoutStage(-1).stage).toBe('thriving');
+  });
+
+  it('returns "overwhelmed" for scores > 100', () => {
+    // Current implementation uses reverse().find((s) => score >= s.minScore)
+    // 101 >= 75 (overwhelmed's minScore), so it should return overwhelmed
+    expect(toBurnoutStage(101).stage).toBe('overwhelmed');
+  });
+});
 
 describe('toRiskLevel', () => {
   // ---- low band ----------------------------------------------------------
