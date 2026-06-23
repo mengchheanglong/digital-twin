@@ -149,3 +149,6 @@ vite.config.ts.timestamp-*
 
 # Vercel deployment directory
 .vercel
+
+# Local project planning notes
+project-plan/

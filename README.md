@@ -108,7 +108,7 @@ Notes:
 1. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 2. Create your environment file:
@@ -120,20 +120,20 @@ cp .env.example .env
 3. Start development:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000)
 
 ## Scripts
 
-- `npm run dev` starts the development server
-- `npm run clean:next` removes the `.next` cache
-- `npm run dev:reset` clears the cache and starts dev mode
-- `npm run build` creates a production build
-- `npm run start` runs the production server
-- `npm run lint` runs ESLint
-- `npm test` runs the Jest test suite
+- `pnpm dev` starts the development server
+- `pnpm clean:next` removes the `.next` cache
+- `pnpm dev:reset` clears the cache and starts dev mode
+- `pnpm build` creates a production build
+- `pnpm start` runs the production server
+- `pnpm lint` runs ESLint
+- `pnpm test` runs the Jest test suite
 
 ## Data Model Summary
 
@@ -155,4 +155,4 @@ The application persists data for:
 - Password reset uses an OTP flow.
 - The companion chat stores conversation history per user.
 - Insight state is refreshed from check-ins, events, and chat activity.
-- Core utilities (date, math, validation, progression) are covered by a Jest test suite (`npm test`).
+- Core utilities (date, math, validation, progression) are covered by a Jest test suite (`pnpm test`).

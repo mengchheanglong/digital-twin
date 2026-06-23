@@ -2,10 +2,11 @@
   "name": "frontend-next",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev": "next dev",
     "clean:next": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true});console.log('Removed .next cache')}catch(e){console.log('No .next cache to remove')}\"",
-    "dev:reset": "npm run clean:next && next dev",
+    "dev:reset": "pnpm clean:next && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
