@@ -184,7 +184,6 @@ export default function QuestLogPage() {
       );
 
       setQuests(mapped);
-      console.log('[Frontend] Mapped Quests:', mapped);
     } catch {
       addToast("Quest sync failed", "Unable to load quest log.", "error");
     }
