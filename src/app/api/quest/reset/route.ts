@@ -67,22 +67,26 @@ export async function POST(req: Request) {
     });
 
     // 2. Archive to QuestLog if not already there
-    for (const quest of completedDailyQuests) {
-      await QuestLog.findOneAndUpdate(
-        { userId: user.id, questId: quest._id },
-        {
-          $set: {
-            goal: quest.goal,
-            duration: quest.duration,
-            progress: quest.progress ?? 100,
-            completedDate: quest.completedDate || now,
-            createdDate: quest.date,
-            isDeleted: false,
-            deletedDate: null,
+    if (completedDailyQuests.length > 0) {
+      const bulkOps = completedDailyQuests.map((quest) => ({
+        updateOne: {
+          filter: { userId: user.id, questId: quest._id },
+          update: {
+            $set: {
+              goal: quest.goal,
+              duration: quest.duration,
+              progress: quest.progress ?? 100,
+              completedDate: quest.completedDate || now,
+              createdDate: quest.date,
+              isDeleted: false,
+              deletedDate: null,
+            },
           },
+          upsert: true,
         },
-        { upsert: true, new: true }
-      );
+      }));
+
+      await QuestLog.bulkWrite(bulkOps);
     }
 
     // 3. Delete completed daily quests that have no recurrences left (recurrencesLeft === 0)
