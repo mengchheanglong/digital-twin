@@ -5,20 +5,15 @@ import { signToken } from '@/lib/auth';
 import { validatePassword, validateEmail } from '@/lib/validation';
 import { getRequiredXP } from '@/lib/progression';
 import User from '@/lib/models/User';
-import { badRequest, conflict, serverError, tooManyRequests } from '@/lib/api-response';
-import { MongoRateLimiter } from '@/lib/rate-limit';
-import { getClientIp, readJsonBody } from '@/lib/request';
+import { badRequest, conflict, serverError } from '@/lib/api-response';
+import { MongoRateLimiter, rateLimitResponse } from '@/lib/rate-limit';
+import { getClientIp, readJsonBody, requiredString, validateFields } from '@/lib/request';
 import { isDuplicateKeyError } from '@/lib/mongo-errors';
 
 export const dynamic = 'force-dynamic';
 
 // 5 requests per minute per IP, backed by MongoDB so it works across processes.
 const registerLimiter = new MongoRateLimiter('register', 60 * 1000, 5);
-
-interface RegisterPayload {
-  email?: string;
-  password?: string;
-}
 
 function buildNameFromEmail(email: string): string {
   const prefix = email.split('@')[0] || 'Adventurer';
@@ -36,22 +31,24 @@ export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
 
-    if (!(await registerLimiter.check(ip))) {
-      return tooManyRequests('Too many registration attempts. Please try again later.');
+    const rateLimit = await registerLimiter.checkDetailed(ip);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse('Too many registration attempts. Please try again later.', rateLimit);
     }
 
     await dbConnect();
 
-    const parsed = await readJsonBody<RegisterPayload>(req);
+    const parsed = await readJsonBody<Record<string, unknown>>(req);
     if (parsed.ok === false) return parsed.response;
 
-    const body = parsed.data;
-    const email = String(body.email || '').trim().toLowerCase();
-    const password = String(body.password || '').trim();
+    const fields = validateFields(parsed.data, {
+      email: requiredString('Email', { message: 'Email and password are required.' }),
+      password: requiredString('Password', { message: 'Email and password are required.' }),
+    });
+    if (fields.ok === false) return fields.response;
 
-    if (!email || !password) {
-      return badRequest('Email and password are required.');
-    }
+    const email = fields.data.email.toLowerCase();
+    const password = fields.data.password;
 
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {

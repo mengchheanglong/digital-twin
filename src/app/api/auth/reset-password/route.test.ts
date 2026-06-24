@@ -16,10 +16,25 @@ jest.mock('@/lib/db', () => ({
 }));
 
 jest.mock('@/lib/rate-limit', () => ({
-  mockLimiterCheck: jest.fn(() => Promise.resolve(true)),
+  mockLimiterCheckDetailed: jest.fn(() =>
+    Promise.resolve({
+      allowed: true,
+      limit: 10,
+      remaining: 9,
+      resetAt: new Date('2026-06-24T12:00:00.000Z'),
+      retryAfterSeconds: 60,
+    }),
+  ),
   MongoRateLimiter: jest.fn().mockImplementation(() => ({
-    check: jest.requireMock('@/lib/rate-limit').mockLimiterCheck,
+    checkDetailed: jest.requireMock('@/lib/rate-limit').mockLimiterCheckDetailed,
   })),
+  rateLimitResponse: jest.fn((msg: string, result: { retryAfterSeconds: number }) => {
+    const { NextResponse } = jest.requireActual('next/server');
+    return NextResponse.json(
+      { msg },
+      { status: 429, headers: { 'Retry-After': String(result.retryAfterSeconds) } },
+    );
+  }),
 }));
 
 jest.mock('@/lib/models/User', () => ({
@@ -30,7 +45,8 @@ jest.mock('@/lib/models/User', () => ({
 }));
 
 describe('reset password route', () => {
-  const mockLimiterCheck = jest.requireMock('@/lib/rate-limit').mockLimiterCheck as jest.Mock;
+  const mockLimiterCheckDetailed = jest.requireMock('@/lib/rate-limit')
+    .mockLimiterCheckDetailed as jest.Mock;
 
   const createRequest = (body: unknown = {
     email: 'test@example.com',
@@ -49,7 +65,13 @@ describe('reset password route', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLimiterCheck.mockResolvedValue(true);
+    mockLimiterCheckDetailed.mockResolvedValue({
+      allowed: true,
+      limit: 10,
+      remaining: 9,
+      resetAt: new Date('2026-06-24T12:00:00.000Z'),
+      retryAfterSeconds: 60,
+    });
     mockSave.mockResolvedValue(undefined);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
@@ -99,7 +121,13 @@ describe('reset password route', () => {
   });
 
   it('rate limits reset attempts', async () => {
-    mockLimiterCheck.mockResolvedValue(false);
+    mockLimiterCheckDetailed.mockResolvedValue({
+      allowed: false,
+      limit: 10,
+      remaining: 0,
+      resetAt: new Date('2026-06-24T12:00:00.000Z'),
+      retryAfterSeconds: 60,
+    });
 
     const res = await POST(createRequest());
 

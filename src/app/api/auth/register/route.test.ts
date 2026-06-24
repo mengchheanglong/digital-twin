@@ -27,10 +27,25 @@ jest.mock('@/lib/progression', () => ({
 }));
 
 jest.mock('@/lib/rate-limit', () => ({
-  mockLimiterCheck: jest.fn(() => Promise.resolve(true)),
+  mockLimiterCheckDetailed: jest.fn(() =>
+    Promise.resolve({
+      allowed: true,
+      limit: 5,
+      remaining: 4,
+      resetAt: new Date('2026-06-24T12:00:00.000Z'),
+      retryAfterSeconds: 60,
+    }),
+  ),
   MongoRateLimiter: jest.fn().mockImplementation(() => ({
-    check: jest.requireMock('@/lib/rate-limit').mockLimiterCheck,
+    checkDetailed: jest.requireMock('@/lib/rate-limit').mockLimiterCheckDetailed,
   })),
+  rateLimitResponse: jest.fn((msg: string, result: { retryAfterSeconds: number }) => {
+    const { NextResponse } = jest.requireActual('next/server');
+    return NextResponse.json(
+      { msg },
+      { status: 429, headers: { 'Retry-After': String(result.retryAfterSeconds) } },
+    );
+  }),
 }));
 
 jest.mock('@/lib/models/User', () => {
@@ -49,7 +64,8 @@ jest.mock('@/lib/models/User', () => {
 });
 
 describe('registration route', () => {
-  const mockLimiterCheck = jest.requireMock('@/lib/rate-limit').mockLimiterCheck as jest.Mock;
+  const mockLimiterCheckDetailed = jest.requireMock('@/lib/rate-limit')
+    .mockLimiterCheckDetailed as jest.Mock;
 
   const createRequest = (body: unknown = { email: 'test@example.com', password: 'Password123!' }) => {
     return new Request('http://localhost/api/auth/register', {
@@ -64,7 +80,13 @@ describe('registration route', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLimiterCheck.mockResolvedValue(true);
+    mockLimiterCheckDetailed.mockResolvedValue({
+      allowed: true,
+      limit: 5,
+      remaining: 4,
+      resetAt: new Date('2026-06-24T12:00:00.000Z'),
+      retryAfterSeconds: 60,
+    });
     mockSave.mockResolvedValue(undefined);
     (User.findOne as jest.Mock).mockResolvedValue(null);
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
@@ -82,12 +104,18 @@ describe('registration route', () => {
         name: 'Test',
       },
     });
-    expect(mockLimiterCheck).toHaveBeenCalledWith('1.2.3.4');
+    expect(mockLimiterCheckDetailed).toHaveBeenCalledWith('1.2.3.4');
     expect(mockSave).toHaveBeenCalledTimes(1);
   });
 
   it('blocks when the persistent rate limiter rejects the request', async () => {
-    mockLimiterCheck.mockResolvedValue(false);
+    mockLimiterCheckDetailed.mockResolvedValue({
+      allowed: false,
+      limit: 5,
+      remaining: 0,
+      resetAt: new Date('2026-06-24T12:00:00.000Z'),
+      retryAfterSeconds: 60,
+    });
 
     const res = await POST(createRequest());
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Brain,
   Calendar,
@@ -46,6 +46,11 @@ import {
   Textarea,
   useToast,
 } from "@/components/ui";
+import {
+  getClientCache,
+  makeUserScopedCacheKey,
+  setClientCache,
+} from "@/lib/client-cache";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -75,9 +80,16 @@ interface LifeEvent {
   dayKey: string;
 }
 
+interface TimelineInsightsCache {
+  insights: PatternInsight[];
+  generatedAt?: string;
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TIMELINE_DAYS = 90;
+const TIMELINE_DAYS_CACHE_TTL_MS = 5 * 60 * 1000;
+const TIMELINE_INSIGHTS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -225,6 +237,22 @@ function buildChartData(
 
 // ─── Tooltip component for recharts ─────────────────────────────────────────
 
+function getTimelineDaysCacheKey(): string {
+  return makeUserScopedCacheKey("timeline-days", String(TIMELINE_DAYS));
+}
+
+function getTimelineInsightsCacheKey(): string {
+  return makeUserScopedCacheKey("timeline-insights", "latest");
+}
+
+function getCachedTimelineDays(): TimelineDay[] | null {
+  return getClientCache<TimelineDay[]>(getTimelineDaysCacheKey());
+}
+
+function getCachedTimelineInsights(): TimelineInsightsCache | null {
+  return getClientCache<TimelineInsightsCache>(getTimelineInsightsCacheKey());
+}
+
 function ChartTooltip({
   active,
   payload,
@@ -296,13 +324,27 @@ function HeatCell({ day }: { day: TimelineDay }) {
 export default function TimelinePage() {
   const { requireAuth, signOut } = useAuth();
   const { toast } = useToast();
-  const [days, setDays] = useState<TimelineDay[]>([]);
-  const [insights, setInsights] = useState<PatternInsight[]>([]);
+  const [initialCachedDays] = useState<TimelineDay[] | null>(() =>
+    getCachedTimelineDays(),
+  );
+  const [initialCachedInsights] = useState<TimelineInsightsCache | null>(() =>
+    getCachedTimelineInsights(),
+  );
+  const [days, setDays] = useState<TimelineDay[]>(() => initialCachedDays ?? []);
+  const [insights, setInsights] = useState<PatternInsight[]>(
+    () => initialCachedInsights?.insights ?? [],
+  );
   const [chartWindow, setChartWindow] = useState<7 | 14 | 30>(30);
-  const [loadingDays, setLoadingDays] = useState(true);
-  const [loadingInsights, setLoadingInsights] = useState(true);
+  const [loadingDays, setLoadingDays] = useState(() => initialCachedDays === null);
+  const [loadingInsights, setLoadingInsights] = useState(
+    () => initialCachedInsights === null,
+  );
+  const [refreshingDays, setRefreshingDays] = useState(false);
+  const [refreshingInsights, setRefreshingInsights] = useState(false);
   const [errorDays, setErrorDays] = useState<string | null>(null);
   const [errorInsights, setErrorInsights] = useState<string | null>(null);
+  const daysLoadedRef = useRef(initialCachedDays !== null);
+  const insightsLoadedRef = useRef(initialCachedInsights !== null);
 
   // Life events state
   const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
@@ -314,8 +356,10 @@ export default function TimelinePage() {
   const [addingEvent, setAddingEvent] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const fetchDays = useCallback(async () => {
-    setLoadingDays(true);
+  const fetchDays = useCallback(async ({ forceLoading = false } = {}) => {
+    const hasLoadedDays = daysLoadedRef.current;
+    setLoadingDays(!hasLoadedDays);
+    setRefreshingDays(forceLoading && hasLoadedDays);
     setErrorDays(null);
     try {
       const headers = requireAuth();
@@ -330,18 +374,26 @@ export default function TimelinePage() {
       }
       if (!res.ok) throw new Error("Failed to load timeline data");
       const data = await res.json();
-      setDays(data.days ?? []);
+      const nextDays = data.days ?? [];
+      daysLoadedRef.current = true;
+      setDays(nextDays);
+      setClientCache(getTimelineDaysCacheKey(), nextDays, TIMELINE_DAYS_CACHE_TTL_MS);
     } catch {
       const msg = "Could not load your wellness timeline.";
-      setErrorDays(msg);
+      if (!hasLoadedDays) {
+        setErrorDays(msg);
+      }
       toast({ title: "Error", description: msg, variant: "error" });
     } finally {
       setLoadingDays(false);
+      setRefreshingDays(false);
     }
   }, [requireAuth, signOut, toast]);
 
-  const fetchInsights = useCallback(async () => {
-    setLoadingInsights(true);
+  const fetchInsights = useCallback(async ({ forceLoading = false } = {}) => {
+    const hasLoadedInsights = insightsLoadedRef.current;
+    setLoadingInsights(!hasLoadedInsights);
+    setRefreshingInsights(forceLoading && hasLoadedInsights);
     setErrorInsights(null);
     try {
       const headers = requireAuth();
@@ -356,13 +408,23 @@ export default function TimelinePage() {
       }
       if (!res.ok) throw new Error("Failed to load insights");
       const data = await res.json();
-      setInsights(data.insights ?? []);
+      const nextInsights = data.insights ?? [];
+      insightsLoadedRef.current = true;
+      setInsights(nextInsights);
+      setClientCache(
+        getTimelineInsightsCacheKey(),
+        { insights: nextInsights, generatedAt: data.generatedAt },
+        TIMELINE_INSIGHTS_CACHE_TTL_MS,
+      );
     } catch {
       const msg = "Could not load pattern insights.";
-      setErrorInsights(msg);
+      if (!hasLoadedInsights) {
+        setErrorInsights(msg);
+      }
       toast({ title: "Error", description: msg, variant: "error" });
     } finally {
       setLoadingInsights(false);
+      setRefreshingInsights(false);
     }
   }, [requireAuth, signOut, toast]);
 
@@ -478,6 +540,7 @@ export default function TimelinePage() {
         : "stable";
 
   const isLoading = loadingDays || loadingInsights;
+  const isRefreshing = refreshingDays || refreshingInsights;
 
   return (
     <main className="min-h-screen bg-bg-base px-6 py-8 max-w-6xl mx-auto animate-fade-in">
@@ -497,10 +560,10 @@ export default function TimelinePage() {
           size="sm"
           leftIcon={<RefreshCw className="h-4 w-4" />}
           onClick={() => {
-            void fetchDays();
-            void fetchInsights();
+            void fetchDays({ forceLoading: true });
+            void fetchInsights({ forceLoading: true });
           }}
-          loading={isLoading}
+          loading={isLoading || isRefreshing}
         >
           Refresh
         </Button>

@@ -6,6 +6,7 @@ import { unauthorized, serverError } from '@/lib/api-response';
 import { getUTCDayFromDayKey } from '@/lib/progression';
 import mongoose from 'mongoose';
 import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from '@/lib/deepseek';
+import { buildMongoCacheKey, getOrSetMongoCache } from '@/lib/mongo-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,14 @@ export interface TimelineInsightsResponse {
 }
 
 const DIMENSION_NAMES = ['Energy', 'Focus', 'Stress Control', 'Social Connection', 'Optimism'];
+const TIMELINE_INSIGHTS_CACHE_NAMESPACE = 'timeline-insights';
+const TIMELINE_INSIGHTS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+interface CachedTimelineInsights {
+  insights: PatternInsight[];
+  sourceFingerprint: string;
+  cachedAt: string;
+}
 
 async function generatePatternInsights(
   checkIns: Array<{ date: Date; ratings: number[]; percentage: number; dayKey: string }>
@@ -211,11 +220,31 @@ export async function GET(req: Request) {
       dayKey: c.dayKey,
     }));
 
-    const insights = await generatePatternInsights(shaped);
+    const latestCheckIn = shaped[shaped.length - 1];
+    const sourceFingerprint = [
+      latestCheckIn?.dayKey ?? 'empty',
+      latestCheckIn?.date instanceof Date ? latestCheckIn.date.toISOString() : 'no-date',
+      shaped.length,
+    ].join(':');
+    const cacheKey = buildMongoCacheKey(TIMELINE_INSIGHTS_CACHE_NAMESPACE, [
+      user.id,
+      sourceFingerprint,
+    ]);
+
+    const cached = await getOrSetMongoCache<CachedTimelineInsights>(
+      cacheKey,
+      TIMELINE_INSIGHTS_CACHE_NAMESPACE,
+      TIMELINE_INSIGHTS_CACHE_TTL_MS,
+      async () => ({
+        insights: await generatePatternInsights(shaped),
+        sourceFingerprint,
+        cachedAt: new Date().toISOString(),
+      }),
+    );
 
     return NextResponse.json({
-      insights,
-      generatedAt: new Date().toISOString(),
+      insights: cached.insights,
+      generatedAt: cached.cachedAt,
     } satisfies TimelineInsightsResponse);
   } catch (error) {
     return serverError(error, 'Error generating timeline insights');

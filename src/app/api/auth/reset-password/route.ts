@@ -1,18 +1,12 @@
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
-import { badRequest, successResponse, serverError, tooManyRequests } from "@/lib/api-response";
+import { badRequest, successResponse, serverError } from "@/lib/api-response";
 import { validateEmail, validatePassword } from "@/lib/validation";
-import { MongoRateLimiter } from "@/lib/rate-limit";
-import { getClientIp, readJsonBody } from "@/lib/request";
+import { MongoRateLimiter, rateLimitResponse } from "@/lib/rate-limit";
+import { getClientIp, readJsonBody, requiredString, validateFields } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
-
-interface ResetPasswordPayload {
-  email?: string;
-  otp?: string;
-  newPassword?: string;
-}
 
 const resetPasswordLimiter = new MongoRateLimiter('reset-password', 60 * 1000, 10);
 
@@ -20,22 +14,28 @@ export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
 
-    if (!(await resetPasswordLimiter.check(ip))) {
-      return tooManyRequests("Too many reset attempts. Please try again later.");
+    const rateLimit = await resetPasswordLimiter.checkDetailed(ip);
+    if (!rateLimit.allowed) {
+      return rateLimitResponse("Too many reset attempts. Please try again later.", rateLimit);
     }
 
     await dbConnect();
 
-    const parsed = await readJsonBody<ResetPasswordPayload>(req);
+    const parsed = await readJsonBody<Record<string, unknown>>(req);
     if (parsed.ok === false) return parsed.response;
 
-    const email = String(parsed.data.email || "").trim().toLowerCase();
-    const otp = String(parsed.data.otp || "").trim();
-    const newPassword = String(parsed.data.newPassword || "").trim();
+    const fields = validateFields(parsed.data, {
+      email: requiredString("Email", { message: "Email, OTP, and new password are required." }),
+      otp: requiredString("OTP", { message: "Email, OTP, and new password are required." }),
+      newPassword: requiredString("New password", {
+        message: "Email, OTP, and new password are required.",
+      }),
+    });
+    if (fields.ok === false) return fields.response;
 
-    if (!email || !otp || !newPassword) {
-      return badRequest("Email, OTP, and new password are required.");
-    }
+    const email = fields.data.email.toLowerCase();
+    const otp = fields.data.otp;
+    const newPassword = fields.data.newPassword;
 
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {

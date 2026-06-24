@@ -1,10 +1,22 @@
 import dbConnect from './db';
 import RateLimitEntry from './models/RateLimitEntry';
+import { getClientIp } from './request';
+import { NextResponse } from 'next/server';
 
 interface RateLimitInfo {
   count: number;
   resetTime: number;
 }
+
+export interface RateLimitResult {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: Date;
+  retryAfterSeconds: number;
+}
+
+export type RateLimitKeyResolver = (req: Request, userId?: string | null) => string;
 
 /**
  * In-process rate limiter backed by a plain Map.
@@ -80,29 +92,86 @@ export class MongoRateLimiter {
   }
 
   async check(key: string): Promise<boolean> {
-    await dbConnect();
+    const result = await this.checkDetailed(key);
+    return result.allowed;
+  }
 
+  async checkDetailed(key: string): Promise<RateLimitResult> {
     const now = Date.now();
+
     // Align to fixed window boundaries so all requests in the same window
     // share the same document.
     const windowStart = Math.floor(now / this.windowMs) * this.windowMs;
     const windowId = `${this.purpose}:${key}:${windowStart}`;
     const resetAt = new Date(windowStart + this.windowMs);
+    const retryAfterSeconds = Math.max(0, Math.ceil((resetAt.getTime() - now) / 1000));
 
-    const doc = await RateLimitEntry.findOneAndUpdate(
-      { windowId },
-      {
-        $inc: { count: 1 },
-        $setOnInsert: {
-          windowId,
-          key,
-          purpose: this.purpose,
-          resetAt,
+    try {
+      await dbConnect();
+
+      const doc = await RateLimitEntry.findOneAndUpdate(
+        { windowId },
+        {
+          $inc: { count: 1 },
+          $setOnInsert: {
+            windowId,
+            key,
+            purpose: this.purpose,
+            resetAt,
+          },
         },
-      },
-      { upsert: true, new: true },
-    );
+        { upsert: true, new: true },
+      );
+      const count = Number(doc?.count ?? 0);
 
-    return doc.count <= this.limit;
+      return {
+        allowed: count <= this.limit,
+        limit: this.limit,
+        remaining: Math.max(0, this.limit - count),
+        resetAt,
+        retryAfterSeconds,
+      };
+    } catch (error) {
+      console.warn(`Rate limit storage failed open for purpose "${this.purpose}".`, error);
+      return {
+        allowed: true,
+        limit: this.limit,
+        remaining: this.limit,
+        resetAt,
+        retryAfterSeconds,
+      };
+    }
   }
+}
+
+export function buildRateLimitKey(
+  req: Request,
+  options: {
+    userId?: string | null;
+    route?: string;
+    scope?: 'ip' | 'user' | 'ip+route' | 'user+route';
+  } = {},
+): string {
+  const scope = options.scope ?? 'ip';
+  const ipKey = `ip:${getClientIp(req)}`;
+  const userKey = options.userId ? `user:${options.userId}` : ipKey;
+
+  if (scope === 'user') return userKey;
+  if (scope === 'ip+route') return `route:${options.route ?? new URL(req.url).pathname}:${ipKey}`;
+  if (scope === 'user+route') return `route:${options.route ?? new URL(req.url).pathname}:${userKey}`;
+
+  return ipKey;
+}
+
+export function rateLimitHeaders(result: RateLimitResult): HeadersInit {
+  return {
+    'Retry-After': String(result.retryAfterSeconds),
+    'X-RateLimit-Limit': String(result.limit),
+    'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': String(Math.ceil(result.resetAt.getTime() / 1000)),
+  };
+}
+
+export function rateLimitResponse(message: string, result: RateLimitResult): NextResponse {
+  return NextResponse.json({ msg: message }, { status: 429, headers: rateLimitHeaders(result) });
 }
