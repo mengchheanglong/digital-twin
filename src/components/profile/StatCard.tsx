@@ -2,89 +2,91 @@
 
 import React from "react";
 
-export type StatColor = "warning" | "success" | "accent" | "info";
-
 export interface StatCardProps {
   icon: React.ReactNode;
   value: string | number;
   label: string;
-  color: StatColor;
-  trend?: {
-    value: number;
-    direction: "up" | "down";
-  };
+  color?: "accent" | "success" | "warning" | "error" | "info";
 }
 
-const surfaceMap: Record<StatColor, string> = {
-  warning: "surface-warning",
-  success: "surface-success",
-  accent: "surface-accent",
-  info: "surface-info",
-};
-
-const trendColorMap = {
-  up: "text-status-success",
-  down: "text-status-error",
+const colorMap: Record<
+  NonNullable<StatCardProps["color"]>,
+  { icon: string; glow: string; bg: string }
+> = {
+  accent: {
+    icon: "bg-accent-subtle text-accent-primary ring-accent-primary/20",
+    glow: "bg-accent-primary/5",
+    bg: "hover:border-accent-primary/30",
+  },
+  success: {
+    icon: "bg-status-success/10 text-status-success ring-status-success/20",
+    glow: "bg-status-success/5",
+    bg: "hover:border-status-success/30",
+  },
+  warning: {
+    icon: "bg-status-warning/10 text-status-warning ring-status-warning/20",
+    glow: "bg-status-warning/5",
+    bg: "hover:border-status-warning/30",
+  },
+  error: {
+    icon: "bg-status-error/10 text-status-error ring-status-error/20",
+    glow: "bg-status-error/5",
+    bg: "hover:border-status-error/30",
+  },
+  info: {
+    icon: "bg-status-info/10 text-status-info ring-status-info/20",
+    glow: "bg-status-info/5",
+    bg: "hover:border-status-info/30",
+  },
 };
 
 /**
- * StatCard - Displays individual statistics with icon, value, and label
- * Used in a 2x2 grid layout for main stats
+ * StatCard - Displays individual statistics with icon, value, and label.
+ * Row layout optimised for sidebar/panel grids.
  */
-export function StatCard({ icon, value, label, color, trend }: StatCardProps) {
-  const surfaceClass = surfaceMap[color];
-  const compactValue = typeof value === "string" && value.length > 10;
+export function StatCard({
+  icon,
+  value,
+  label,
+  color = "accent",
+}: StatCardProps) {
+  const styles = colorMap[color];
 
   return (
     <div
-      className={`
-        group relative flex flex-col rounded-2xl p-5
-        bg-bg-card/80 border border-border backdrop-blur-xl
-        hover:border-accent-primary/30 transition-all duration-500 ease-apple
-        hover:-translate-y-1 hover:shadow-elevated shadow-card overflow-hidden
-      `}
+      className={[
+        "group relative flex items-center gap-4 overflow-hidden rounded-xl border border-border-subtle bg-bg-panel/60 p-4",
+        "transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:shadow-elevated",
+        styles.bg,
+      ].join(" ")}
     >
-      {/* Ambient background glow */}
-      <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-accent-primary/10 blur-[40px] opacity-0 transition-all duration-700 ease-apple group-hover:opacity-100" />
-
-      {/* Icon Wrapper */}
+      {/* Glow orb */}
       <div
-        className={`
-          relative z-10 flex h-11 w-11 items-center justify-center rounded-xl shadow-inner ring-1 ring-border
-          transition-transform duration-500 ease-spring group-hover:scale-110 group-hover:rotate-3
-          ${surfaceClass}
-        `}
+        className={[
+          "pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full blur-2xl transition-opacity duration-500 opacity-0 group-hover:opacity-100",
+          styles.glow,
+        ].join(" ")}
+      />
+
+      {/* Icon */}
+      <div
+        className={[
+          "relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 transition-transform duration-300 group-hover:scale-110",
+          styles.icon,
+        ].join(" ")}
       >
         {icon}
       </div>
 
-      {/* Value */}
-      <div className="relative z-10 mt-3 flex items-baseline gap-2">
-        <span className={`${compactValue ? "text-lg" : "text-2xl"} font-bold text-text-primary`}>
+      {/* Content */}
+      <div className="relative z-10 min-w-0">
+        <p className="truncate text-lg font-black leading-tight text-text-primary">
           {value}
-        </span>
-
-        {/* Trend indicator */}
-        {trend && (
-          <span className={`text-sm font-medium ${trendColorMap[trend.direction]}`}>
-            {trend.direction === "up" ? "+" : "-"} {trend.value}%
-          </span>
-        )}
+        </p>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+          {label}
+        </p>
       </div>
-
-      {/* Label */}
-      <span className="relative z-10 mt-0.5 text-sm font-medium text-text-secondary">
-        {label}
-      </span>
-
-      {/* Subtle gradient overlay on hover */}
-      <div
-        className={`
-          absolute inset-0 rounded-2xl bg-gradient-to-br from-bg-hover to-transparent
-          opacity-0 group-hover:opacity-100 transition-opacity duration-300
-          pointer-events-none
-        `}
-      />
     </div>
   );
 }

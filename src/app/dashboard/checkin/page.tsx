@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ElementType,
+} from "react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
@@ -23,6 +30,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
 import {
   Button,
   Card,
@@ -215,17 +223,15 @@ function RatingButton({
           ? `${option.bgClass} ${option.borderClass} scale-[1.03]`
           : "bg-bg-panel/60 border-border hover:bg-bg-panel hover:border-border-hover hover:scale-[1.02]",
       ].join(" ")}
-      style={
-        selected
-          ? { boxShadow: `0 0 24px ${glowColor}` }
-          : undefined
-      }
+      style={selected ? { boxShadow: `0 0 24px ${glowColor}` } : undefined}
     >
       <Icon
         className={[
           "transition-transform duration-200 ease-spring",
           size === "lg" ? "h-8 w-8" : "h-5 w-5",
-          selected ? option.textToken : "text-text-muted group-hover:text-text-secondary",
+          selected
+            ? option.textToken
+            : "text-text-muted group-hover:text-text-secondary",
           selected ? "" : "group-hover:scale-110",
         ].join(" ")}
         strokeWidth={selected ? 2.25 : 1.5}
@@ -241,10 +247,7 @@ function RatingButton({
       </span>
       {selected && (
         <div className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-accent-primary flex items-center justify-center shadow-glow-soft animate-scale-in">
-          <CheckCircle2
-            className="h-3 w-3 text-text-inverse"
-            strokeWidth={3}
-          />
+          <CheckCircle2 className="h-3 w-3 text-text-inverse" strokeWidth={3} />
         </div>
       )}
     </button>
@@ -283,13 +286,233 @@ function SmallRatingRow({
                   ? `${opt.bgClass} ${opt.borderClass} scale-105`
                   : "bg-bg-panel border-border text-text-muted hover:bg-bg-hover hover:border-border-hover hover:text-text-secondary",
               ].join(" ")}
-              style={isSelected ? { boxShadow: `0 0 12px ${glowColor}` } : undefined}
+              style={
+                isSelected ? { boxShadow: `0 0 12px ${glowColor}` } : undefined
+              }
             >
               {opt.value}
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ─── Success Sub-component ─── */
+interface DimBreakdown {
+  key: string;
+  meta: { label: string; icon: ElementType };
+  rating: number;
+}
+
+function CheckInSuccessScreen({
+  result,
+  progression,
+  dimensionBreakdown,
+  hasDimensionData,
+  scoreColor,
+  headline,
+  circumference,
+}: {
+  result: CheckInResult;
+  progression: ProgressionResult | null;
+  dimensionBreakdown: DimBreakdown[];
+  hasDimensionData: boolean;
+  scoreColor: string;
+  headline: string;
+  circumference: number;
+}) {
+  const [ringFilled, setRingFilled] = useState(false);
+  const animatedPct = useAnimatedCounter(ringFilled ? result.percentage : 0, {
+    duration: 1200,
+    easing: "easeOutCubic",
+  });
+
+  useEffect(() => {
+    const t = setTimeout(() => setRingFilled(true), 120);
+    return () => clearTimeout(t);
+  }, []);
+
+  const targetOffset = circumference * (1 - result.percentage / 100);
+  const strokeDashoffset = ringFilled ? targetOffset : circumference;
+
+  return (
+    <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-10 animate-fade-in">
+      {/* Ambient background glows */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[32rem] w-[32rem] rounded-full blur-[150px] opacity-20 transition-all duration-1000"
+          style={{ background: scoreColor }}
+        />
+      </div>
+
+      <Card
+        variant="elevated"
+        glow
+        className="relative z-10 w-full max-w-md overflow-hidden"
+      >
+        {/* Top gradient overlay */}
+        <div className="absolute top-0 h-44 w-full bg-gradient-to-b from-accent-primary/10 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center p-8 text-center">
+          {/* Completion badge */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-status-success/30 bg-status-success/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-status-success animate-scale-in">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Daily Check-In Complete
+          </div>
+
+          {/* Animated SVG wellness ring */}
+          <div className="relative mb-6 inline-flex items-center justify-center">
+            <div
+              className="absolute h-40 w-40 rounded-full blur-3xl opacity-25 transition-opacity duration-1000"
+              style={{ background: scoreColor }}
+            />
+            <svg className="h-40 w-40 -rotate-90" viewBox="0 0 120 120">
+              <defs>
+                <linearGradient
+                  id="successRingGrad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor={scoreColor} />
+                  <stop offset="100%" stopColor="var(--color-accent-glow)" />
+                </linearGradient>
+              </defs>
+              {/* Track */}
+              <circle
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                stroke="var(--color-bg-input)"
+                strokeWidth="7"
+              />
+              {/* Animated fill */}
+              <circle
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                stroke="url(#successRingGrad)"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                style={{
+                  transition:
+                    "stroke-dashoffset 1.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                  filter: `drop-shadow(0 0 8px ${scoreColor})`,
+                }}
+              />
+            </svg>
+            {/* Center text */}
+            <div className="absolute flex flex-col items-center">
+              <span
+                className="text-4xl font-black leading-none tabular-nums"
+                style={{
+                  background: `linear-gradient(135deg, ${scoreColor}, var(--color-accent-glow))`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                {animatedPct}%
+              </span>
+              <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                Wellness
+              </span>
+            </div>
+          </div>
+
+          {/* Headline */}
+          <h2 className="mb-1 text-2xl font-extrabold tracking-tight text-text-primary">
+            {headline}
+          </h2>
+          <p className="mb-6 text-sm text-text-secondary">
+            Score:{" "}
+            <span className="font-bold text-text-primary">
+              {result.totalScore}
+            </span>
+            <span className="text-text-muted"> / {result.maxScore}</span>
+          </p>
+
+          {/* Dimension breakdown pills */}
+          {hasDimensionData && (
+            <div className="mb-6 flex flex-wrap justify-center gap-1.5">
+              {dimensionBreakdown.map(({ key, meta, rating }, i) => {
+                const mood = moodOptions.find((m) => m.value === rating);
+                const DimIcon = meta.icon;
+                return (
+                  <div
+                    key={key}
+                    className={[
+                      "inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold animate-fade-in",
+                      mood
+                        ? `${mood.bgClass} ${mood.borderClass} ${mood.textToken}`
+                        : "border-border bg-bg-panel text-text-muted",
+                    ].join(" ")}
+                    style={{
+                      animationDelay: `${i * 70}ms`,
+                      animationFillMode: "both",
+                    }}
+                  >
+                    <DimIcon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{meta.label}</span>
+                    <span className="opacity-70">·</span>
+                    <span>{rating}/5</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* XP Progression */}
+          {progression && (
+            <div
+              className="mb-6 w-full animate-fade-in rounded-2xl border border-border bg-bg-panel p-4 text-left"
+              style={{ animationDelay: "450ms", animationFillMode: "both" }}
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Award className="h-4 w-4 text-accent-primary" />
+                  <span className="text-xs font-bold text-text-secondary">
+                    Level {progression.level}
+                  </span>
+                </div>
+                <Pill tone="accent">
+                  <Sparkles className="mr-1 h-3 w-3" />+{result.totalScore} XP
+                  earned
+                </Pill>
+              </div>
+              <ProgressBar
+                value={progression.currentXP}
+                max={progression.requiredXP}
+                showPercentage
+                size="md"
+                shimmer
+              />
+              <p className="mt-1.5 text-[11px] text-text-muted">
+                {progression.currentXP} / {progression.requiredXP} XP to next
+                level
+              </p>
+            </div>
+          )}
+
+          {/* Redirect indicator */}
+          <div
+            className="flex items-center gap-2 text-xs text-text-muted animate-fade-in"
+            style={{ animationDelay: "600ms", animationFillMode: "both" }}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-primary opacity-50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-primary" />
+            </span>
+            Taking you to your insights…
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }
@@ -315,7 +538,9 @@ export default function DailyCheckInPage() {
   const [nlFallback, setNlFallback] = useState(false);
 
   const [result, setResult] = useState<CheckInResult | null>(null);
-  const [progression, setProgression] = useState<ProgressionResult | null>(null);
+  const [progression, setProgression] = useState<ProgressionResult | null>(
+    null,
+  );
 
   const autoAdvanceRef = useRef<number | null>(null);
   const redirectRef = useRef<number | null>(null);
@@ -333,7 +558,9 @@ export default function DailyCheckInPage() {
       const response = await axios.get("/api/checkin/questions", { headers });
       const incoming = response.data?.questions;
       setQuestions(
-        Array.isArray(incoming) && incoming.length ? incoming : fallbackQuestions
+        Array.isArray(incoming) && incoming.length
+          ? incoming
+          : fallbackQuestions,
       );
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 400) {
@@ -377,7 +604,7 @@ export default function DailyCheckInPage() {
         const response = await axios.post(
           "/api/checkin/submit",
           { ratings: ratingsArr },
-          { headers }
+          { headers },
         );
         const apiResult = response.data?.result as CheckInResult | undefined;
         const apiProgression = response.data?.progression as
@@ -405,7 +632,7 @@ export default function DailyCheckInPage() {
 
         redirectRef.current = window.setTimeout(() => {
           router.replace(INSIGHT_PATH);
-        }, 1800);
+        }, 3500);
       } catch {
         toast({
           title: "Submission failed",
@@ -415,7 +642,7 @@ export default function DailyCheckInPage() {
         setFlowState("input");
       }
     },
-    [getAuthHeaders, router, toast]
+    [getAuthHeaders, router, toast],
   );
 
   /* ── Auto-advance logic ── */
@@ -431,7 +658,7 @@ export default function DailyCheckInPage() {
     autoAdvanceRef.current = window.setTimeout(() => {
       handleAdvance(1);
     }, 500);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearAutoAdvance, currentIndex, ratings, questions]);
 
   /* ── Navigation ── */
@@ -475,7 +702,15 @@ export default function DailyCheckInPage() {
         void submitCheckIn(entries);
       }
     },
-    [clearAutoAdvance, currentIndex, isTransitioning, questions, ratings, selectedRating, submitCheckIn]
+    [
+      clearAutoAdvance,
+      currentIndex,
+      isTransitioning,
+      questions,
+      ratings,
+      selectedRating,
+      submitCheckIn,
+    ],
   );
 
   const onSelectRating = useCallback(
@@ -483,7 +718,7 @@ export default function DailyCheckInPage() {
       setSelectedRating(value);
       scheduleAutoAdvance();
     },
-    [scheduleAutoAdvance]
+    [scheduleAutoAdvance],
   );
 
   /* ── NL Parse ── */
@@ -498,7 +733,7 @@ export default function DailyCheckInPage() {
       const res = await axios.post(
         "/api/checkin/parse",
         { text: nlText },
-        { headers }
+        { headers },
       );
       if (res.data?.success) {
         setNlParsed(res.data.dimensions as ParsedDimensions);
@@ -548,69 +783,45 @@ export default function DailyCheckInPage() {
 
   /* ── Success State ── */
   if (flowState === "success" && result) {
+    const CIRCUM = 2 * Math.PI * 54;
+
+    const dimensionBreakdown = DIMENSION_KEYS.map((key, i) => ({
+      key,
+      meta: DIMENSION_META[key],
+      rating:
+        (ratings[questions[i]] as number | undefined) ?? nlParsed?.[key] ?? 0,
+    }));
+
+    const hasDimensionData = dimensionBreakdown.some((d) => d.rating > 0);
+
+    const scoreColor =
+      result.percentage >= 80
+        ? "var(--color-status-success)"
+        : result.percentage >= 60
+          ? "var(--color-accent-primary)"
+          : result.percentage >= 40
+            ? "var(--color-status-warning)"
+            : "var(--color-status-error)";
+
+    const headline =
+      result.percentage >= 80
+        ? "Outstanding work today!"
+        : result.percentage >= 60
+          ? "Solid effort today."
+          : result.percentage >= 40
+            ? "You showed up — that matters."
+            : "Every day is a new start.";
+
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-10 animate-fade-in">
-        <Card variant="elevated" className="w-full max-w-lg p-8 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-accent-subtle ring-1 ring-accent-primary/20 animate-scale-in">
-            <Award className="h-8 w-8 text-accent-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-text-primary mb-2">
-            Nice work!
-          </h2>
-          <p className="text-sm text-text-secondary mb-6">
-            You completed your daily check-in. Here is how you scored today.
-          </p>
-
-          <div className="flex items-center justify-center gap-6 mb-6">
-            <div className="flex flex-col items-center">
-              <span className="text-3xl font-extrabold text-gradient">
-                {result.totalScore}
-              </span>
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wide mt-1">
-                Total Score
-              </span>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="flex flex-col items-center">
-              <span className="text-3xl font-extrabold text-gradient-warm">
-                {result.percentage}%
-              </span>
-              <span className="text-xs font-semibold text-text-muted uppercase tracking-wide mt-1">
-                Wellness
-              </span>
-            </div>
-          </div>
-
-          {progression && (
-            <div className="rounded-xl bg-bg-panel border border-border p-4 mb-6 animate-slide-left">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-text-secondary uppercase tracking-wide">
-                  Level {progression.level}
-                </span>
-                <Pill tone="accent">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  +{result.totalScore} XP
-                </Pill>
-              </div>
-              <ProgressBar
-                value={progression.currentXP}
-                max={progression.requiredXP}
-                showPercentage={false}
-                size="sm"
-                shimmer
-              />
-              <p className="text-xs text-text-muted mt-1.5">
-                {progression.currentXP} / {progression.requiredXP} XP to next
-                level
-              </p>
-            </div>
-          )}
-
-          <p className="text-xs text-text-muted">
-            Redirecting to your insights…
-          </p>
-        </Card>
-      </div>
+      <CheckInSuccessScreen
+        result={result}
+        progression={progression}
+        dimensionBreakdown={dimensionBreakdown}
+        hasDimensionData={hasDimensionData}
+        scoreColor={scoreColor}
+        headline={headline}
+        circumference={CIRCUM}
+      />
     );
   }
 
@@ -739,7 +950,7 @@ export default function DailyCheckInPage() {
                         value={nlParsed[key] ?? 3}
                         onChange={(v) =>
                           setNlParsed((prev) =>
-                            prev ? { ...prev, [key]: v } : prev
+                            prev ? { ...prev, [key]: v } : prev,
                           )
                         }
                       />
@@ -811,8 +1022,8 @@ export default function DailyCheckInPage() {
                     i < currentIndex
                       ? "bg-accent-primary"
                       : i === currentIndex
-                      ? "bg-accent-primary/50"
-                      : "bg-bg-input",
+                        ? "bg-accent-primary/50"
+                        : "bg-bg-input",
                   ].join(" ")}
                 />
               ))}
@@ -890,15 +1101,17 @@ export default function DailyCheckInPage() {
                   }
                   onClick={() => handleAdvance(1)}
                   disabled={
-                    !selectedRating || isTransitioning || flowState === "submitting"
+                    !selectedRating ||
+                    isTransitioning ||
+                    flowState === "submitting"
                   }
                   className={!selectedRating ? "opacity-60" : ""}
                 >
                   {flowState === "submitting"
                     ? "Submitting…"
                     : isLastQuestion
-                    ? "Complete Check-In"
-                    : "Next"}
+                      ? "Complete Check-In"
+                      : "Next"}
                 </Button>
               </div>
             </Card>

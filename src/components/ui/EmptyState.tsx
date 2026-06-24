@@ -22,25 +22,36 @@ export default function EmptyState({
   return (
     <div
       className={[
-        "flex flex-col items-center justify-center text-center",
-        "rounded-2xl border border-dashed border-border bg-bg-panel/30",
-        "px-6 py-12",
+        "relative flex flex-col items-center justify-center text-center overflow-hidden",
+        "rounded-2xl border border-dashed border-border bg-bg-panel/40",
+        "px-8 py-14 animate-fade-in",
         className,
       ].join(" ")}
     >
+      {/* Background ambient */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent-primary/3 to-transparent" />
+
       {icon && (
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-bg-card text-text-muted shadow-inner ring-1 ring-border">
-          {icon}
+        <div className="relative z-10 mb-5">
+          <div className="absolute inset-0 rounded-full bg-accent-primary/10 blur-2xl scale-150" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-bg-card text-text-muted shadow-card ring-1 ring-border transition-all duration-300 hover:text-accent-primary hover:ring-accent-primary/30">
+            {icon}
+          </div>
         </div>
       )}
-      <h3 className="text-base font-bold text-text-primary">{title}</h3>
+
+      <h3 className="relative z-10 text-base font-bold text-text-primary">
+        {title}
+      </h3>
+
       {description && (
-        <p className="mt-1.5 max-w-xs text-sm text-text-secondary leading-relaxed">
+        <p className="relative z-10 mt-2 max-w-xs text-sm leading-relaxed text-text-secondary">
           {description}
         </p>
       )}
+
       {action && (
-        <div className="mt-5">
+        <div className="relative z-10 mt-6">
           <Button variant="primary" size="sm" onClick={action.onClick}>
             {action.label}
           </Button>

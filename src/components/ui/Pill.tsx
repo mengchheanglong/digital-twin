@@ -1,39 +1,45 @@
 import React from "react";
 
-export type PillTone = "default" | "success" | "warning" | "error" | "info" | "accent";
+export type PillTone =
+  | "default"
+  | "accent"
+  | "success"
+  | "warning"
+  | "error"
+  | "info"
+  | "muted";
 
-export interface PillProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface PillProps {
   tone?: PillTone;
+  children: React.ReactNode;
+  className?: string;
 }
 
-const toneStyles: Record<PillTone, string> = {
-  default: "bg-surface-200 text-text-secondary",
-  success: "bg-status-success/10 text-status-success",
-  warning: "bg-status-warning/10 text-status-warning",
-  error: "bg-status-error/10 text-status-error",
-  info: "bg-status-info/10 text-status-info",
-  accent: "bg-accent-subtle text-accent-primary",
+const toneMap: Record<PillTone, string> = {
+  default: "bg-bg-panel border-border text-text-secondary",
+  accent: "bg-accent-subtle border-accent-primary/25 text-accent-primary",
+  success: "bg-status-success/10 border-status-success/25 text-status-success",
+  warning: "bg-status-warning/10 border-status-warning/25 text-status-warning",
+  error: "bg-status-error/10 border-status-error/25 text-status-error",
+  info: "bg-status-info/10 border-status-info/25 text-status-info",
+  muted: "bg-bg-input border-border text-text-muted",
 };
 
-const Pill = React.forwardRef<HTMLSpanElement, PillProps>(
-  ({ tone = "default", children, className = "", ...props }, ref) => {
-    return (
-      <span
-        ref={ref}
-        className={[
-          "inline-flex items-center rounded-full px-2.5 py-0.5",
-          "text-xs font-semibold",
-          toneStyles[tone],
-          className,
-        ].join(" ")}
-        {...props}
-      >
-        {children}
-      </span>
-    );
-  }
-);
-
-Pill.displayName = "Pill";
-
-export default Pill;
+export default function Pill({
+  tone = "default",
+  children,
+  className = "",
+}: PillProps) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5",
+        "text-[11px] font-semibold leading-none whitespace-nowrap",
+        toneMap[tone],
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </span>
+  );
+}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Brain,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -126,7 +127,7 @@ function ActiveTimer({
             variant: "success",
             title: "Session complete",
             description: `Great work! You focused for ${formatDuration(
-              Math.round(elapsed / 60)
+              Math.round(elapsed / 60),
             )}.`,
           });
         }
@@ -176,11 +177,23 @@ function ActiveTimer({
             viewBox="0 0 120 120"
           >
             <defs>
-              <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient
+                id="ringGradient"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
                 <stop offset="0%" stopColor="var(--color-accent-primary)" />
                 <stop offset="100%" stopColor="var(--color-accent-glow)" />
               </linearGradient>
-              <linearGradient id="ringSuccess" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient
+                id="ringSuccess"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
                 <stop offset="0%" stopColor="var(--color-status-success)" />
                 <stop offset="100%" stopColor="var(--color-accent-glow)" />
               </linearGradient>
@@ -360,34 +373,53 @@ function StartSessionForm({
   };
 
   return (
-    <Card variant="elevated" glow className="animate-fade-in">
-      <form onSubmit={handleStart} className="p-6 md:p-8">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-5">
-          Start Focus Session
-        </h2>
+    <Card variant="elevated" glow className="animate-fade-in overflow-hidden">
+      {/* Top gradient accent */}
+      <div className="h-1 w-full bg-gradient-to-r from-accent-primary via-accent-hover to-accent-glow" />
+
+      <form onSubmit={handleStart} className="p-6 md:p-8 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
+            <Brain size={18} />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-text-primary">
+              Start Focus Session
+            </h2>
+            <p className="text-xs text-text-muted">
+              Deep work, no distractions.
+            </p>
+          </div>
+        </div>
 
         {error && (
-          <div className="mb-4 rounded-xl border border-status-error/20 bg-status-error/10 px-3 py-2.5 text-sm text-status-error">
+          <div className="rounded-xl border border-status-error/20 bg-status-error/10 px-4 py-3 text-sm text-status-error">
             {error}
           </div>
         )}
 
-        <div className="space-y-5">
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            What are you focusing on?
+          </label>
           <Input
             autoFocus
             type="text"
             maxLength={200}
-            placeholder="What are you focusing on?"
+            placeholder="e.g. Deep work, Chapter 5, Design review…"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
+        </div>
 
-          <div>
-            <p className="text-xs font-medium text-text-secondary mb-2.5">
-              Duration (minutes)
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_DURATIONS.map((d) => (
+        <div className="space-y-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-text-muted">
+            Session duration
+          </label>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {PRESET_DURATIONS.map((d) => {
+              const isSelected = !useCustom && duration === d;
+              return (
                 <button
                   key={d}
                   type="button"
@@ -395,64 +427,91 @@ function StartSessionForm({
                     setDuration(d);
                     setUseCustom(false);
                   }}
-                  className={`rounded-xl px-3.5 py-1.5 text-sm font-medium border transition-all duration-200 ease-apple ${
-                    !useCustom && duration === d
-                      ? "border-accent-primary bg-accent-subtle text-text-primary shadow-glow-soft"
-                      : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50 hover:text-text-primary"
-                  }`}
+                  className={[
+                    "group relative flex flex-col items-center justify-center gap-1 rounded-xl border py-3 text-center transition-all duration-200 ease-apple focus-ring",
+                    isSelected
+                      ? "border-accent-primary bg-accent-subtle shadow-glow-soft ring-1 ring-accent-primary/20"
+                      : "border-border bg-bg-panel hover:border-accent-primary/40 hover:bg-bg-hover",
+                  ].join(" ")}
                 >
-                  {d}m
+                  <span
+                    className={[
+                      "text-base font-black leading-none",
+                      isSelected ? "text-accent-primary" : "text-text-primary",
+                    ].join(" ")}
+                  >
+                    {d}
+                  </span>
+                  <span
+                    className={[
+                      "text-[10px] font-semibold leading-none",
+                      isSelected ? "text-accent-primary/70" : "text-text-muted",
+                    ].join(" ")}
+                  >
+                    min
+                  </span>
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setUseCustom(true)}
-                className={`rounded-xl px-3.5 py-1.5 text-sm font-medium border transition-all duration-200 ease-apple ${
-                  useCustom
-                    ? "border-accent-primary bg-accent-subtle text-text-primary shadow-glow-soft"
-                    : "border-border bg-bg-panel text-text-secondary hover:border-accent-primary/50 hover:text-text-primary"
-                }`}
-              >
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setUseCustom(true)}
+              className={[
+                "flex flex-col items-center justify-center gap-1 rounded-xl border py-3 transition-all duration-200 ease-apple focus-ring",
+                useCustom
+                  ? "border-accent-primary bg-accent-subtle shadow-glow-soft ring-1 ring-accent-primary/20 text-accent-primary"
+                  : "border-border bg-bg-panel text-text-muted hover:border-accent-primary/40 hover:bg-bg-hover hover:text-text-primary",
+              ].join(" ")}
+            >
+              <span className="text-base font-black leading-none">✎</span>
+              <span className="text-[10px] font-semibold leading-none">
                 Custom
-              </button>
-            </div>
-
-            {useCustom && (
-              <div className="mt-3">
-                <Input
-                  type="number"
-                  min={1}
-                  max={480}
-                  placeholder="Minutes (1–480)"
-                  value={customDuration}
-                  onChange={(e) => setCustomDuration(e.target.value)}
-                  className="w-40"
-                />
-              </div>
-            )}
+              </span>
+            </button>
           </div>
+
+          {useCustom && (
+            <div className="mt-2">
+              <Input
+                type="number"
+                min={1}
+                max={480}
+                placeholder="Minutes (1–480)"
+                value={customDuration}
+                onChange={(e) => setCustomDuration(e.target.value)}
+                className="w-36"
+              />
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            loading={starting}
-            leftIcon={<Play size={16} />}
-          >
-            {starting
-              ? "Starting…"
-              : `Start ${effectiveDuration}m Session`}
-          </Button>
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border-subtle">
+          <div className="text-xs text-text-muted">
+            {!useCustom
+              ? `${duration} minute session`
+              : customDuration
+                ? `${Math.min(480, Math.max(1, Number(customDuration) || 25))} minute session`
+                : "Custom duration"}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              loading={starting}
+              leftIcon={<Play size={16} />}
+            >
+              {starting ? "Starting…" : `Begin Session`}
+            </Button>
+          </div>
         </div>
       </form>
     </Card>
@@ -704,37 +763,59 @@ export default function FocusPage() {
 
       {/* Stats bar */}
       {sessions.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card variant="default" className="px-4 py-4 text-center">
-            <div className="flex justify-center text-text-muted mb-2">
-              <Timer size={18} />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card
+            variant="elevated"
+            className="group relative overflow-hidden px-5 py-4 flex items-center gap-4 transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:shadow-elevated"
+          >
+            <div className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 rounded-full bg-accent-primary/5 blur-2xl" />
+            <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20 transition-transform duration-300 group-hover:scale-110">
+              <Timer size={20} />
             </div>
-            <p className="text-xl font-bold text-text-primary">{total}</p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-0.5">
-              Total Sessions
-            </p>
+            <div className="relative z-10">
+              <p className="text-2xl font-black text-text-primary leading-none">
+                {total}
+              </p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                Total Sessions
+              </p>
+            </div>
           </Card>
-          <Card variant="default" className="px-4 py-4 text-center">
-            <div className="flex justify-center text-status-success mb-2">
-              <CheckCircle2 size={18} />
+
+          <Card
+            variant="elevated"
+            className="group relative overflow-hidden px-5 py-4 flex items-center gap-4 transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:shadow-elevated"
+          >
+            <div className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 rounded-full bg-status-success/5 blur-2xl" />
+            <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-status-success/10 text-status-success ring-1 ring-status-success/20 transition-transform duration-300 group-hover:scale-110">
+              <CheckCircle2 size={20} />
             </div>
-            <p className="text-xl font-bold text-text-primary">
-              {completedCount}
-            </p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-0.5">
-              Completed
-            </p>
+            <div className="relative z-10">
+              <p className="text-2xl font-black text-text-primary leading-none">
+                {completedCount}
+              </p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                Completed
+              </p>
+            </div>
           </Card>
-          <Card variant="default" className="px-4 py-4 text-center">
-            <div className="flex justify-center text-accent-primary mb-2">
-              <Flame size={18} />
+
+          <Card
+            variant="elevated"
+            className="group relative overflow-hidden px-5 py-4 flex items-center gap-4 transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:shadow-elevated"
+          >
+            <div className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 rounded-full bg-status-warning/5 blur-2xl" />
+            <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-status-warning/10 text-status-warning ring-1 ring-status-warning/20 transition-transform duration-300 group-hover:scale-110">
+              <Flame size={20} />
             </div>
-            <p className="text-xl font-bold text-text-primary">
-              {formatDuration(totalMinutes)}
-            </p>
-            <p className="text-[10px] uppercase tracking-widest text-text-muted font-semibold mt-0.5">
-              Total Focus
-            </p>
+            <div className="relative z-10">
+              <p className="text-2xl font-black text-text-primary leading-none">
+                {formatDuration(totalMinutes)}
+              </p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                Total Focus
+              </p>
+            </div>
           </Card>
         </div>
       )}

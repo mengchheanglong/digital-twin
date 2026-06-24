@@ -18,7 +18,14 @@ const sizeMap = {
   lg: "max-w-lg",
 };
 
-export default function Dialog({ open, onClose, title, children, footer, size = "md" }: DialogProps) {
+export default function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  size = "md",
+}: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -48,7 +55,7 @@ export default function Dialog({ open, onClose, title, children, footer, size = 
       // Basic focus trap
       if (e.key === "Tab" && open && contentRef.current) {
         const focusable = contentRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
@@ -79,7 +86,7 @@ export default function Dialog({ open, onClose, title, children, footer, size = 
       role="presentation"
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in" />
 
       {/* Dialog Card */}
       <div
@@ -89,30 +96,40 @@ export default function Dialog({ open, onClose, title, children, footer, size = 
         aria-modal="true"
         aria-labelledby={title ? "dialog-title" : undefined}
         className={[
-          "relative z-10 w-full",
+          "relative z-10 w-full overflow-hidden",
           sizeMap[size],
           "rounded-2xl border border-border bg-bg-card shadow-2xl",
           "animate-scale-in",
           "outline-none",
         ].join(" ")}
       >
+        {/* Subtle top gradient */}
+        <div className="pointer-events-none absolute top-0 h-24 w-full bg-gradient-to-b from-accent-primary/8 to-transparent" />
+
         {title && (
-          <div className="flex items-center justify-between px-6 pt-6 pb-2">
-            <h2 id="dialog-title" className="text-lg font-bold text-text-primary">
+          <div className="relative z-10 flex items-center justify-between border-b border-border-subtle px-6 pt-6 pb-4">
+            <h2
+              id="dialog-title"
+              className="text-base font-bold text-text-primary tracking-tight"
+            >
               {title}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all duration-150 focus-ring"
               aria-label="Close dialog"
             >
-              <X size={18} strokeWidth={2.5} />
+              <X size={16} strokeWidth={2.5} />
             </button>
           </div>
         )}
-        <div className="px-6 py-4">{children}</div>
-        {footer && <div className="flex items-center justify-end gap-3 px-6 pb-6 pt-2">{footer}</div>}
+        <div className="relative z-10 px-6 py-5">{children}</div>
+        {footer && (
+          <div className="relative z-10 flex items-center justify-end gap-3 border-t border-border-subtle px-6 py-4">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

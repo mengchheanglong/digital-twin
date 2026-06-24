@@ -13,26 +13,38 @@ export interface ToastItem {
   duration?: number;
 }
 
-const variantConfig: Record<ToastVariant, { icon: React.ReactNode; toneClass: string; iconBg: string }> = {
+const variantConfig: Record<
+  ToastVariant,
+  {
+    icon: React.ReactNode;
+    toneClass: string;
+    iconBg: string;
+    progressColor: string;
+  }
+> = {
   success: {
     icon: <CheckCircle size={16} strokeWidth={2.5} />,
     toneClass: "border-status-success/30",
     iconBg: "bg-status-success/10 text-status-success",
+    progressColor: "bg-status-success",
   },
   error: {
     icon: <XCircle size={16} strokeWidth={2.5} />,
     toneClass: "border-status-error/30",
     iconBg: "bg-status-error/10 text-status-error",
+    progressColor: "bg-status-error",
   },
   warning: {
     icon: <AlertTriangle size={16} strokeWidth={2.5} />,
     toneClass: "border-status-warning/30",
     iconBg: "bg-status-warning/10 text-status-warning",
+    progressColor: "bg-status-warning",
   },
   info: {
     icon: <Info size={16} strokeWidth={2.5} />,
     toneClass: "border-status-info/30",
     iconBg: "bg-status-info/10 text-status-info",
+    progressColor: "bg-status-info",
   },
 };
 
@@ -81,17 +93,23 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       className={[
         "relative flex w-full max-w-sm items-start gap-3 rounded-xl border bg-bg-card p-4 shadow-elevated",
         "transition-all duration-300 ease-apple",
-        exiting ? "opacity-0 translate-y-2 scale-95" : "opacity-100 translate-y-0 scale-100",
+        exiting
+          ? "opacity-0 translate-y-2 scale-95"
+          : "opacity-100 translate-y-0 scale-100",
         config.toneClass,
       ].join(" ")}
     >
-      <div className={["mt-0.5 shrink-0 rounded-lg p-1", config.iconBg].join(" ")}>
+      <div
+        className={["mt-0.5 shrink-0 rounded-lg p-1", config.iconBg].join(" ")}
+      >
         {config.icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-text-primary">{toast.title}</p>
         {toast.description && (
-          <p className="mt-0.5 text-xs text-text-secondary leading-relaxed">{toast.description}</p>
+          <p className="mt-0.5 text-xs text-text-secondary leading-relaxed">
+            {toast.description}
+          </p>
         )}
       </div>
       <button
@@ -105,7 +123,10 @@ export default function Toast({ toast, onDismiss }: ToastProps) {
       {/* Progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-xl overflow-hidden">
         <div
-          className="h-full bg-current opacity-30 transition-none"
+          className={[
+            "h-full opacity-50 transition-none",
+            config.progressColor,
+          ].join(" ")}
           style={{ width: `${progress}%` }}
         />
       </div>

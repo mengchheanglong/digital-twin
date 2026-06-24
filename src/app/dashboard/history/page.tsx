@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { Clock, TrendingUp } from "lucide-react";
+import { Clock, TrendingUp, Star, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { CHECKIN_DIMENSIONS } from "@/lib/progression";
 import { Card } from "@/components/ui";
@@ -44,8 +44,10 @@ function HistorySkeleton() {
 }
 
 function getRatingColor(rating: number): string {
-  if (rating >= 4) return "bg-status-success/15 text-status-success border-status-success/25";
-  if (rating === 3) return "bg-status-warning/15 text-status-warning border-status-warning/25";
+  if (rating >= 4)
+    return "bg-status-success/15 text-status-success border-status-success/25";
+  if (rating === 3)
+    return "bg-status-warning/15 text-status-warning border-status-warning/25";
   return "bg-status-error/15 text-status-error border-status-error/25";
 }
 
@@ -64,11 +66,16 @@ export default function HistoryPage() {
       setLoading(true);
       const response = await axios.get("/api/checkin/history", { headers });
 
-      const items = Array.isArray(response.data?.history) ? (response.data.history as HistoryItem[]) : [];
+      const items = Array.isArray(response.data?.history)
+        ? (response.data.history as HistoryItem[])
+        : [];
       setHistory(items);
       setError("");
     } catch (requestError) {
-      if (axios.isAxiosError(requestError) && requestError.response?.status === 401) {
+      if (
+        axios.isAxiosError(requestError) &&
+        requestError.response?.status === 401
+      ) {
         requireAuth();
         return;
       }
@@ -86,39 +93,99 @@ export default function HistoryPage() {
   const summary = useMemo(() => {
     if (!history.length) return null;
     const total = history.length;
-    const avgScore = history.reduce((sum, item) => sum + item.overallScore, 0) / total;
-    const avgPercent = history.reduce((sum, item) => sum + item.percentage, 0) / total;
-    return { total, avgScore: Math.round(avgScore * 10) / 10, avgPercent: Math.round(avgPercent) };
+    const avgScore =
+      history.reduce((sum, item) => sum + item.overallScore, 0) / total;
+    const avgPercent =
+      history.reduce((sum, item) => sum + item.percentage, 0) / total;
+    return {
+      total,
+      avgScore: Math.round(avgScore * 10) / 10,
+      avgPercent: Math.round(avgPercent),
+    };
   }, [history]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl animate-fade-in">
+    <div className="mx-auto w-full max-w-4xl animate-fade-in space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-subtle text-accent-primary border border-accent-primary/20 shadow-glow-soft">
+          <Clock className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">
+            Check-in History
+          </h1>
+          <p className="text-sm text-text-secondary mt-0.5">
+            Your chronological wellness record.
+          </p>
+        </div>
+      </div>
+
+      {/* Summary stats */}
+      {summary && (
+        <div
+          className="grid grid-cols-3 gap-4 animate-fade-in"
+          style={{ animationDelay: "100ms" }}
+        >
+          <Card
+            variant="elevated"
+            className="group relative overflow-hidden px-5 py-4 flex items-center gap-3"
+          >
+            <div className="pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full bg-accent-primary/5 blur-xl" />
+            <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-xl font-black text-text-primary leading-none">
+                {summary.avgPercent}%
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                Avg Wellness
+              </p>
+            </div>
+          </Card>
+
+          <Card
+            variant="elevated"
+            className="group relative overflow-hidden px-5 py-4 flex items-center gap-3"
+          >
+            <div className="pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full bg-status-success/5 blur-xl" />
+            <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-status-success/10 text-status-success ring-1 ring-status-success/20">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-xl font-black text-text-primary leading-none">
+                {summary.total}
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                Check-ins
+              </p>
+            </div>
+          </Card>
+
+          <Card
+            variant="elevated"
+            className="group relative overflow-hidden px-5 py-4 flex items-center gap-3"
+          >
+            <div className="pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full bg-status-warning/5 blur-xl" />
+            <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-status-warning/10 text-status-warning ring-1 ring-status-warning/20">
+              <Star className="h-4 w-4" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-xl font-black text-text-primary leading-none">
+                {summary.avgScore}/25
+              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+                Avg Score
+              </p>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* History grid */}
       <Card variant="elevated" className="relative overflow-hidden">
-        <div className="pointer-events-none absolute top-0 h-1/2 w-full bg-gradient-to-b from-accent-primary/5 to-transparent" />
-
-        <header className="relative z-10 flex flex-col gap-4 border-b border-border/50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary shadow-inner ring-1 ring-accent-primary/20">
-              <Clock className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-text-primary">Check-in History</h1>
-              <p className="mt-0.5 text-xs text-text-muted">Chronological record of your emotional checks.</p>
-            </div>
-          </div>
-
-          {summary && (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5 rounded-lg bg-bg-panel px-3 py-1.5 text-xs font-semibold text-text-secondary ring-1 ring-border">
-                <TrendingUp className="h-3.5 w-3.5 text-status-success" />
-                Avg {summary.avgScore}/25
-              </div>
-              <div className="rounded-lg bg-bg-panel px-3 py-1.5 text-xs font-semibold text-text-secondary ring-1 ring-border">
-                {summary.total} check-ins
-              </div>
-            </div>
-          )}
-        </header>
+        <div className="pointer-events-none absolute top-0 h-1/3 w-full bg-gradient-to-b from-accent-primary/5 to-transparent" />
 
         <div className="relative z-10 space-y-4 p-6">
           {loading ? (
@@ -145,33 +212,60 @@ export default function HistoryPage() {
                   weekday: "short",
                   month: "short",
                   day: "numeric",
-                  year: dateObj.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+                  year:
+                    dateObj.getFullYear() !== new Date().getFullYear()
+                      ? "numeric"
+                      : undefined,
                 });
+                const isGood = item.percentage >= 70;
+                const isOk = item.percentage >= 45;
 
                 return (
                   <article
                     key={item.id}
-                    className="group flex flex-col justify-between rounded-xl border border-border bg-bg-panel/60 p-5 backdrop-blur-md transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-accent-primary/30 hover:bg-bg-panel hover:shadow-elevated"
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-bg-panel/60 p-5 backdrop-blur-md transition-all duration-500 ease-apple hover:-translate-y-0.5 hover:border-accent-primary/30 hover:bg-bg-panel hover:shadow-elevated"
                     style={{
                       animation: "fadeIn 300ms ease-out forwards",
                       animationDelay: `${Math.min(index * 60, 600)}ms`,
                       opacity: 0,
                     }}
                   >
-                    <div className="mb-3 flex items-start justify-between">
+                    {/* Side accent stripe */}
+                    <div
+                      className={[
+                        "absolute left-0 top-3 bottom-3 w-1 rounded-r-full",
+                        isGood
+                          ? "bg-status-success"
+                          : isOk
+                            ? "bg-status-warning"
+                            : "bg-status-error",
+                      ].join(" ")}
+                    />
+
+                    <div className="mb-3 flex items-start justify-between pl-3">
                       <p className="text-sm font-bold tracking-tight text-text-primary transition-colors group-hover:text-accent-primary">
                         {dateLabel}
                       </p>
-                      <Badge tone="accent">
-                        {item.overallScore}/25
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={[
+                            "text-lg font-black",
+                            isGood
+                              ? "text-status-success"
+                              : isOk
+                                ? "text-status-warning"
+                                : "text-status-error",
+                          ].join(" ")}
+                        >
+                          {item.percentage}%
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 pl-3">
                       <ProgressBar
                         value={item.percentage}
                         max={100}
-                        showPercentage
                         size="sm"
                         className="opacity-80 group-hover:opacity-100 transition-opacity"
                       />
@@ -179,17 +273,16 @@ export default function HistoryPage() {
                       <div className="flex flex-wrap gap-1.5">
                         {item.ratings.map((rating, ri) => {
                           const dimension = CHECKIN_DIMENSIONS[ri] ?? "metric";
-                          const label = dimension.charAt(0).toUpperCase() + dimension.slice(1);
+                          const label =
+                            dimension.charAt(0).toUpperCase() +
+                            dimension.slice(1);
                           return (
                             <span
                               key={dimension}
-                              className={`
-                                inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider
-                                ${getRatingColor(rating)}
-                              `}
+                              className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getRatingColor(rating)}`}
                               title={`${label}: ${rating}`}
                             >
-                              {label}: {rating}
+                              {label.substring(0, 3)}: {rating}
                             </span>
                           );
                         })}

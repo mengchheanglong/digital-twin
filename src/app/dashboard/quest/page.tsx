@@ -190,8 +190,7 @@ export default function QuestBoardPage() {
         duration: quest.duration,
         progress: Number(quest.progress ?? 0),
         completed: Boolean(quest.completed),
-        createdAt:
-          quest.date ?? quest.createdAt ?? new Date().toISOString(),
+        createdAt: quest.date ?? quest.createdAt ?? new Date().toISOString(),
         completedDate: quest.completedDate,
         recurrencesLeft: quest.recurrencesLeft,
       }));
@@ -486,8 +485,9 @@ export default function QuestBoardPage() {
         };
       }
       groups[normalizedGoal].count += 1;
-      groups[normalizedGoal].totalReward +=
-        getDurationMeta(log.duration).reward;
+      groups[normalizedGoal].totalReward += getDurationMeta(
+        log.duration,
+      ).reward;
     }
 
     return Object.values(groups).sort((a, b) => b.totalReward - a.totalReward);
@@ -541,10 +541,7 @@ export default function QuestBoardPage() {
 
       {/* Stats */}
       <section className="grid gap-4 sm:grid-cols-3">
-        <Card
-          variant="elevated"
-          className="group relative overflow-hidden p-5"
-        >
+        <Card variant="elevated" className="group relative overflow-hidden p-5">
           <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-accent-primary/5 blur-2xl transition-colors duration-500 group-hover:bg-accent-primary/10" />
           <div className="relative z-10 flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
@@ -561,10 +558,7 @@ export default function QuestBoardPage() {
           </div>
         </Card>
 
-        <Card
-          variant="elevated"
-          className="group relative overflow-hidden p-5"
-        >
+        <Card variant="elevated" className="group relative overflow-hidden p-5">
           <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-status-success/5 blur-2xl transition-colors duration-500 group-hover:bg-status-success/10" />
           <div className="relative z-10 flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-status-success/10 text-status-success ring-1 ring-status-success/20">
@@ -581,10 +575,7 @@ export default function QuestBoardPage() {
           </div>
         </Card>
 
-        <Card
-          variant="elevated"
-          className="group relative overflow-hidden p-5"
-        >
+        <Card variant="elevated" className="group relative overflow-hidden p-5">
           <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-status-warning/5 blur-2xl transition-colors duration-500 group-hover:bg-status-warning/10" />
           <div className="relative z-10 flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-status-warning/10 text-status-warning ring-1 ring-status-warning/20">
@@ -650,84 +641,119 @@ export default function QuestBoardPage() {
                 <Card
                   key={quest.id}
                   variant="elevated"
-                  className="group relative overflow-hidden p-6 transition-all duration-300 ease-apple hover:-translate-y-1 hover:border-accent-primary/30 hover:shadow-stripe-hover hover:ring-1 hover:ring-accent-primary/20 animate-fade-in"
+                  className={[
+                    "group relative overflow-hidden p-0 transition-all duration-300 ease-apple animate-fade-in",
+                    isReady
+                      ? "border-status-success/50 shadow-[0_0_30px_rgba(52,211,153,0.15)] hover:shadow-[0_0_40px_rgba(52,211,153,0.25)] hover:-translate-y-1"
+                      : "hover:-translate-y-1 hover:border-accent-primary/30 hover:shadow-stripe-hover hover:ring-1 hover:ring-accent-primary/20",
+                  ].join(" ")}
                   style={{
                     animationDelay: `${index * 60}ms`,
                     animationFillMode: "both",
                   }}
                 >
-                  <Tooltip content="Delete quest">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-4 right-4 h-8 w-8 p-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                      onClick={() => setDeleteId(quest.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </Tooltip>
+                  {/* Top accent bar */}
+                  <div
+                    className={[
+                      "h-1 w-full",
+                      isReady
+                        ? "bg-gradient-to-r from-status-success via-accent-primary to-status-success bg-[length:200%_100%] animate-shimmer"
+                        : "bg-gradient-to-r from-accent-primary to-accent-hover opacity-60",
+                    ].join(" ")}
+                  />
 
-                  <div className="mb-4 space-y-2 pr-8">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={meta.tone}>
-                        {meta.icon}
-                        {meta.label}
-                      </Badge>
-                      <Pill tone={meta.tone}>+{meta.reward} XP</Pill>
-                      {typeof quest.recurrencesLeft === "number" &&
-                        quest.recurrencesLeft > 0 && (
-                          <Pill tone="default">
-                            {quest.recurrencesLeft} left
-                          </Pill>
+                  <div className="p-6">
+                    {/* Delete button */}
+                    <Tooltip content="Delete quest">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-5 right-4 h-7 w-7 p-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                        onClick={() => setDeleteId(quest.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </Tooltip>
+
+                    <div className="mb-4 space-y-2 pr-8">
+                      {/* Status badges row */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isReady && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-status-success/40 bg-status-success/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-status-success animate-scale-in">
+                            <span className="h-1.5 w-1.5 rounded-full bg-status-success animate-pulse" />
+                            Ready to Claim
+                          </span>
                         )}
-                    </div>
-                    <h3 className="text-lg font-bold leading-snug text-text-primary">
-                      {quest.goal}
-                    </h3>
-                  </div>
+                        <Badge tone={meta.tone}>
+                          {meta.icon}
+                          {meta.label}
+                        </Badge>
+                        <Pill tone={meta.tone}>+{meta.reward} XP</Pill>
+                        {typeof quest.recurrencesLeft === "number" &&
+                          quest.recurrencesLeft > 0 && (
+                            <Pill tone="default">
+                              {quest.recurrencesLeft} left
+                            </Pill>
+                          )}
+                      </div>
 
-                  <div className="mb-5">
-                    <ProgressBar
-                      value={quest.progress}
-                      showPercentage
-                      size="md"
-                      shimmer={quest.progress > 0 && quest.progress < 100}
-                    />
-                  </div>
+                      {/* Quest goal */}
+                      <h3 className="text-base font-bold leading-snug text-text-primary">
+                        {quest.goal}
+                      </h3>
+                    </div>
 
-                  <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
-                    <div className="flex gap-2">
+                    {/* Progress bar */}
+                    <div className="mb-5">
+                      <ProgressBar
+                        value={quest.progress}
+                        showPercentage
+                        size="md"
+                        shimmer={quest.progress > 0 && !isReady}
+                      />
+                    </div>
+
+                    {/* Action row */}
+                    <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+                      {/* Progress controls */}
+                      <div className="flex gap-1.5">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            updateProgress(quest.id, quest.progress + 10)
+                          }
+                          disabled={quest.progress >= 100}
+                          className="text-xs font-bold"
+                        >
+                          +10%
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            updateProgress(quest.id, quest.progress + 25)
+                          }
+                          disabled={quest.progress >= 100}
+                          className="text-xs font-bold"
+                        >
+                          +25%
+                        </Button>
+                      </div>
+
+                      {/* Claim / Complete button */}
                       <Button
-                        variant="secondary"
+                        variant={isReady ? "success" : "primary"}
                         size="sm"
-                        onClick={() =>
-                          updateProgress(quest.id, quest.progress + 10)
+                        leftIcon={
+                          <Check className="h-4 w-4" strokeWidth={2.5} />
                         }
-                        disabled={quest.progress >= 100}
+                        onClick={() => toggleCompletion(quest.id)}
+                        className={isReady ? "btn-glow" : ""}
                       >
-                        +10%
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() =>
-                          updateProgress(quest.id, quest.progress + 25)
-                        }
-                        disabled={quest.progress >= 100}
-                      >
-                        +25%
+                        {isReady ? "Claim Reward" : "Complete"}
                       </Button>
                     </div>
-                    <Button
-                      variant={isReady ? "success" : "primary"}
-                      size="sm"
-                      leftIcon={
-                        <Check className="h-4 w-4" strokeWidth={2.5} />
-                      }
-                      onClick={() => toggleCompletion(quest.id)}
-                    >
-                      {isReady ? "Claim" : "Complete"}
-                    </Button>
                   </div>
                 </Card>
               );
@@ -889,7 +915,11 @@ export default function QuestBoardPage() {
           </div>
         }
       >
-        <form id="create-quest-form" onSubmit={handleCreateQuest} className="space-y-5">
+        <form
+          id="create-quest-form"
+          onSubmit={handleCreateQuest}
+          className="space-y-5"
+        >
           <FormField
             label="What is your goal?"
             htmlFor="goal"
@@ -967,11 +997,7 @@ export default function QuestBoardPage() {
         size="sm"
         footer={
           <div className="flex w-full items-center justify-end gap-3">
-            <Button
-              variant="ghost"
-              size="md"
-              onClick={() => setDeleteId(null)}
-            >
+            <Button variant="ghost" size="md" onClick={() => setDeleteId(null)}>
               Cancel
             </Button>
             <Button
