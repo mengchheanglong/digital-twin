@@ -6,6 +6,8 @@ import { adjustUserXP } from '@/lib/user-progress';
 import { updateUserInsight } from '@/lib/insight-engine';
 import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
 import { MongoRateLimiter } from '@/lib/rate-limit';
+import { getClientIp, readJsonBody } from '@/lib/request';
+import { isDuplicateKeyError } from '@/lib/mongo-errors';
 
 import CheckIn from '@/lib/models/CheckIn';
 import UserEvent from '@/lib/models/UserEvent';
@@ -26,8 +28,7 @@ function isValidRatings(ratings: number[]): boolean {
 
 export async function POST(req: Request) {
   try {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    const ip = getClientIp(req);
 
     if (!(await submitLimiter.check(ip))) {
       return tooManyRequests('Too many check-in submissions. Please try again later.');
@@ -40,7 +41,10 @@ export async function POST(req: Request) {
       return unauthorized('No token, authorization denied.');
     }
 
-    const body = (await req.json()) as SubmitPayload;
+    const parsed = await readJsonBody<SubmitPayload>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const ratings = Array.isArray(body.ratings) ? body.ratings.map((value) => Number(value)) : [];
 
     if (!isValidRatings(ratings)) {
@@ -61,18 +65,25 @@ export async function POST(req: Request) {
     const maxScore = ratings.length * 5;
     const percentage = Math.round((overallScore / maxScore) * 100);
 
-    const checkIn = new CheckIn({
-      userId: user.id,
-      ratings,
-      overallScore,
-      percentage,
-      dayKey,
-      date: new Date(),
-    });
+    try {
+      await CheckIn.create({
+        userId: user.id,
+        ratings,
+        overallScore,
+        percentage,
+        dayKey,
+        date: new Date(),
+      });
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        return badRequest('Daily check-in already completed.');
+      }
+      throw error;
+    }
 
-    const [progression] = await Promise.all([
-      adjustUserXP(user.id, percentage),
-      checkIn.save(),
+    const progression = await adjustUserXP(user.id, percentage);
+
+    void Promise.all([
       UserEvent.create({
         userId: user.id,
         type: 'log_added',

@@ -13,6 +13,7 @@ import UserEvent from '@/lib/models/UserEvent';
 import { badRequest, unauthorized, notFound, serverError, errorResponse, tooManyRequests } from '@/lib/api-response';
 import { MongoRateLimiter } from '@/lib/rate-limit';
 import { DeepSeekChatMessage, requestDeepSeekChat, resolveDeepSeekModelCandidates } from '@/lib/deepseek';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -362,7 +363,10 @@ export async function POST(req: Request) {
       return tooManyRequests('Too many chat messages. Please try again later.');
     }
 
-    const body = (await req.json()) as SendPayload;
+    const parsed = await readJsonBody<SendPayload>(req, { maxBytes: 32 * 1024 });
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const message = String(body.message || '').trim();
     const requestedChatId = String(body.chatId || '').trim();
 

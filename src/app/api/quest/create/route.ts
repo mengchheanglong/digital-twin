@@ -6,6 +6,7 @@ import { normalizeDuration } from '@/lib/progression';
 import Quest from '@/lib/models/Quest';
 import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
 import { MongoRateLimiter } from '@/lib/rate-limit';
+import { getClientIp, readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +16,12 @@ const createQuestLimiter = new MongoRateLimiter('quest-create', 60 * 1000, 20);
 interface CreateQuestPayload {
   goal?: string;
   duration?: string;
+  recurrences?: unknown;
 }
 
 export async function POST(req: Request) {
   try {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    const ip = getClientIp(req);
 
     if (!(await createQuestLimiter.check(ip))) {
       return tooManyRequests('Too many quest creation requests. Please try again later.');
@@ -33,10 +34,24 @@ export async function POST(req: Request) {
       return unauthorized('No token, authorization denied.');
     }
 
-    const body = (await req.json()) as CreateQuestPayload & { recurrences?: number };
+    const parsed = await readJsonBody<CreateQuestPayload>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const goal = String(body.goal || '').trim();
     const duration = normalizeDuration(String(body.duration || 'daily'));
-    const recurrences = body.recurrences ? Math.max(1, Number(body.recurrences)) : undefined;
+    let recurrences: number | undefined;
+    if (body.recurrences !== undefined) {
+      const requestedRecurrences = Number(body.recurrences);
+      if (
+        !Number.isInteger(requestedRecurrences) ||
+        requestedRecurrences < 1 ||
+        requestedRecurrences > 365
+      ) {
+        return badRequest('Recurrences must be an integer between 1 and 365.');
+      }
+      recurrences = requestedRecurrences;
+    }
 
     if (!goal) {
       return badRequest('Goal is required.');

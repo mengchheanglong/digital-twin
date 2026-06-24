@@ -2,11 +2,13 @@
 
 import React from "react";
 
+export type StatColor = "accent" | "success" | "warning" | "error" | "info";
+
 export interface StatCardProps {
   icon: React.ReactNode;
   value: string | number;
   label: string;
-  color?: "accent" | "success" | "warning" | "error" | "info";
+  color?: StatColor;
 }
 
 const colorMap: Record<

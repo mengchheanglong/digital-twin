@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import { computeMoodPatterns } from '@/lib/analytics/mood-patterns';
 import { unauthorized, serverError } from '@/lib/api-response';
+import { parseBoundedInt } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,10 +12,11 @@ export async function GET(req: Request) {
     if (!user) return unauthorized();
 
     const { searchParams } = new URL(req.url);
-    const days = Math.min(
-      90,
-      Math.max(7, Number(searchParams.get('days') || 30)),
-    );
+    const days = parseBoundedInt(searchParams.get('days'), {
+      defaultValue: 30,
+      min: 7,
+      max: 90,
+    });
 
     const patterns = await computeMoodPatterns(user.id, days);
     return NextResponse.json({ patterns });

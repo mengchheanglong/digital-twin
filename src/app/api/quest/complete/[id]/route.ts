@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
-import { unauthorized, badRequest, notFound, serverError } from '@/lib/api-response';
+import { unauthorized, badRequest, notFound, serverError, conflict } from '@/lib/api-response';
 import { normalizeDuration, QUEST_XP_REWARD } from '@/lib/progression';
 import { adjustUserXP } from '@/lib/user-progress';
 import { updateUserInsight } from '@/lib/insight-engine';
@@ -14,9 +14,9 @@ import UserEvent from '@/lib/models/UserEvent';
 export const dynamic = 'force-dynamic';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function PUT(req: Request, { params }: RouteContext) {
@@ -28,20 +28,33 @@ export async function PUT(req: Request, { params }: RouteContext) {
       return unauthorized();
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return badRequest('Invalid quest id.');
     }
 
-    const quest = await Quest.findOne({ _id: id, userId: user.id });
-    if (!quest) {
+    const currentQuest = await Quest.findOne({ _id: id, userId: user.id });
+    if (!currentQuest) {
       return notFound('Quest not found.');
     }
 
-    const nextCompleted = !quest.completed;
-    quest.completed = nextCompleted;
-    quest.progress = nextCompleted ? 100 : 0;
-    quest.completedDate = nextCompleted ? new Date() : null;
+    const nextCompleted = !currentQuest.completed;
+    const completedDate = nextCompleted ? new Date() : null;
+    const quest = await Quest.findOneAndUpdate(
+      { _id: id, userId: user.id, completed: currentQuest.completed },
+      {
+        $set: {
+          completed: nextCompleted,
+          progress: nextCompleted ? 100 : 0,
+          completedDate,
+        },
+      },
+      { new: true },
+    );
+
+    if (!quest) {
+      return conflict('Quest was updated by another request. Please retry.');
+    }
 
     const reward = QUEST_XP_REWARD[normalizeDuration(quest.duration)] || 0;
     
@@ -173,10 +186,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
       }
     }
 
-    const [progression] = await Promise.all([
-      adjustUserXP(user.id, nextCompleted ? reward : -reward),
-      quest.save(),
-    ]);
+    const progression = await adjustUserXP(user.id, nextCompleted ? reward : -reward);
 
     return NextResponse.json({
       msg: nextCompleted ? 'Quest completed.' : 'Quest reopened.',

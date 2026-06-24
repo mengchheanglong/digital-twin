@@ -4,6 +4,7 @@ import { verifyTokenWithRevocation } from '@/lib/auth';
 import { badRequest, unauthorized, serverError } from '@/lib/api-response';
 import FocusSession from '@/lib/models/FocusSession';
 import dbConnect from '@/lib/db';
+import { parseBoundedInt, readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,11 +16,16 @@ export async function GET(req: Request) {
     if (!user) return unauthorized();
 
     const { searchParams } = new URL(req.url);
-    const limit = Math.min(
-      50,
-      Math.max(1, Number(searchParams.get('limit') ?? 20)),
-    );
-    const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+    const limit = parseBoundedInt(searchParams.get('limit'), {
+      defaultValue: 20,
+      min: 1,
+      max: 50,
+    });
+    const page = parseBoundedInt(searchParams.get('page'), {
+      defaultValue: 1,
+      min: 1,
+      max: 10000,
+    });
     const skip = (page - 1) * limit;
 
     const uid = new mongoose.Types.ObjectId(user.id);
@@ -46,10 +52,13 @@ export async function POST(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const body = (await req.json()) as {
+    const parsed = await readJsonBody<{
       label?: string;
       durationMinutes?: number;
-    };
+    }>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
 
     const label = String(body.label ?? '').trim();
     const durationMinutes = Number(body.durationMinutes ?? 25);

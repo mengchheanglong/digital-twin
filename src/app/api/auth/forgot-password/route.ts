@@ -1,20 +1,25 @@
-import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
 import dbConnect from "@/lib/db";
 import User from "@/lib/models/User";
 import { badRequest, successResponse, serverError, tooManyRequests } from "@/lib/api-response";
 import { sendEmail } from "@/lib/email";
 import { MongoRateLimiter } from "@/lib/rate-limit";
+import { validateEmail } from "@/lib/validation";
+import { getClientIp, readJsonBody } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
 
 // 5 requests per minute per IP
 const forgotPasswordLimiter = new MongoRateLimiter('forgot-password', 60 * 1000, 5);
 
+interface ForgotPasswordPayload {
+  email?: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const forwarded = req.headers.get("x-forwarded-for");
-    const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
+    const ip = getClientIp(req);
 
     if (!(await forgotPasswordLimiter.check(ip))) {
       return tooManyRequests("Too many requests. Please try again later.");
@@ -22,13 +27,21 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
-    const { email } = await req.json();
+    const parsed = await readJsonBody<ForgotPasswordPayload>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const email = String(parsed.data.email || "").trim().toLowerCase();
 
     if (!email) {
       return badRequest("Email is required.");
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return badRequest(emailValidation.message);
+    }
+
+    const user = await User.findOne({ email });
 
     if (!user) {
       // For security, don't reveal if user exists.
@@ -38,7 +51,7 @@ export async function POST(req: Request) {
     // Generate 6-digit OTP
     const otp = randomInt(100000, 1000000).toString();
     
-    user.resetPasswordToken = otp;
+    user.resetPasswordToken = await bcrypt.hash(otp, 10);
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
 
     await user.save();

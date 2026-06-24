@@ -9,9 +9,9 @@ import { unauthorized, serverError } from '@/lib/api-response';
 export const dynamic = 'force-dynamic';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function DELETE(req: Request, { params }: RouteContext) {
@@ -23,7 +23,7 @@ export async function DELETE(req: Request, { params }: RouteContext) {
       return unauthorized('No token, authorization denied.');
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ msg: 'Invalid quest id.' }, { status: 400 });
     }

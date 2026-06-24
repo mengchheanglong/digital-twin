@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import { normalizeDuration, QUEST_XP_REWARD } from '@/lib/progression';
 import { adjustUserXP } from '@/lib/user-progress';
+import { badRequest, notFound, serverError, unauthorized } from '@/lib/api-response';
+import { readJsonBody } from '@/lib/request';
 
 import Quest from '@/lib/models/Quest';
 
@@ -14,9 +16,9 @@ interface UpdateProgressPayload {
 }
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function PUT(req: Request, { params }: RouteContext) {
@@ -25,39 +27,48 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const user = await verifyTokenWithRevocation(req);
     if (!user) {
-      return NextResponse.json({ msg: 'No token, authorization denied.' }, { status: 401 });
+      return unauthorized('No token, authorization denied.');
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ msg: 'Invalid quest id.' }, { status: 400 });
+      return badRequest('Invalid quest id.');
     }
 
-    const body = (await req.json()) as UpdateProgressPayload;
+    const parsed = await readJsonBody<UpdateProgressPayload>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const progress = Number(body.progress);
     if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
-      return NextResponse.json({ msg: 'Progress must be a number between 0 and 100.' }, { status: 400 });
+      return badRequest('Progress must be a number between 0 and 100.');
+    }
+
+    const roundedProgress = Math.round(progress);
+    const nextCompleted = roundedProgress >= 100;
+    const previousQuest = await Quest.findOneAndUpdate(
+      { _id: id, userId: user.id },
+      {
+        $set: {
+          progress: roundedProgress,
+          completed: nextCompleted,
+          completedDate: nextCompleted ? new Date() : null,
+        },
+      },
+      { new: false },
+    );
+
+    if (!previousQuest) {
+      return notFound('Quest not found.');
+    }
+
+    let progression = null;
+    if (Boolean(previousQuest.completed) !== nextCompleted) {
+      const reward = QUEST_XP_REWARD[normalizeDuration(previousQuest.duration)] || 0;
+      progression = await adjustUserXP(user.id, nextCompleted ? reward : -reward);
     }
 
     const quest = await Quest.findOne({ _id: id, userId: user.id });
-    if (!quest) {
-      return NextResponse.json({ msg: 'Quest not found.' }, { status: 404 });
-    }
-
-    const previousProgress = Number(quest.progress ?? quest.ratings?.[0] ?? 0);
-    const wasCompleted = quest.completed;
-    quest.progress = Math.round(progress);
-    quest.completed = progress >= 100;
-    quest.completedDate = quest.completed ? new Date() : null;
-    await quest.save();
-
-    let progression = null;
-    if (wasCompleted !== quest.completed) {
-      const reward = QUEST_XP_REWARD[normalizeDuration(quest.duration)] || 0;
-      progression = await adjustUserXP(user.id, quest.completed ? reward : -reward);
-    }
-
-
 
     return NextResponse.json({
       msg: 'Progress updated.',
@@ -65,8 +76,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
       progression,
     });
   } catch (error) {
-    console.error('Update progress error:', error);
-    return NextResponse.json({ msg: 'Server error.' }, { status: 500 });
+    return serverError(error, 'Update progress error');
   }
 }
 

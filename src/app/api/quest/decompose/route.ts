@@ -5,6 +5,7 @@ import { badRequest, unauthorized, serverError } from '@/lib/api-response';
 import Quest from '@/lib/models/Quest';
 import dbConnect from '@/lib/db';
 import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from '@/lib/deepseek';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,10 @@ export async function POST(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const body = (await req.json()) as { questId?: string };
+    const parsed = await readJsonBody<{ questId?: string }>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const questId = String(body.questId ?? '').trim();
 
     if (!questId || !mongoose.Types.ObjectId.isValid(questId)) {

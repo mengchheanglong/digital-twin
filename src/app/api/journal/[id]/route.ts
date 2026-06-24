@@ -9,12 +9,13 @@ import {
 } from '@/lib/api-response';
 import JournalEntry from '@/lib/models/JournalEntry';
 import dbConnect from '@/lib/db';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -22,16 +23,19 @@ export async function PUT(
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id))
       return badRequest('Invalid entry ID.');
 
-    const body = (await req.json()) as {
+    const parsed = await readJsonBody<{
       title?: string;
       content?: string;
       mood?: string;
       tags?: unknown[];
-    };
+    }>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
 
     const updates: Record<string, unknown> = {};
 
@@ -63,6 +67,10 @@ export async function PUT(
         : [];
     }
 
+    if (Object.keys(updates).length === 0) {
+      return badRequest('At least one update field is required.');
+    }
+
     const updated = await JournalEntry.findOneAndUpdate(
       { _id: id, userId: new mongoose.Types.ObjectId(user.id) },
       { $set: updates },
@@ -79,7 +87,7 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -87,7 +95,7 @@ export async function DELETE(
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id))
       return badRequest('Invalid entry ID.');
 

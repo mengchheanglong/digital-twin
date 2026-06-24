@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/auth';
 import { buildProfile } from '@/lib/profile-service';
 import { badRequest, notFound, serverError } from '@/lib/api-response';
 import User from '@/lib/models/User';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,10 @@ export const PUT = withAuth(async (req, _context, user) => {
   try {
     await dbConnect();
 
-    const body = (await req.json()) as UpdateProfilePayload;
+    const parsed = await readJsonBody<UpdateProfilePayload>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
 
     const updates: Partial<{ name: string; bio: string; location: string; age: number; timezone: string }> = {};
 

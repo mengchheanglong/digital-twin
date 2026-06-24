@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError, badRequest } from '@/lib/api-response';
 import { hasDeepSeekApiKey, requestDeepSeekChat, stripJsonCodeFences } from '@/lib/deepseek';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +76,10 @@ export async function POST(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const body = (await req.json()) as ParsePayload;
+    const parsed = await readJsonBody<ParsePayload>(req, { maxBytes: 16 * 1024 });
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const text = String(body.text ?? '').trim();
     if (!text) return badRequest('text is required.');
     if (text.length > 1000) return badRequest('text must be 1000 characters or less.');

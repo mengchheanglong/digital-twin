@@ -1,11 +1,11 @@
 import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import { verifyTokenWithRevocation } from '@/lib/auth';
-import { clamp } from '@/lib/math';
 import dbConnect from '@/lib/db';
 import ChatConversation from '@/lib/models/ChatConversation';
 import ChatMessage from '@/lib/models/ChatMessage';
 import ChatSignal from '@/lib/models/ChatSignal';
+import { parseBoundedInt } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,8 +46,11 @@ export async function GET(req: Request) {
         return NextResponse.json({ msg: 'Chat not found.' }, { status: 404 });
       }
 
-      const limitParam = parseInt(url.searchParams.get('limit') || '50', 10);
-      const limit = clamp(limitParam, 1, 100);
+      const limit = parseBoundedInt(url.searchParams.get('limit'), {
+        defaultValue: 50,
+        min: 1,
+        max: 100,
+      });
       const cursor = url.searchParams.get('cursor'); // timestamp string
 
       const query: any = { chatId, userId: user.id };

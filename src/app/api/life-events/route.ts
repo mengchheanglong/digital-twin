@@ -5,6 +5,7 @@ import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError, badRequest } from '@/lib/api-response';
 import LifeEvent from '@/lib/models/LifeEvent';
 import { getDayKey } from '@/lib/progression';
+import { parseBoundedInt, readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +23,16 @@ export async function GET(req: Request) {
 
     const uid = new mongoose.Types.ObjectId(user.id);
     const { searchParams } = new URL(req.url);
-    const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit') ?? 50)));
-    const page = Math.max(1, Number(searchParams.get('page') ?? 1));
+    const limit = parseBoundedInt(searchParams.get('limit'), {
+      defaultValue: 50,
+      min: 1,
+      max: 100,
+    });
+    const page = parseBoundedInt(searchParams.get('page'), {
+      defaultValue: 1,
+      min: 1,
+      max: 10000,
+    });
 
     const [events, total] = await Promise.all([
       LifeEvent.find({ userId: uid })
@@ -47,12 +56,15 @@ export async function POST(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const body = (await req.json()) as {
+    const parsed = await readJsonBody<{
       title?: string;
       category?: string;
       notes?: string;
       date?: string;
-    };
+    }>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
 
     const title = String(body.title ?? '').trim();
     if (!title) return badRequest('title is required.');

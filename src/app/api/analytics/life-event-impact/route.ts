@@ -5,6 +5,7 @@ import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError, badRequest, notFound } from '@/lib/api-response';
 import CheckIn from '@/lib/models/CheckIn';
 import LifeEvent from '@/lib/models/LifeEvent';
+import { parseBoundedInt } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +72,11 @@ export async function GET(req: Request) {
     const uid = new mongoose.Types.ObjectId(user.id);
     const { searchParams } = new URL(req.url);
     const eventId = searchParams.get('eventId');
-    const windowDays = Math.min(30, Math.max(3, Number(searchParams.get('windowDays') ?? 14)));
+    const windowDays = parseBoundedInt(searchParams.get('windowDays'), {
+      defaultValue: 14,
+      min: 3,
+      max: 30,
+    });
 
     if (!eventId) return badRequest('eventId is required');
 

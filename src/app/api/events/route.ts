@@ -5,6 +5,7 @@ import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/ap
 import { MongoRateLimiter } from '@/lib/rate-limit';
 import UserEvent from '@/lib/models/UserEvent';
 import { updateUserInsight } from '@/lib/insight-engine';
+import { getClientIp, readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +29,7 @@ interface CreateEventRequest {
 
 export async function POST(req: Request) {
   try {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    const ip = getClientIp(req);
 
     if (!(await eventsLimiter.check(ip))) {
       return tooManyRequests('Too many event requests. Please try again later.');
@@ -44,12 +44,9 @@ export async function POST(req: Request) {
     }
 
     // Step 2: Parse and validate request body
-    let body: CreateEventRequest;
-    try {
-      body = await req.json();
-    } catch {
-      return badRequest('Invalid JSON body.');
-    }
+    const parsed = await readJsonBody<CreateEventRequest>(req);
+    if (parsed.ok === false) return parsed.response;
+    const body = parsed.data;
 
     // Validate event type
     if (!body.type || !VALID_EVENT_TYPES.includes(body.type)) {

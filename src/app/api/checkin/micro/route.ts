@@ -5,6 +5,7 @@ import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/ap
 import { MongoRateLimiter } from '@/lib/rate-limit';
 import { getDayKey } from '@/lib/progression';
 import CheckIn from '@/lib/models/CheckIn';
+import { getClientIp, readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,13 +17,12 @@ interface MicroPayload {
 }
 
 function isValidRatings(ratings: number[]): boolean {
-  return Array.isArray(ratings) && ratings.length === 5 && ratings.every((v) => v >= 1 && v <= 5);
+  return Array.isArray(ratings) && ratings.length === 5 && ratings.every((v) => Number.isInteger(v) && v >= 1 && v <= 5);
 }
 
 export async function POST(req: Request) {
   try {
-    const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    const ip = getClientIp(req);
 
     if (!(await microLimiter.check(ip))) {
       return tooManyRequests('Too many micro check-ins. Please slow down.');
@@ -33,7 +33,10 @@ export async function POST(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const body = (await req.json()) as MicroPayload;
+    const parsed = await readJsonBody<MicroPayload>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
     const ratings = Array.isArray(body.ratings) ? body.ratings.map((v) => Number(v)) : [];
 
     if (!isValidRatings(ratings)) {

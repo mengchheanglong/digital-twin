@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import { unauthorized } from './api-response';
 import dbConnect from './db';
@@ -51,7 +52,7 @@ export function verifyToken(req: Request): DecodedUser | null {
           ? payloadUser._id.trim()
           : '';
 
-    if (!normalizedId) {
+    if (!normalizedId || !mongoose.Types.ObjectId.isValid(normalizedId)) {
       return null;
     }
 
@@ -97,7 +98,7 @@ export async function verifyTokenWithRevocation(req: Request): Promise<DecodedUs
         ? payloadUser._id.trim()
         : '';
 
-  if (!normalizedId) {
+  if (!normalizedId || !mongoose.Types.ObjectId.isValid(normalizedId)) {
     return null;
   }
 
@@ -112,9 +113,9 @@ export async function verifyTokenWithRevocation(req: Request): Promise<DecodedUs
         return null;
       }
     }
-  } catch {
-    // If the DB check fails we fail open (don't block valid requests due to
-    // transient DB errors) — the JWT signature is still verified above.
+  } catch (error) {
+    console.error('Token revocation check failed:', error);
+    return null;
   }
 
   return {

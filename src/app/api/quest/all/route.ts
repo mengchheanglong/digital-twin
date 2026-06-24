@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import Quest from '@/lib/models/Quest';
 import { unauthorized, serverError } from '@/lib/api-response';
+import { parseBoundedInt } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,11 +18,16 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const paramLimit = parseInt(searchParams.get('limit') || '1000', 10);
-    const limit = isNaN(paramLimit) || paramLimit < 1 ? 1000 : Math.min(paramLimit, 1000);
-
-    const paramSkip = parseInt(searchParams.get('skip') || '0', 10);
-    const skip = isNaN(paramSkip) || paramSkip < 0 ? 0 : paramSkip;
+    const limit = parseBoundedInt(searchParams.get('limit'), {
+      defaultValue: 1000,
+      min: 1,
+      max: 1000,
+    });
+    const skip = parseBoundedInt(searchParams.get('skip'), {
+      defaultValue: 0,
+      min: 0,
+      max: 100000,
+    });
 
     const now = new Date();
     const quests = await Quest.find({ 

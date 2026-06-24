@@ -9,12 +9,13 @@ import {
 } from '@/lib/api-response';
 import FocusSession from '@/lib/models/FocusSession';
 import dbConnect from '@/lib/db';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -22,7 +23,7 @@ export async function PUT(
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id))
       return badRequest('Invalid session ID.');
 
@@ -33,18 +34,29 @@ export async function PUT(
 
     if (!session) return notFound('Focus session not found.');
 
-    const body = (await req.json()) as {
+    const parsed = await readJsonBody<{
       completed?: boolean;
       notes?: string;
       elapsedMinutes?: number;
-    };
+    }>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const body = parsed.data;
 
     const now = new Date();
     const elapsedMs = now.getTime() - session.startedAt.getTime();
-    const elapsedMinutes =
-      body.elapsedMinutes !== undefined
-        ? Math.max(0, Number(body.elapsedMinutes))
-        : Math.round(elapsedMs / 60000);
+    let elapsedMinutes = Math.round(elapsedMs / 60000);
+    if (body.elapsedMinutes !== undefined) {
+      const requestedElapsed = Number(body.elapsedMinutes);
+      if (
+        !Number.isFinite(requestedElapsed) ||
+        requestedElapsed < 0 ||
+        requestedElapsed > 1440
+      ) {
+        return badRequest('Elapsed minutes must be between 0 and 1440.');
+      }
+      elapsedMinutes = Math.round(requestedElapsed);
+    }
 
     session.endedAt = now;
     session.elapsedMinutes = elapsedMinutes;
@@ -64,7 +76,7 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await dbConnect();
@@ -72,7 +84,7 @@ export async function DELETE(
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id))
       return badRequest('Invalid session ID.');
 

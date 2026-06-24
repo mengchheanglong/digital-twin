@@ -4,15 +4,16 @@ import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
 import { unauthorized, serverError, badRequest } from '@/lib/api-response';
 import User from '@/lib/models/User';
+import { readJsonBody } from '@/lib/request';
 
 export const dynamic = 'force-dynamic';
 
 const DEFAULT_DIMENSIONS = [
-  { key: 'energy', label: 'Energy', emoji: '⚡' },
-  { key: 'focus', label: 'Focus', emoji: '🎯' },
-  { key: 'stressControl', label: 'Stress Control', emoji: '🧘' },
-  { key: 'socialConnection', label: 'Social Connection', emoji: '🤝' },
-  { key: 'optimism', label: 'Optimism', emoji: '🌟' },
+  { key: 'energy', label: 'Energy', emoji: '\u26a1' },
+  { key: 'focus', label: 'Focus', emoji: '\ud83c\udfaf' },
+  { key: 'stressControl', label: 'Stress Control', emoji: '\ud83e\uddd8' },
+  { key: 'socialConnection', label: 'Social Connection', emoji: '\ud83e\udd1d' },
+  { key: 'optimism', label: 'Optimism', emoji: '\ud83c\udf1f' },
 ];
 
 export async function GET(req: Request) {
@@ -43,21 +44,30 @@ export async function PUT(req: Request) {
     const user = await verifyTokenWithRevocation(req);
     if (!user) return unauthorized();
 
-    const body = (await req.json()) as { dimensions?: unknown[] };
-    const dims = body.dimensions;
+    const parsed = await readJsonBody<{ dimensions?: unknown[] }>(req);
+    if (parsed.ok === false) return parsed.response;
+
+    const dims = parsed.data.dimensions;
 
     if (!Array.isArray(dims) || dims.length !== 5) {
       return badRequest('Must provide exactly 5 dimensions.');
     }
 
-    const validated = dims.map((d, i) => {
-      if (typeof d !== 'object' || d === null) throw new Error(`Dimension ${i} is not an object`);
-      const obj = d as Record<string, unknown>;
+    const validated = dims.map((dimension, index) => {
+      if (typeof dimension !== 'object' || dimension === null) {
+        throw new Error(`Dimension ${index} is not an object`);
+      }
+
+      const obj = dimension as Record<string, unknown>;
       const key = String(obj.key ?? '').trim().toLowerCase().replace(/\s+/g, '_').slice(0, 50);
       const label = String(obj.label ?? '').trim().slice(0, 50);
       const emoji = String(obj.emoji ?? '').trim().slice(0, 10);
-      if (!key || !label) throw new Error(`Dimension ${i} missing key or label`);
-      return { key, label, emoji: emoji || '⭐' };
+
+      if (!key || !label) {
+        throw new Error(`Dimension ${index} missing key or label`);
+      }
+
+      return { key, label, emoji: emoji || '\u2b50' };
     });
 
     const uid = new mongoose.Types.ObjectId(user.id);
