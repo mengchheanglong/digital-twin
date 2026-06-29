@@ -5,6 +5,8 @@ import { CHAT_SIGNAL_TYPES, parseSignalResponseText } from '@/lib/chat-signals';
 import dbConnect from '@/lib/db';
 import { updateUserInsight } from '@/lib/insight-engine';
 import { getUserMemoryContext } from '@/lib/memory-engine';
+import { buildReflectionSystemPrompt, formatTwinContextForReflection } from '@/lib/reflection-agent';
+import { buildTwinContextPack } from '@/lib/twin-core';
 import ChatConversation from '@/lib/models/ChatConversation';
 import ChatMessage from '@/lib/models/ChatMessage';
 import ChatSignal from '@/lib/models/ChatSignal';
@@ -147,11 +149,22 @@ interface InsightData {
   lastReflection: string;
 }
 
+async function getReflectionTwinContext(userId: string): Promise<string> {
+  try {
+    const pack = await buildTwinContextPack(userId);
+    return formatTwinContextForReflection(pack);
+  } catch (error) {
+    console.error('Failed to build Twin context for reflection:', error);
+    return '';
+  }
+}
+
 function buildCompanionPayload(
   userMessage: string,
   history: ConversationEntry[],
   insight?: InsightData | null,
   memoryContext?: string,
+  twinContext?: string,
 ): ChatGenerationPayload {
   const historyMessages: DeepSeekChatMessage[] = history
     .filter((message) => message.content.trim())
@@ -161,47 +174,15 @@ function buildCompanionPayload(
       content: message.content,
     }));
 
-  // Build system prompt with optional insight section
-  const systemPromptParts: string[] = [
-    'You are the user\'s digital twin.',
-    'You observe their behavior and give supportive, intelligent feedback.',
-  ];
-
-  // Add long-term memory context if available
-  if (memoryContext) {
-    systemPromptParts.push('');
-    systemPromptParts.push('=== LONG-TERM MEMORY ===');
-    systemPromptParts.push(memoryContext);
-    systemPromptParts.push('Reference this memory naturally when relevant, without stating it was from a file.');
-  }
-
-  // Add insight section if available
-  if (insight) {
-    const entertainmentPercent = Math.round(insight.entertainmentRatio * 100);
-    systemPromptParts.push('');
-    systemPromptParts.push('Current user insight:');
-    systemPromptParts.push(`- Top interest: ${insight.topInterest || 'Not yet identified'}`);
-    systemPromptParts.push(`- Productivity trend: ${insight.currentTrend || 'stable'}`);
-    systemPromptParts.push(`- Entertainment ratio: ${entertainmentPercent}%`);
-    systemPromptParts.push(`- Recent reflection: ${insight.lastReflection || 'None yet'}`);
-    systemPromptParts.push('');
-    systemPromptParts.push('Respond naturally. Occasionally reference these insights, but do not sound like a report or dashboard.');
-  } else {
-    // Default prompt without insight
-    systemPromptParts.push('Be warm, clear, and action-oriented.');
-    systemPromptParts.push('Help with focus, routines, stress regulation, and daily planning.');
-  }
-
-  systemPromptParts.push('');
-  systemPromptParts.push('Use concrete steps, short checklists, and reflective follow-up questions when useful.');
-  systemPromptParts.push('Do not fabricate personal history or claim capabilities you do not have.');
-  systemPromptParts.push('Avoid medical diagnosis and legal or financial advice.');
-  systemPromptParts.push('If the user sounds in crisis or unsafe, encourage contacting trusted support and local emergency services.');
-  systemPromptParts.push('Keep responses concise: 2-5 short sentences unless the user explicitly asks for detail.');
+  const systemPrompt = buildReflectionSystemPrompt({
+    twinContext,
+    memoryContext,
+    insight,
+  });
 
   return {
     messages: [
-      { role: 'system', content: systemPromptParts.join(' ') },
+      { role: 'system', content: systemPrompt },
       ...historyMessages,
       { role: 'user', content: userMessage },
     ],
@@ -418,10 +399,11 @@ export async function POST(req: Request) {
         content: String(entry.content || ''),
       }));
 
-    // Fetch user's insight state and memory context for personalized context
-    const [insightState, memoryContext] = await Promise.all([
+    // Fetch user's insight state, memory context, and verified Twin context for personalization.
+    const [insightState, memoryContext, twinContext] = await Promise.all([
       UserInsightState.findOne({ userId: user._id }).lean(),
       getUserMemoryContext(user.id),
+      getReflectionTwinContext(user.id),
     ]);
     const insightData: InsightData | null = insightState
       ? {
@@ -434,7 +416,15 @@ export async function POST(req: Request) {
 
     let companionResult: DeepSeekGenerationResult;
     try {
-      companionResult = await tryDeepSeekWithFallback(buildCompanionPayload(message, history, insightData, memoryContext || undefined));
+      companionResult = await tryDeepSeekWithFallback(
+        buildCompanionPayload(
+          message,
+          history,
+          insightData,
+          memoryContext || undefined,
+          twinContext || undefined,
+        ),
+      );
       companionResult = await ensureReplyQuality(message, companionResult);
     } catch (llmError) {
       console.error('DeepSeek generation failed:', llmError);
