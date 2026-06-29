@@ -543,11 +543,11 @@ export default function TimelinePage() {
   const isRefreshing = refreshingDays || refreshingInsights;
 
   return (
-    <main className="min-h-screen bg-bg-base px-6 py-8 max-w-6xl mx-auto animate-fade-in">
+    <main className="mx-auto max-w-6xl animate-fade-in space-y-6 pb-10">
       {/* ── Header ──────────────────────────────────────────── */}
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold text-text-primary">
             <Calendar className="h-6 w-6 text-accent-primary" />
             Timeline
           </h1>
@@ -559,6 +559,7 @@ export default function TimelinePage() {
           variant="secondary"
           size="sm"
           leftIcon={<RefreshCw className="h-4 w-4" />}
+          className="w-full sm:w-auto"
           onClick={() => {
             void fetchDays({ forceLoading: true });
             void fetchInsights({ forceLoading: true });
@@ -570,7 +571,7 @@ export default function TimelinePage() {
       </div>
 
       {/* ── Summary Bar ─────────────────────────────────────── */}
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         {[
           {
             label: `Check-ins (${TIMELINE_DAYS}d)`,
@@ -604,14 +605,14 @@ export default function TimelinePage() {
 
       {/* ── Calendar Heatmap ────────────────────────────────── */}
       <section className="mb-6">
-        <Card variant="default" className="p-5">
+        <Card variant="default" className="p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
             <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
               <Calendar className="h-4 w-4 text-accent-primary" />
               {TIMELINE_DAYS}-Day Wellness Calendar
             </h2>
             {/* Legend */}
-            <div className="flex items-center gap-2 text-xs text-text-muted">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
               <span>Less</span>
               {[
                 "bg-bg-panel border border-border/30",
@@ -670,7 +671,7 @@ export default function TimelinePage() {
 
       {/* ── Dimension Trend Chart ───────────────────────────── */}
       <section className="mb-6">
-        <Card variant="default" className="p-5">
+        <Card variant="default" className="p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
               <Activity className="h-4 w-4 text-accent-primary" />
@@ -701,11 +702,11 @@ export default function TimelinePage() {
               description="Start your first check-in to see trends."
             />
           ) : (
-            <div className="h-56">
+            <div className="h-64 overflow-hidden sm:h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={chartData}
-                  margin={{ top: 4, right: 8, left: -24, bottom: 0 }}
+                  margin={{ top: 4, right: 4, left: -30, bottom: 0 }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
@@ -768,7 +769,7 @@ export default function TimelinePage() {
 
       {/* ── AI Pattern Insights ─────────────────────────────── */}
       <section className="mb-6">
-        <Card variant="default" className="p-5">
+        <Card variant="default" className="p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-accent-primary" />
@@ -834,7 +835,7 @@ export default function TimelinePage() {
 
           {/* Trend summary footer */}
           {!loadingDays && !errorDays && daysWithData.length >= 2 && (
-            <div className="mt-4 flex items-center gap-2 rounded-lg border border-border/40 bg-bg-panel/40 px-3 py-2.5 text-xs text-text-muted">
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-border/40 bg-bg-panel/40 px-3 py-2.5 text-xs leading-relaxed text-text-muted">
               {trendDir === "improving" ? (
                 <TrendingUp className="h-4 w-4 text-status-success flex-shrink-0" />
               ) : trendDir === "declining" ? (
@@ -858,7 +859,7 @@ export default function TimelinePage() {
 
       {/* ── Life Events Section ──────────────────────────────── */}
       <section className="mt-8">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold text-text-primary">
             <Flag className="h-5 w-5 text-status-error" />
             Life Events
@@ -950,23 +951,23 @@ export default function TimelinePage() {
                 <Card
                   key={event._id}
                   variant="default"
-                  className="flex items-start gap-3 px-4 py-3"
+                  className="flex flex-col gap-3 px-4 py-3 min-[430px]:flex-row min-[430px]:items-start"
                 >
                   <span
-                    className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize shrink-0 flex items-center gap-1 ${meta.classes}`}
+                    className={`mt-0.5 inline-flex w-fit shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize ${meta.classes}`}
                   >
                     {meta.icon}
                     {event.category}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-text-primary truncate">
+                    <p className="break-words text-sm font-semibold text-text-primary [overflow-wrap:anywhere]">
                       {event.title}
                     </p>
                     <p className="text-[11px] text-text-muted">
                       {new Date(event.date).toLocaleDateString()}
                     </p>
                     {event.notes && (
-                      <p className="text-xs text-text-secondary mt-0.5 truncate">
+                      <p className="mt-0.5 line-clamp-2 break-words text-xs text-text-secondary [overflow-wrap:anywhere]">
                         {event.notes}
                       </p>
                     )}

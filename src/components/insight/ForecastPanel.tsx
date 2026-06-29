@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CalendarDays, CheckCircle2, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton, EmptyState } from "@/components/ui";
+import {
+  getClientCache,
+  makeUserScopedCacheKey,
+  setClientCache,
+} from "@/lib/client-cache";
 
 interface ForecastDay {
   dayKey: string;
@@ -19,6 +24,16 @@ interface WellnessForecast {
   trend: "improving" | "stable" | "declining";
   riskDays: number;
   narrative: string;
+}
+
+const FORECAST_CACHE_TTL_MS = 15 * 60 * 1000;
+
+function getForecastCacheKey(): string {
+  return makeUserScopedCacheKey("wellness-forecast", "7-day");
+}
+
+function getCachedForecast(): WellnessForecast | null {
+  return getClientCache<WellnessForecast>(getForecastCacheKey());
 }
 
 function TrendIcon({ trend }: { trend: string }) {
@@ -43,24 +58,43 @@ function ConfidenceDot({ confidence }: { confidence: string }) {
 
 export default function ForecastPanel() {
   const { requireAuth } = useAuth();
-  const [forecast, setForecast] = useState<WellnessForecast | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialCachedForecast] = useState<WellnessForecast | null>(() =>
+    getCachedForecast(),
+  );
+  const [forecast, setForecast] = useState<WellnessForecast | null>(
+    () => initialCachedForecast,
+  );
+  const [loading, setLoading] = useState(() => initialCachedForecast === null);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const forecastLoadedRef = useRef(initialCachedForecast !== null);
 
   const fetchForecast = useCallback(async () => {
     const headers = requireAuth();
-    if (!headers) return;
-    setLoading(true);
+    if (!headers) {
+      setLoading(false);
+      return;
+    }
+    const hasForecast = forecastLoadedRef.current;
+    setLoading(!hasForecast);
     setError(null);
     try {
       const res = await fetch("/api/analytics/forecast", { headers, cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load");
       const data = await res.json() as { success: boolean; forecast: WellnessForecast };
-      if (data.success) setForecast(data.forecast);
-      else setError("Unable to load forecast.");
+      if (data.success) {
+        forecastLoadedRef.current = true;
+        setForecast(data.forecast);
+        setClientCache(getForecastCacheKey(), data.forecast, FORECAST_CACHE_TTL_MS);
+      } else {
+        throw new Error("Unable to load forecast.");
+      }
     } catch {
-      setError("Could not load wellness forecast.");
+      setError(
+        hasForecast
+          ? "Forecast could not refresh. Showing the latest cached forecast."
+          : "Could not load wellness forecast.",
+      );
     } finally {
       setLoading(false);
     }
@@ -101,7 +135,7 @@ export default function ForecastPanel() {
     );
   }
 
-  if (error || !forecast) {
+  if (!forecast) {
     return (
       <EmptyState
         icon={<CalendarDays className="h-6 w-6 text-text-muted" />}
@@ -136,6 +170,12 @@ export default function ForecastPanel() {
 
       {/* Narrative */}
       <p className="text-xs text-text-secondary leading-relaxed">{forecast.narrative}</p>
+
+      {error && (
+        <p className="rounded-lg border border-status-warning/20 bg-status-warning/5 px-3 py-2 text-[11px] text-status-warning">
+          {error}
+        </p>
+      )}
 
       {/* Day bars */}
       <div className="grid grid-cols-7 gap-1.5">

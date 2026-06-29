@@ -27,7 +27,6 @@ interface LocalUserProfile {
   currentStreak?: number;
   totalQuests: number;
   completedQuests: number;
-  badges: string[];
   avatarStage: string;
   joinDate: string;
   currentMood?: {
@@ -56,40 +55,22 @@ function ProfileSkeleton() {
         <Skeleton width="100%" height={40} rounded="md" className="max-w-sm" />
       </div>
 
-      {/* Stats + Achievements skeleton */}
-      <div className="grid gap-5 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-          <Card className="h-full p-6 space-y-4">
-            <Skeleton width={100} height={16} rounded="md" />
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <Skeleton width={44} height={44} rounded="xl" />
-                  <div className="space-y-2">
-                    <Skeleton width={60} height={24} rounded="md" />
-                    <Skeleton width={80} height={14} rounded="md" />
-                  </div>
+      {/* Stats skeleton */}
+      <div>
+        <Card className="h-full p-6 space-y-4">
+          <Skeleton width={100} height={16} rounded="md" />
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-1">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton width={44} height={44} rounded="xl" />
+                <div className="space-y-2">
+                  <Skeleton width={60} height={24} rounded="md" />
+                  <Skeleton width={80} height={14} rounded="md" />
                 </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-        <div className="lg:col-span-3">
-          <Card className="h-full p-6 space-y-4">
-            <Skeleton width={120} height={16} rounded="md" />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <Skeleton width={48} height={48} rounded="full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton width="70%" height={18} rounded="md" />
-                    <Skeleton width="90%" height={14} rounded="md" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
       {/* Progression skeleton */}
@@ -236,7 +217,6 @@ export default function CharacterPage() {
     dailyStreak: profile.dailyStreak ?? profile.currentStreak ?? 0,
     totalQuests: profile.totalQuests,
     completedQuests: profile.completedQuests,
-    badges: Array.isArray(profile.badges) ? profile.badges : [],
     currentMood: profile.currentMood,
   };
 

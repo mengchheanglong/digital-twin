@@ -31,9 +31,9 @@ export function ChatMessageList({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 min-h-0 overflow-y-auto scroll-smooth"
+      className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch]"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6">
+      <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-4 sm:py-6">
         {/* Load more */}
         {hasMoreMessages && !bootstrapping && (
           <div className="flex justify-center">
@@ -74,7 +74,7 @@ export function ChatMessageList({
           </div>
         ) : isEmpty ? (
           /* Empty / Welcome state */
-          <div className="flex flex-1 flex-col items-center justify-center py-16 text-center animate-fade-in">
+          <div className="flex min-h-full flex-1 flex-col items-center justify-center py-8 text-center animate-fade-in sm:py-16">
             <div className="relative mb-6">
               <div className="absolute inset-0 rounded-full bg-accent-primary/10 blur-2xl scale-150" />
               <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-primary to-accent-hover border border-accent-primary/30 shadow-glow">
@@ -117,7 +117,7 @@ export function ChatMessageList({
 
               {/* Bubble + meta */}
               <div
-                className={`flex max-w-[80%] flex-col ${
+                className={`flex min-w-0 max-w-[82%] flex-col sm:max-w-[80%] ${
                   message.sender === "user" ? "items-end" : "items-start"
                 }`}
               >
@@ -134,7 +134,7 @@ export function ChatMessageList({
                 </div>
                 <div
                   className={[
-                    "px-4 py-2.5 text-sm leading-relaxed transition-all duration-200",
+                    "px-3 py-2.5 text-sm leading-relaxed transition-all duration-200 break-words [overflow-wrap:anywhere] sm:px-4",
                     message.sender === "user"
                       ? "bg-gradient-to-br from-accent-primary to-accent-hover text-text-inverse rounded-2xl rounded-tr-sm shadow-glow-soft"
                       : "bg-bg-card border border-border/70 text-text-primary rounded-2xl rounded-tl-sm shadow-sm",

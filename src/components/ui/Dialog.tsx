@@ -77,7 +77,7 @@ export default function Dialog({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9998] flex items-start justify-center overflow-y-auto px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] sm:items-center sm:p-4"
       onClick={(e) => {
         if (e.target === overlayRef.current) {
           onClose();
@@ -96,7 +96,7 @@ export default function Dialog({
         aria-modal="true"
         aria-labelledby={title ? "dialog-title" : undefined}
         className={[
-          "relative z-10 w-full overflow-hidden",
+          "relative z-10 my-auto flex max-h-[calc(100svh-1.5rem)] w-full flex-col overflow-hidden sm:max-h-[calc(100vh-2rem)]",
           sizeMap[size],
           "rounded-2xl border border-border bg-bg-card shadow-2xl",
           "animate-scale-in",
@@ -107,7 +107,7 @@ export default function Dialog({
         <div className="pointer-events-none absolute top-0 h-24 w-full bg-gradient-to-b from-accent-primary/8 to-transparent" />
 
         {title && (
-          <div className="relative z-10 flex items-center justify-between border-b border-border-subtle px-6 pt-6 pb-4">
+          <div className="relative z-10 flex shrink-0 items-center justify-between border-b border-border-subtle px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-6">
             <h2
               id="dialog-title"
               className="text-base font-bold text-text-primary tracking-tight"
@@ -124,9 +124,11 @@ export default function Dialog({
             </button>
           </div>
         )}
-        <div className="relative z-10 px-6 py-5">{children}</div>
+        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          {children}
+        </div>
         {footer && (
-          <div className="relative z-10 flex items-center justify-end gap-3 border-t border-border-subtle px-6 py-4">
+          <div className="relative z-10 flex shrink-0 items-center justify-end gap-3 border-t border-border-subtle px-4 py-3 sm:px-6 sm:py-4">
             {footer}
           </div>
         )}

@@ -165,15 +165,15 @@ function ActiveTimer({
           animation: breathe-ring 3s ease-in-out infinite;
         }
       `}</style>
-      <div className="p-6 md:p-8 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-text-muted mb-5">
+      <div className="p-4 text-center sm:p-6 md:p-8">
+        <p className="mb-5 break-words text-xs font-semibold uppercase tracking-widest text-text-muted [overflow-wrap:anywhere]">
           {session.label}
         </p>
 
         {/* Circular progress */}
         <div className="relative inline-flex items-center justify-center mb-6">
           <svg
-            className="h-48 w-48 md:h-56 md:w-56 -rotate-90"
+            className="h-40 w-40 -rotate-90 min-[380px]:h-48 min-[380px]:w-48 md:h-56 md:w-56"
             viewBox="0 0 120 120"
           >
             <defs>
@@ -223,7 +223,7 @@ function ActiveTimer({
             />
           </svg>
           <div className="absolute flex flex-col items-center">
-            <span className="text-4xl md:text-5xl font-mono font-bold text-text-primary tracking-tight">
+            <span className="font-mono text-3xl font-bold tracking-tight text-text-primary min-[380px]:text-4xl md:text-5xl">
               {formatTimer(elapsed)}
             </span>
             <span className="text-xs text-text-muted mt-1 font-medium">
@@ -377,7 +377,7 @@ function StartSessionForm({
       {/* Top gradient accent */}
       <div className="h-1 w-full bg-gradient-to-r from-accent-primary via-accent-hover to-accent-glow" />
 
-      <form onSubmit={handleStart} className="p-6 md:p-8 space-y-6">
+      <form onSubmit={handleStart} className="space-y-5 p-4 sm:p-6 md:p-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
             <Brain size={18} />
@@ -485,7 +485,7 @@ function StartSessionForm({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border-subtle">
+        <div className="flex flex-col items-stretch gap-3 border-t border-border-subtle pt-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-text-muted">
             {!useCustom
               ? `${duration} minute session`
@@ -493,7 +493,7 @@ function StartSessionForm({
                 ? `${Math.min(480, Math.max(1, Number(customDuration) || 25))} minute session`
                 : "Custom duration"}
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <Button
               type="button"
               variant="secondary"
@@ -554,7 +554,7 @@ function SessionItem({
       variant="default"
       className="animate-slide-left transition-all duration-200 ease-apple"
     >
-      <div className="px-4 py-3.5 flex items-center gap-4">
+      <div className="flex flex-col gap-3 px-4 py-3.5 min-[430px]:flex-row min-[430px]:items-center min-[430px]:gap-4">
         <div
           className={`h-9 w-9 flex-shrink-0 rounded-full flex items-center justify-center border ${
             session.completed
@@ -578,7 +578,7 @@ function SessionItem({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2 min-[430px]:shrink-0 min-[430px]:gap-3">
           <Badge tone={session.completed ? "success" : "default"}>
             {session.completed ? "Completed" : "Abandoned"}
           </Badge>
@@ -717,8 +717,8 @@ export default function FocusPage() {
   return (
     <div className="mx-auto w-full max-w-3xl animate-fade-in space-y-6 pb-10 text-text-primary">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-subtle text-accent-primary border border-accent-primary/20 shadow-glow-soft">
             <Timer size={24} />
           </div>
@@ -738,6 +738,7 @@ export default function FocusPage() {
             size="md"
             leftIcon={<Plus size={16} />}
             onClick={() => setShowForm(true)}
+            className="w-full sm:w-auto"
           >
             Start Session
           </Button>
@@ -832,14 +833,6 @@ export default function FocusPage() {
           icon={<Timer size={28} />}
           title="Ready to focus?"
           description="Start your first session to begin building focus habits."
-          action={
-            !showForm && !activeSession
-              ? {
-                  label: "Start Session",
-                  onClick: () => setShowForm(true),
-                }
-              : undefined
-          }
         />
       ) : (
         <div className="space-y-3">

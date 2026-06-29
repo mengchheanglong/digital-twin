@@ -161,20 +161,11 @@ export default function QuestBoardPage() {
       const headers = getAuthHeaders();
       if (!headers) return;
 
-      const { data } = await axios.post("/api/quest/reset", {}, { headers });
-
-      if (data?.reset) {
-        toast({
-          title: "Daily reset complete",
-          description: `${data.stats?.completedReset ?? 0} quests refreshed.`,
-          variant: "info",
-          duration: 4000,
-        });
-      }
+      await axios.post("/api/quest/reset", {}, { headers });
     } catch (error) {
       console.error("Failed to check quest reset:", error);
     }
-  }, [getAuthHeaders, toast]);
+  }, [getAuthHeaders]);
 
   const fetchQuests = useCallback(async () => {
     try {
@@ -513,30 +504,33 @@ export default function QuestBoardPage() {
   /* ------------------------ Render -------------------------------- */
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full max-w-7xl space-y-6 pb-10 sm:space-y-8">
       {/* Header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
               <Sword className="h-5 w-5" />
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gradient">
+            <h1 className="min-w-0 break-words text-2xl font-extrabold tracking-tight text-gradient sm:text-3xl">
               Quest Board
             </h1>
           </div>
-          <p className="pl-[3.25rem] text-sm text-text-secondary">
+          <p className="text-sm leading-relaxed text-text-secondary sm:pl-[3.25rem]">
             Forge habits, complete missions, and level up your life.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="md"
-          leftIcon={<Plus className="h-4 w-4" />}
-          onClick={() => setShowCreateDialog(true)}
-        >
-          New Quest
-        </Button>
+        {!showCreateDialog && (
+          <Button
+            variant="primary"
+            size="md"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => setShowCreateDialog(true)}
+            className="w-full sm:w-auto"
+          >
+            New Quest
+          </Button>
+        )}
       </header>
 
       {/* Stats */}
@@ -595,8 +589,8 @@ export default function QuestBoardPage() {
 
       {/* Active Quests */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-text-primary">Active Quests</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-text-primary">Active Quests</h2>
           {activeQuests.length > 0 && (
             <Pill tone="accent">{activeQuests.length} active</Pill>
           )}
@@ -627,10 +621,6 @@ export default function QuestBoardPage() {
             icon={<Target className="h-8 w-8" />}
             title="No active quests"
             description="Create your first quest to start your journey and earn XP."
-            action={{
-              label: "Create Quest",
-              onClick: () => setShowCreateDialog(true),
-            }}
           />
         ) : (
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -698,7 +688,7 @@ export default function QuestBoardPage() {
                       </div>
 
                       {/* Quest goal */}
-                      <h3 className="text-base font-bold leading-snug text-text-primary">
+                      <h3 className="break-words text-base font-bold leading-snug text-text-primary [overflow-wrap:anywhere]">
                         {quest.goal}
                       </h3>
                     </div>
@@ -714,9 +704,9 @@ export default function QuestBoardPage() {
                     </div>
 
                     {/* Action row */}
-                    <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+                    <div className="flex flex-col gap-3 border-t border-border-subtle pt-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                       {/* Progress controls */}
-                      <div className="flex gap-1.5">
+                      <div className="grid w-full grid-cols-2 gap-1.5 min-[420px]:w-auto">
                         <Button
                           variant="secondary"
                           size="sm"
@@ -749,7 +739,7 @@ export default function QuestBoardPage() {
                           <Check className="h-4 w-4" strokeWidth={2.5} />
                         }
                         onClick={() => toggleCompletion(quest.id)}
-                        className={isReady ? "btn-glow" : ""}
+                        className={isReady ? "w-full btn-glow min-[420px]:w-auto" : "w-full min-[420px]:w-auto"}
                       >
                         {isReady ? "Claim Reward" : "Complete"}
                       </Button>
@@ -765,7 +755,7 @@ export default function QuestBoardPage() {
       {/* Completed Quests */}
       {completedQuests.length > 0 && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-text-primary">
               Completed Quests
             </h2>
@@ -778,7 +768,7 @@ export default function QuestBoardPage() {
                 <Card
                   key={quest.id}
                   variant="default"
-                  className="flex animate-fade-in items-center gap-4 border-status-success/20 bg-status-success/5 p-4 opacity-80 transition-all duration-300 hover:opacity-100"
+                  className="flex animate-fade-in flex-col items-start gap-3 border-status-success/20 bg-status-success/5 p-4 opacity-80 transition-all duration-300 hover:opacity-100 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-4"
                   style={{
                     animationDelay: `${index * 40}ms`,
                     animationFillMode: "both",
@@ -791,7 +781,7 @@ export default function QuestBoardPage() {
                     <h3 className="truncate font-bold text-text-primary line-through decoration-text-muted/50">
                       {quest.goal}
                     </h3>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-text-secondary">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
                       <Badge tone={meta.tone}>{meta.label}</Badge>
                       <span>•</span>
                       <span>
@@ -832,7 +822,7 @@ export default function QuestBoardPage() {
       <section className="space-y-4">
         <button
           onClick={() => setShowLog((prev) => !prev)}
-          className="group flex items-center gap-2 text-lg font-bold text-text-primary transition-colors hover:text-accent-primary"
+          className="group flex flex-wrap items-center gap-2 text-left text-lg font-bold text-text-primary transition-colors hover:text-accent-primary"
         >
           <Trophy className="h-5 w-5 text-status-warning transition-transform group-hover:scale-110" />
           Achievement Log
@@ -894,11 +884,12 @@ export default function QuestBoardPage() {
         title="New Quest"
         size="md"
         footer={
-          <div className="flex w-full items-center justify-end gap-3">
+          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
             <Button
               variant="ghost"
               size="md"
               onClick={() => setShowCreateDialog(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -909,6 +900,7 @@ export default function QuestBoardPage() {
               leftIcon={<Plus className="h-4 w-4" />}
               type="submit"
               form="create-quest-form"
+              className="w-full sm:w-auto"
             >
               Create Quest
             </Button>
@@ -944,7 +936,7 @@ export default function QuestBoardPage() {
                   type="button"
                   onClick={() => setDuration(key)}
                   className={[
-                    "flex flex-col items-center gap-2 rounded-xl border p-4 transition-all duration-200",
+                    "flex min-h-[108px] flex-col items-center justify-center gap-2 rounded-xl border p-3 transition-all duration-200 sm:p-4",
                     duration === key
                       ? "border-accent-primary bg-accent-subtle shadow-glow-soft ring-1 ring-accent-primary/30"
                       : "border-border bg-bg-panel hover:border-border-hover hover:bg-bg-hover",

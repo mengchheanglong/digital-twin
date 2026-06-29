@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         }`}
       >
         {/* Ambient background glow */}
-        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-accent-primary/5 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute left-1/2 top-0 h-[22rem] w-[22rem] -translate-x-1/2 rounded-full bg-accent-primary/5 blur-[100px] pointer-events-none sm:left-1/4 sm:h-[800px] sm:w-[800px] sm:translate-x-0 sm:blur-[150px]" />
 
         {/* Subtle dot pattern overlay */}
         <div
@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         />
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 sm:py-6 md:px-8 md:py-8">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

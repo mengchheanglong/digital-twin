@@ -26,32 +26,24 @@ export function ChatHeader({
   openHistoryChat,
 }: ChatHeaderProps) {
   return (
-    <header className="relative flex items-center justify-between gap-3 border-b border-border bg-bg-panel/80 backdrop-blur-md px-4 sm:px-5 py-3 z-20 shrink-0">
+    <header className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-bg-panel/80 px-3 py-2.5 backdrop-blur-md sm:gap-3 sm:px-5 sm:py-3">
       {/* Companion Identity */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
+      <div className="min-w-0 flex items-center gap-2 sm:gap-3">
+        <div className="relative shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent-primary to-accent-hover shadow-glow-soft border border-accent-primary/30">
             <Brain className="h-4 w-4 text-text-inverse" />
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-status-success border-2 border-bg-panel shadow-sm" />
           <div className="absolute inset-0 rounded-full bg-accent-primary/20 animate-[twinAuraPulse_3s_ease-in-out_infinite]" />
         </div>
-        <div>
-          <h1 className="text-sm font-bold text-text-primary leading-tight">
+        <div className="flex min-w-0 items-center">
+          <h1 className="truncate text-sm font-bold text-text-primary leading-tight">
             Digital Twin
           </h1>
-          <p className="text-[11px] font-medium text-status-success leading-tight flex items-center gap-1">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-status-success" />
-            </span>
-            Online
-          </p>
         </div>
       </div>
 
       {/* Actions */}
-      <div ref={historyPanelRef} className="relative flex items-center gap-1.5">
+      <div ref={historyPanelRef} className="relative flex shrink-0 items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
@@ -59,7 +51,7 @@ export function ChatHeader({
           onClick={() => startNewSession()}
           title="New Chat"
         >
-          New
+          <span className="hidden min-[380px]:inline">New</span>
         </Button>
 
         <Button
@@ -69,11 +61,11 @@ export function ChatHeader({
           onClick={() => setHistoryPanelOpen((v) => !v)}
           title="Chat History"
         >
-          History
+          <span className="hidden min-[380px]:inline">History</span>
         </Button>
 
         {historyPanelOpen && (
-          <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-80 max-w-[85vw] max-h-[min(70vh,28rem)] overflow-hidden rounded-xl border border-border bg-bg-card shadow-elevated animate-scale-in origin-top-right flex flex-col">
+          <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 flex max-h-[min(70vh,28rem)] w-[calc(100vw-2rem)] max-w-80 origin-top-right animate-scale-in flex-col overflow-hidden rounded-xl border border-border bg-bg-card shadow-elevated sm:w-80">
             <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-bg-panel/50">
               <h3 className="text-sm font-semibold text-text-primary">
                 Recent Conversations

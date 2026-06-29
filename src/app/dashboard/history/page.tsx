@@ -105,9 +105,9 @@ export default function HistoryPage() {
   }, [history]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl animate-fade-in space-y-6">
+    <div className="mx-auto w-full max-w-4xl animate-fade-in space-y-5 pb-10 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-subtle text-accent-primary border border-accent-primary/20 shadow-glow-soft">
           <Clock className="h-6 w-6" />
         </div>
@@ -124,7 +124,7 @@ export default function HistoryPage() {
       {/* Summary stats */}
       {summary && (
         <div
-          className="grid grid-cols-3 gap-4 animate-fade-in"
+          className="grid grid-cols-1 gap-3 animate-fade-in sm:grid-cols-3 sm:gap-4"
           style={{ animationDelay: "100ms" }}
         >
           <Card
@@ -187,7 +187,7 @@ export default function HistoryPage() {
       <Card variant="elevated" className="relative overflow-hidden">
         <div className="pointer-events-none absolute top-0 h-1/3 w-full bg-gradient-to-b from-accent-primary/5 to-transparent" />
 
-        <div className="relative z-10 space-y-4 p-6">
+        <div className="relative z-10 space-y-4 p-4 sm:p-6">
           {loading ? (
             <HistorySkeleton />
           ) : error ? (
@@ -242,7 +242,7 @@ export default function HistoryPage() {
                       ].join(" ")}
                     />
 
-                    <div className="mb-3 flex items-start justify-between pl-3">
+                    <div className="mb-3 flex flex-wrap items-start justify-between gap-2 pl-3">
                       <p className="text-sm font-bold tracking-tight text-text-primary transition-colors group-hover:text-accent-primary">
                         {dateLabel}
                       </p>

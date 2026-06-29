@@ -54,11 +54,11 @@ export function ChatInput({
   const canSend = !!input.trim() && !isLoading && !bootstrapping;
 
   return (
-    <div className="border-t border-border bg-bg-panel px-4 pb-5 pt-3 z-20 shrink-0">
-      <div className="mx-auto w-full max-w-3xl">
+    <div className="z-20 shrink-0 overflow-hidden border-t border-border bg-bg-panel px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 sm:pb-5">
+      <div className="mx-auto w-full max-w-3xl min-w-0">
         {/* Quick Prompt Chips */}
         {messagesCount < 3 && !bootstrapping && (
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex gap-2 mb-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-hide">
             {quickPrompts.map((prompt) => (
               <button
                 key={prompt}
@@ -78,10 +78,10 @@ export function ChatInput({
         )}
 
         {/* Input Row */}
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-2 sm:gap-3">
           <div
             className={[
-              "relative flex-1 rounded-2xl border bg-bg-card transition-all duration-200 ease-apple",
+              "relative min-w-0 flex-1 rounded-2xl border bg-bg-card transition-all duration-200 ease-apple",
               input
                 ? "border-accent-primary/50 shadow-[0_0_0_3px_var(--color-accent-subtle)]"
                 : "border-border focus-within:border-accent-primary/50 focus-within:shadow-[0_0_0_3px_var(--color-accent-subtle)]",
@@ -92,16 +92,16 @@ export function ChatInput({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask your Digital Twin anything..."
+              placeholder="Ask your Twin…"
               rows={1}
-              className="block w-full resize-none bg-transparent px-4 py-3 text-sm text-text-primary placeholder:text-text-muted outline-none max-h-[140px] leading-relaxed scrollbar-hide"
+              className="block max-h-[140px] w-full resize-none bg-transparent px-3 py-3 text-sm leading-relaxed text-text-primary outline-none placeholder:text-text-muted scrollbar-hide sm:px-4"
             />
           </div>
 
           <Button
             variant="primary"
             size="md"
-            className="h-10 w-10 rounded-full p-0 shrink-0"
+            className="h-11 w-11 shrink-0 rounded-full p-0"
             onClick={() => void handleSend()}
             disabled={!canSend}
             leftIcon={<ArrowUp className="h-4 w-4" />}

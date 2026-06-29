@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   BrainCircuit,
@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge, Pill, Skeleton, EmptyState } from "@/components/ui";
+import {
+  getClientCache,
+  makeUserScopedCacheKey,
+  setClientCache,
+} from "@/lib/client-cache";
 
 interface PlannedActivity {
   day: string;
@@ -48,28 +53,58 @@ const toneSurfaceMap: Record<string, string> = {
   error: "bg-status-error/10 border-status-error/20 text-status-error",
 };
 
+const WEEKLY_PLAN_CACHE_TTL_MS = 30 * 60 * 1000;
+
+function getWeeklyPlanCacheKey(): string {
+  return makeUserScopedCacheKey("weekly-plan", "latest");
+}
+
+function getCachedWeeklyPlan(): WeeklyPlan | null {
+  return getClientCache<WeeklyPlan>(getWeeklyPlanCacheKey());
+}
+
 export default function WeeklyPlanCard() {
   const { requireAuth } = useAuth();
-  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialCachedPlan] = useState<WeeklyPlan | null>(() =>
+    getCachedWeeklyPlan(),
+  );
+  const [plan, setPlan] = useState<WeeklyPlan | null>(() => initialCachedPlan);
+  const [loading, setLoading] = useState(() => initialCachedPlan === null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const planLoadedRef = useRef(initialCachedPlan !== null);
 
-  const fetchPlan = useCallback(async () => {
+  const fetchPlan = useCallback(async ({ forceRefresh = false } = {}) => {
     const headers = requireAuth();
-    if (!headers) return;
-    setLoading(true);
+    if (!headers) {
+      setLoading(false);
+      return;
+    }
+    const hasPlan = planLoadedRef.current;
+    setLoading(!hasPlan);
+    setRefreshing(forceRefresh && hasPlan);
     setError(null);
     try {
       const res = await fetch("/api/reports/weekly-plan", { headers, cache: "no-store" });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json() as { success: boolean; plan: WeeklyPlan };
-      if (data.success) setPlan(data.plan);
-      else setError("Could not generate plan.");
+      if (data.success) {
+        planLoadedRef.current = true;
+        setPlan(data.plan);
+        setClientCache(getWeeklyPlanCacheKey(), data.plan, WEEKLY_PLAN_CACHE_TTL_MS);
+      } else {
+        throw new Error("Could not generate plan.");
+      }
     } catch {
-      setError("Weekly plan unavailable.");
+      setError(
+        hasPlan
+          ? "Weekly plan could not refresh. Showing the latest cached blueprint."
+          : "Weekly plan unavailable.",
+      );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [requireAuth]);
 
@@ -108,7 +143,7 @@ export default function WeeklyPlanCard() {
     );
   }
 
-  if (error || !plan) {
+  if (!plan) {
     return (
       <EmptyState
         icon={<Calendar className="h-6 w-6 text-text-muted" />}
@@ -116,7 +151,7 @@ export default function WeeklyPlanCard() {
         description={error ?? "Unable to load your weekly blueprint."}
         action={{
           label: "Retry",
-          onClick: () => void fetchPlan(),
+          onClick: () => void fetchPlan({ forceRefresh: true }),
         }}
       />
     );
@@ -134,46 +169,59 @@ export default function WeeklyPlanCard() {
   })();
 
   return (
-    <div className="rounded-2xl border border-border-subtle bg-bg-panel p-6 space-y-5 animate-fade-in">
+    <div className="rounded-2xl border border-border-subtle bg-bg-panel p-4 sm:p-6 space-y-5 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-subtle border border-accent-primary/20 text-accent-primary">
             <Calendar className="h-4 w-4" />
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-text-primary">Weekly Blueprint</h2>
-            <p className="text-[11px] text-text-muted">Week starting {plan.weekStarting}</p>
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-text-primary break-words [overflow-wrap:anywhere]">Weekly Blueprint</h2>
+            <p className="text-[11px] text-text-muted break-words [overflow-wrap:anywhere]">Week starting {plan.weekStarting}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 self-start">
           <Badge tone={burnoutTone}>
             {plan.burnoutRisk} risk
           </Badge>
           <button
-            onClick={() => void fetchPlan()}
+            onClick={() => void fetchPlan({ forceRefresh: true })}
             className="flex h-7 w-7 items-center justify-center rounded-lg bg-bg-hover text-text-muted hover:text-text-primary hover:bg-bg-active transition-colors focus-ring"
             title="Regenerate plan"
+            aria-label="Regenerate weekly blueprint"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
           </button>
         </div>
       </div>
 
+      {error && (
+        <p className="rounded-lg border border-status-warning/20 bg-status-warning/5 px-3 py-2 text-[11px] text-status-warning">
+          {error}
+        </p>
+      )}
+
       {/* Theme */}
       <div className="rounded-xl border border-border-subtle bg-bg-hover px-4 py-3">
         <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">This Week&apos;s Theme</p>
-        <p className="text-sm font-semibold text-text-primary">{plan.overallTheme}</p>
+        <p className="text-sm font-semibold text-text-primary break-words [overflow-wrap:anywhere] leading-snug">
+          {plan.overallTheme}
+        </p>
       </div>
 
       {/* Narrative */}
-      <p className="text-xs text-text-secondary leading-relaxed">{plan.narrative}</p>
+      <p className="text-xs text-text-secondary leading-relaxed break-words [overflow-wrap:anywhere]">
+        {plan.narrative}
+      </p>
 
       {/* Recovery protocol */}
       {plan.recoveryProtocol && (
         <div className="rounded-xl border border-status-error/20 bg-status-error/5 px-4 py-3">
           <p className="text-[10px] font-bold uppercase tracking-wider text-status-error mb-1">Recovery Protocol</p>
-          <p className="text-xs text-text-secondary">{plan.recoveryProtocol}</p>
+          <p className="text-xs text-text-secondary break-words [overflow-wrap:anywhere] leading-snug">
+            {plan.recoveryProtocol}
+          </p>
         </div>
       )}
 
@@ -183,7 +231,11 @@ export default function WeeklyPlanCard() {
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Priority Quests</p>
           <div className="flex flex-wrap gap-2">
             {plan.topPriorityQuests.map((q, i) => (
-              <Pill key={i} tone="accent">
+              <Pill
+                key={i}
+                tone="accent"
+                className="max-w-full items-start whitespace-normal break-words [overflow-wrap:anywhere] leading-snug"
+              >
                 <span className="mr-1 text-[10px] opacity-60">{i + 1}.</span>
                 {q}
               </Pill>
@@ -216,11 +268,15 @@ export default function WeeklyPlanCard() {
                 <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${toneSurfaceMap[cfg.tone]}`}>
                   {cfg.icon}
                 </span>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold text-text-primary">{s.day}</p>
-                  <p className="text-[11px] text-text-secondary mt-0.5">{s.suggestion}</p>
+                  <p className="text-[11px] text-text-secondary mt-0.5 break-words [overflow-wrap:anywhere]">
+                    {s.suggestion}
+                  </p>
                   {s.rationale && (
-                    <p className="text-[10px] text-text-muted mt-0.5 italic">{s.rationale}</p>
+                    <p className="text-[10px] text-text-muted mt-0.5 italic break-words [overflow-wrap:anywhere]">
+                      {s.rationale}
+                    </p>
                   )}
                 </div>
               </div>

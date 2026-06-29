@@ -197,13 +197,13 @@ function SectionHeader({
   subtitle: string;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-5">
+    <div className="mb-5 flex min-w-0 items-start gap-3">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20">
         {icon}
       </div>
-      <div>
-        <h2 className="text-base font-bold text-text-primary">{title}</h2>
-        <p className="text-xs text-text-muted">{subtitle}</p>
+      <div className="min-w-0">
+        <h2 className="break-words text-base font-bold text-text-primary">{title}</h2>
+        <p className="break-words text-xs text-text-muted">{subtitle}</p>
       </div>
     </div>
   );
@@ -211,7 +211,7 @@ function SectionHeader({
 
 function LoadingCard() {
   return (
-    <Card variant="default" className="p-6">
+    <Card variant="default" className="p-4 sm:p-6">
       <Skeleton width="100%" height={160} rounded="lg" />
     </Card>
   );
@@ -229,7 +229,7 @@ function CorrelationCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<BarChart3 className="h-5 w-5" />}
@@ -299,7 +299,7 @@ function BurnoutCard({
 
   if (!report)
     return (
-      <Card variant="glass" className="relative p-6 overflow-hidden">
+      <Card variant="glass" className="relative overflow-hidden p-4 sm:p-6">
         <p className="text-sm text-text-muted">
           Could not load burnout data.
         </p>
@@ -309,7 +309,7 @@ function BurnoutCard({
   return (
     <Card
       variant="glass"
-      className={`relative p-6 overflow-hidden group ${burnoutBg(report.riskLevel)}`}
+      className={`relative overflow-hidden p-4 group sm:p-6 ${burnoutBg(report.riskLevel)}`}
     >
       <div
         className={`pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-40 ${
@@ -444,7 +444,7 @@ function SynergyCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Link2 className="h-5 w-5" />}
@@ -487,7 +487,7 @@ function DailyRhythmCard({
   if (loading) return <LoadingCard />;
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Flame className="h-5 w-5" />}
@@ -527,7 +527,7 @@ function DailyRhythmCard({
               );
             })}
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
             {report.peakEnergyWindow && (
               <div className="rounded-xl border border-status-warning/20 bg-status-warning/5 px-3 py-2">
                 <p className="text-[9px] text-text-muted uppercase tracking-wider">Peak Energy</p>
@@ -578,7 +578,7 @@ function SimulatorCard() {
   };
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Sliders className="h-5 w-5" />}
@@ -588,8 +588,8 @@ function SimulatorCard() {
 
       <div className="space-y-3 mb-5">
         {Object.entries(dims).map(([key, val]) => (
-          <div key={key} className="flex items-center gap-3">
-            <span className="w-32 text-[11px] text-text-secondary shrink-0">{dimLabels[key]}</span>
+          <div key={key} className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-3">
+            <span className="text-[11px] text-text-secondary min-[420px]:w-32 min-[420px]:shrink-0">{dimLabels[key]}</span>
             <input
               type="range"
               min={1}
@@ -602,8 +602,8 @@ function SimulatorCard() {
             <span className="w-4 text-center text-[11px] font-bold text-text-primary shrink-0">{val}</span>
           </div>
         ))}
-        <div className="flex items-center gap-3">
-          <span className="w-32 text-[11px] text-text-secondary shrink-0">🎯 Quests/week</span>
+        <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-3">
+          <span className="text-[11px] text-text-secondary min-[420px]:w-32 min-[420px]:shrink-0">🎯 Quests/week</span>
           <input
             type="range" min={0} max={21} step={1} value={questsPerWeek}
             onChange={(e) => setQuestsPerWeek(Number(e.target.value))}
@@ -611,8 +611,8 @@ function SimulatorCard() {
           />
           <span className="w-4 text-center text-[11px] font-bold text-text-primary shrink-0">{questsPerWeek}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="w-32 text-[11px] text-text-secondary shrink-0">📺 Entertainment</span>
+        <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-3">
+          <span className="text-[11px] text-text-secondary min-[420px]:w-32 min-[420px]:shrink-0">📺 Entertainment</span>
           <input
             type="range" min={0} max={100} step={5} value={entertainmentRatio}
             onChange={(e) => setEntertainmentRatio(Number(e.target.value))}
@@ -622,7 +622,7 @@ function SimulatorCard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
         <div className="rounded-xl border border-status-success/20 bg-status-success/5 px-3 py-2 text-center">
           <p className="text-[9px] text-text-muted uppercase tracking-wider mb-1">Wellness</p>
           <p className="text-lg font-bold text-status-success">{wellnessScore}%</p>
@@ -653,7 +653,7 @@ function MoodPatternsCard({
 
   if (!patterns)
     return (
-      <Card variant="glass" className="relative p-6 overflow-hidden">
+      <Card variant="glass" className="relative overflow-hidden p-4 sm:p-6">
         <EmptyState
           icon={<Brain className="h-8 w-8" />}
           title="Mood patterns unavailable"
@@ -670,7 +670,7 @@ function MoodPatternsCard({
   );
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Brain className="h-5 w-5" />}
@@ -763,7 +763,7 @@ function StreaksCard({
 
   if (!report)
     return (
-      <Card variant="glass" className="relative p-6 overflow-hidden">
+      <Card variant="glass" className="relative overflow-hidden p-4 sm:p-6">
         <EmptyState
           icon={<Flame className="h-8 w-8" />}
           title="Streak data unavailable"
@@ -773,7 +773,7 @@ function StreaksCard({
     );
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
       <SectionHeader
         icon={<Flame className="h-5 w-5" />}
@@ -832,7 +832,7 @@ function WeeklyReportCard({
 
   if (!report)
     return (
-      <Card variant="glass" className="relative p-6 overflow-hidden">
+      <Card variant="glass" className="relative overflow-hidden p-4 sm:p-6">
         <EmptyState
           icon={<Calendar className="h-8 w-8" />}
           title="Weekly report unavailable"
@@ -844,9 +844,9 @@ function WeeklyReportCard({
   const { stats } = report;
 
   return (
-    <Card variant="glass" className="relative p-6 overflow-hidden group">
+    <Card variant="glass" className="relative overflow-hidden p-4 group sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-accent-primary/20 blur-[60px] opacity-0 transition-opacity duration-700 ease-apple group-hover:opacity-50" />
-      <div className="flex items-start justify-between mb-5">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <SectionHeader
           icon={<Calendar className="h-5 w-5" />}
           title="Weekly Report"
@@ -862,7 +862,7 @@ function WeeklyReportCard({
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
         {[
           {
             label: "Check-ins",
@@ -1096,23 +1096,23 @@ export default function AnalyticsPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl animate-fade-in space-y-6 pb-10 text-text-primary">
+    <div className="mx-auto w-full max-w-5xl animate-fade-in space-y-5 pb-10 text-text-primary sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-glow-soft">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-glow-soft">
           <BarChart3 className="h-6 w-6" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">
             Analytics
           </h1>
-          <p className="text-sm text-text-secondary mt-0.5">
+          <p className="mt-0.5 break-words text-sm text-text-secondary">
             Deep patterns from your digital twin data.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 md:gap-5">
         {/* Weekly Report Hero Row */}
         <div className="md:col-span-3">
           <WeeklyReportCard

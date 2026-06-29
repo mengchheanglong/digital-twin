@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
@@ -67,6 +72,23 @@ function moodValue(option: MoodOption): string {
 function findMoodOption(mood?: string): MoodOption | undefined {
   if (!mood) return undefined;
   return MOOD_OPTIONS.find((m) => mood.includes(m.label));
+}
+
+function useMobileViewport() {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 639px)").matches;
+  });
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 639px)");
+    const handleChange = () => setIsMobile(media.matches);
+    handleChange();
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
+  return isMobile;
 }
 
 function formatDate(dateStr: string): string {
@@ -202,7 +224,7 @@ function EntryCard({
             expanded ? "max-h-[1000px] opacity-100 mt-3" : "max-h-[4.5rem] opacity-100 mt-2"
           }`}
         >
-          <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+          <p className="break-words text-sm text-text-secondary leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
             {entry.content}
           </p>
         </div>
@@ -518,6 +540,261 @@ function NewEntryDialog({
 
 /* ───────── Main Page ───────── */
 
+function NewEntryMobileForm({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (entry: JournalEntry) => void;
+}) {
+  const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [selectedMood, setSelectedMood] = useState<string>("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setTitle("");
+      setContent("");
+      setSelectedMood("");
+      setTagInput("");
+      setTags([]);
+      setError("");
+      setSaving(false);
+    }
+  }, [open]);
+
+  const addTag = () => {
+    const t = tagInput.trim().toLowerCase();
+    if (t && !tags.includes(t) && tags.length < 10) {
+      setTags((prev) => [...prev, t]);
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+
+    if (!trimmedTitle) {
+      setError("Title is required.");
+      return;
+    }
+    if (!trimmedContent) {
+      setError("Content is required.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: trimmedTitle,
+          content: trimmedContent,
+          mood: selectedMood || undefined,
+          tags,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { msg?: string };
+        setError(data.msg ?? "Failed to save entry.");
+        toast({
+          title: "Save failed",
+          description: data.msg ?? "Could not save entry.",
+          variant: "error",
+        });
+        return;
+      }
+
+      const data = (await res.json()) as { entry: JournalEntry };
+      onSave(data.entry);
+      toast({ title: "Entry saved", variant: "success" });
+    } catch {
+      setError("Network error. Please try again.");
+      toast({
+        title: "Save failed",
+        description: "Network error. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <section className="sm:hidden animate-fade-in">
+      <div className="mb-4 rounded-xl border border-border-subtle bg-bg-card/20">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+          <h2 className="text-sm font-bold text-text-primary tracking-tight">
+            New Journal Entry
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all duration-150 focus-ring"
+            aria-label="Close form"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 px-4 pb-[env(safe-area-inset-bottom)] pt-3"
+        >
+          {error && (
+            <div className="rounded-xl border border-status-error/20 bg-status-error/10 px-3 py-2 text-sm text-status-error animate-fade-in">
+              {error}
+            </div>
+          )}
+
+          <FormField label="Title" htmlFor="journal-title-mobile">
+            <Input
+              id="journal-title-mobile"
+              type="text"
+              maxLength={200}
+              placeholder="Give your entry a title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Content" htmlFor="journal-content-mobile">
+            <Textarea
+              id="journal-content-mobile"
+              rows={6}
+              maxLength={5000}
+              placeholder="Write your reflection..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              resize="none"
+            />
+          </FormField>
+
+          <div>
+            <p className="text-xs font-semibold text-text-primary mb-2">
+              How are you feeling?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {MOOD_OPTIONS.map((m) => {
+                const value = moodValue(m);
+                const Icon = m.icon;
+                const active = selectedMood === value;
+                return (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() =>
+                      setSelectedMood((prev) => (prev === value ? "" : value))
+                    }
+                    className={[
+                      "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium border transition-all duration-200 ease-apple",
+                      active
+                        ? "border-accent-primary bg-accent-subtle text-accent-primary shadow-glow-soft"
+                        : "border-border bg-bg-input text-text-secondary hover:border-border-hover hover:text-text-primary",
+                    ].join(" ")}
+                  >
+                    <Icon size={14} />
+                    <span>{m.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-text-primary mb-2">
+              Tags
+              {tags.length > 0 && (
+                <span className="ml-1.5 text-text-muted font-normal">
+                  ({tags.length}/10)
+                </span>
+              )}
+            </p>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Add a tag and press Enter..."
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={addTag}
+                disabled={!tagInput.trim() || tags.length >= 10}
+              >
+                Add
+              </Button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {tags.map((tag) => (
+                  <Pill key={tag} tone="accent">
+                    <span>{tag}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-0.5 rounded-full hover:bg-accent-primary/20 p-0.5 transition-colors"
+                      aria-label={`Remove tag ${tag}`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </Pill>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-border-subtle pt-3">
+            <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              loading={saving}
+              leftIcon={<Plus size={16} />}
+            >
+              Save Entry
+            </Button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 export default function JournalPage() {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
@@ -526,6 +803,7 @@ export default function JournalPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const isMobile = useMobileViewport();
   const LIMIT = 10;
 
   const fetchEntries = useCallback(
@@ -587,8 +865,8 @@ export default function JournalPage() {
   return (
     <div className="mx-auto w-full max-w-3xl animate-fade-in space-y-6 pb-10 text-text-primary">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-subtle text-accent-primary border border-accent-primary/20 shadow-glow-soft">
             <BookOpen size={24} />
           </div>
@@ -602,19 +880,27 @@ export default function JournalPage() {
           </div>
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          leftIcon={<Plus size={18} />}
-          onClick={() => setShowForm(true)}
-        >
-          New Entry
-        </Button>
+        {!isMobile || !showForm ? (
+          <Button
+            variant="primary"
+            size="md"
+            leftIcon={<Plus size={18} />}
+            onClick={() => setShowForm(true)}
+            className="w-full sm:w-auto"
+          >
+            New Entry
+          </Button>
+        ) : null}
       </div>
 
       {/* New entry dialog */}
       <NewEntryDialog
-        open={showForm}
+        open={showForm && !isMobile}
+        onClose={() => setShowForm(false)}
+        onSave={handleSave}
+      />
+      <NewEntryMobileForm
+        open={showForm && isMobile}
         onClose={() => setShowForm(false)}
         onSave={handleSave}
       />
@@ -627,10 +913,6 @@ export default function JournalPage() {
           icon={<BookOpen size={28} />}
           title="No journal entries yet"
           description="Start writing your thoughts to build a personal record of your journey."
-          action={{
-            label: "Write Entry",
-            onClick: () => setShowForm(true),
-          }}
         />
       ) : (
         <div className="space-y-4">
@@ -646,7 +928,7 @@ export default function JournalPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2 sm:gap-3">
           <Button
             variant="ghost"
             size="sm"

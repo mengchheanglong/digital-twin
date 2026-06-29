@@ -24,10 +24,8 @@ import {
   Zap,
   Flame,
   Brain,
-  RotateCcw,
   TrendingUp,
   Award,
-  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
@@ -198,6 +196,18 @@ function triggerConfetti() {
 }
 
 /* ─── Sub-components ─── */
+function isAlreadyCompletedCheckInError(error: unknown) {
+  if (!axios.isAxiosError(error) || error.response?.status !== 400) {
+    return false;
+  }
+
+  const message = error.response.data?.msg ?? error.response.data?.message;
+  return (
+    typeof message === "string" &&
+    message.toLowerCase().includes("already completed")
+  );
+}
+
 function RatingButton({
   option,
   selected,
@@ -218,7 +228,7 @@ function RatingButton({
       onClick={onClick}
       className={[
         "group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all ease-spring focus-ring",
-        size === "lg" ? "py-5 px-3" : "py-2.5 px-2",
+        size === "lg" ? "min-h-[72px] px-1 py-3 min-[380px]:px-2 min-[380px]:py-4 sm:px-3 sm:py-5" : "py-2.5 px-2",
         selected
           ? `${option.bgClass} ${option.borderClass} scale-[1.03]`
           : "bg-bg-panel/60 border-border hover:bg-bg-panel hover:border-border-hover hover:scale-[1.02]",
@@ -228,7 +238,7 @@ function RatingButton({
       <Icon
         className={[
           "transition-transform duration-200 ease-spring",
-          size === "lg" ? "h-8 w-8" : "h-5 w-5",
+          size === "lg" ? "h-6 w-6 min-[380px]:h-7 min-[380px]:w-7 sm:h-8 sm:w-8" : "h-5 w-5",
           selected
             ? option.textToken
             : "text-text-muted group-hover:text-text-secondary",
@@ -239,7 +249,7 @@ function RatingButton({
       <span
         className={[
           "font-bold leading-none",
-          size === "lg" ? "text-[11px]" : "text-[10px]",
+          size === "lg" ? "max-w-full break-words text-center text-[9px] leading-tight min-[380px]:text-[10px] sm:text-[11px]" : "text-[10px]",
           selected ? option.textToken : "text-text-muted",
         ].join(" ")}
       >
@@ -266,12 +276,12 @@ function SmallRatingRow({
   Icon: React.ElementType;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2 w-36 shrink-0">
+    <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-3">
+      <div className="flex min-w-0 items-center gap-2 min-[420px]:w-36 min-[420px]:shrink-0">
         <Icon className="h-4 w-4 text-text-muted" />
-        <span className="text-sm font-medium text-text-secondary">{label}</span>
+        <span className="break-words text-sm font-medium text-text-secondary">{label}</span>
       </div>
-      <div className="flex gap-1.5 flex-1">
+      <div className="grid flex-1 grid-cols-5 gap-1.5">
         {moodOptions.map((opt) => {
           const isSelected = value === opt.value;
           const glowColor = `color-mix(in srgb, var(${opt.glowVar}) 22%, transparent)`;
@@ -518,6 +528,57 @@ function CheckInSuccessScreen({
 }
 
 /* ─── Page ─── */
+function AlreadyCheckedInScreen({
+  onViewInsights,
+}: {
+  onViewInsights: () => void;
+}) {
+  return (
+    <div className="flex min-h-[calc(100svh-var(--mobile-nav-height)-2rem)] flex-col items-center justify-center px-0 py-4 sm:min-h-[80vh] sm:px-4 sm:py-10">
+      <Card
+        variant="elevated"
+        glow
+        className="relative w-full max-w-md overflow-hidden"
+      >
+        <div className="absolute top-0 h-36 w-full bg-gradient-to-b from-status-success/10 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center p-6 text-center sm:p-8">
+          <Badge tone="success" className="mb-5">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Done Today
+          </Badge>
+
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-status-success/25 bg-status-success/10 shadow-glow-soft">
+            <CheckCircle2
+              className="h-9 w-9 text-status-success"
+              strokeWidth={2.25}
+            />
+          </div>
+
+          <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+            Today&apos;s Check-In Complete
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-text-secondary">
+            You&apos;ve already checked in today. Come back tomorrow for a fresh
+            pulse.
+          </p>
+
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            className="mt-7"
+            rightIcon={<ArrowRight className="h-4 w-4" />}
+            onClick={onViewInsights}
+          >
+            View Insights
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function DailyCheckInPage() {
   const router = useRouter();
   const { requireAuth, getAuthHeaders } = useAuth();
@@ -530,6 +591,7 @@ export default function DailyCheckInPage() {
   const [ratings, setRatings] = useState<number[]>([]);
   const [selectedRating, setSelectedRating] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [todayComplete, setTodayComplete] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const [nlText, setNlText] = useState("");
@@ -557,26 +619,22 @@ export default function DailyCheckInPage() {
     try {
       const response = await axios.get("/api/checkin/questions", { headers });
       const incoming = response.data?.questions;
+      setTodayComplete(false);
       setQuestions(
         Array.isArray(incoming) && incoming.length
           ? incoming
           : fallbackQuestions,
       );
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 400) {
-        toast({
-          title: "Already checked in",
-          description: "You've already completed your check-in today.",
-          variant: "info",
-        });
-        router.replace(INSIGHT_PATH);
+      if (isAlreadyCompletedCheckInError(err)) {
+        setTodayComplete(true);
         return;
       }
       setQuestions(fallbackQuestions);
     } finally {
       setLoading(false);
     }
-  }, [requireAuth, router, toast]);
+  }, [requireAuth]);
 
   useEffect(() => {
     void fetchQuestions();
@@ -633,7 +691,18 @@ export default function DailyCheckInPage() {
         redirectRef.current = window.setTimeout(() => {
           router.replace(INSIGHT_PATH);
         }, 3500);
-      } catch {
+      } catch (err) {
+        if (isAlreadyCompletedCheckInError(err)) {
+          setTodayComplete(true);
+          setFlowState("input");
+          toast({
+            title: "Today's check-in is complete",
+            description: "You've already checked in today.",
+            variant: "info",
+          });
+          return;
+        }
+
         toast({
           title: "Submission failed",
           description: "Failed to submit check-in. Please try again.",
@@ -781,6 +850,15 @@ export default function DailyCheckInPage() {
     );
   }
 
+  /* ── Already Complete State ── */
+  if (todayComplete) {
+    return (
+      <AlreadyCheckedInScreen
+        onViewInsights={() => router.push(INSIGHT_PATH)}
+      />
+    );
+  }
+
   /* ── Success State ── */
   if (flowState === "success" && result) {
     const CIRCUM = 2 * Math.PI * 54;
@@ -828,14 +906,14 @@ export default function DailyCheckInPage() {
   const isLastQuestion = currentIndex === questions.length - 1;
 
   return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-10">
+    <div className="flex min-h-[calc(100svh-var(--mobile-nav-height)-2rem)] flex-col items-center justify-start px-0 py-4 sm:min-h-[80vh] sm:justify-center sm:px-4 sm:py-10">
       {/* Header */}
-      <div className="mb-8 text-center animate-fade-in">
+      <div className="mb-6 text-center animate-fade-in sm:mb-8">
         <Badge tone="accent" className="mb-4">
           <span className="h-1.5 w-1.5 rounded-full bg-accent-primary animate-pulse" />
           Daily Check-In
         </Badge>
-        <h1 className="text-3xl font-bold tracking-tight text-text-primary">
+        <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
           How are you today?
         </h1>
         <p className="mt-2 text-sm text-text-secondary">
@@ -844,8 +922,8 @@ export default function DailyCheckInPage() {
       </div>
 
       {/* Mode Toggle */}
-      <div className="mb-8 animate-fade-in">
-        <div className="relative flex rounded-xl border border-border bg-bg-panel p-1 gap-1">
+      <div className="mb-6 w-full max-w-xl animate-fade-in sm:mb-8">
+        <div className="relative grid grid-cols-2 gap-1 rounded-xl border border-border bg-bg-panel p-1">
           <div
             className="absolute top-1 bottom-1 rounded-lg bg-accent-primary transition-all duration-300 ease-spring"
             style={{
@@ -860,13 +938,13 @@ export default function DailyCheckInPage() {
               clearAutoAdvance();
             }}
             className={[
-              "relative z-10 flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-colors",
+              "relative z-10 flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-colors sm:px-4",
               mode === "guided"
                 ? "text-text-inverse"
                 : "text-text-muted hover:text-text-secondary",
             ].join(" ")}
           >
-            <ListChecks className="h-3.5 w-3.5" /> Guided
+            <ListChecks className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Guided</span>
           </button>
           <button
             type="button"
@@ -875,13 +953,13 @@ export default function DailyCheckInPage() {
               clearAutoAdvance();
             }}
             className={[
-              "relative z-10 flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold transition-colors",
+              "relative z-10 flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition-colors sm:px-4",
               mode === "text"
                 ? "text-text-inverse"
                 : "text-text-muted hover:text-text-secondary",
             ].join(" ")}
           >
-            <MessageSquare className="h-3.5 w-3.5" /> Natural Language
+            <MessageSquare className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Natural Language</span>
           </button>
         </div>
       </div>
@@ -889,7 +967,7 @@ export default function DailyCheckInPage() {
       {/* ── Natural Language Mode ── */}
       {mode === "text" && (
         <div className="w-full max-w-xl animate-fade-in space-y-5">
-          <Card variant="elevated" className="p-6 space-y-5">
+          <Card variant="elevated" className="space-y-5 p-4 sm:p-6">
             <div className="space-y-1">
               <p className="text-sm font-medium text-text-primary">
                 Talk to your twin
@@ -917,8 +995,8 @@ export default function DailyCheckInPage() {
 
             {/* Parsed preview */}
             {nlParsed && (
-              <div className="rounded-xl border border-border bg-bg-panel p-5 space-y-4 animate-fade-in">
-                <div className="flex items-center justify-between">
+              <div className="rounded-xl border border-border bg-bg-panel p-4 space-y-4 animate-fade-in sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-accent-primary" />
                     <span className="text-sm font-semibold text-text-primary">
@@ -1039,7 +1117,7 @@ export default function DailyCheckInPage() {
                 : "opacity-100 scale-100 translate-x-0",
             ].join(" ")}
           >
-            <Card variant="elevated" className="p-7 sm:p-8">
+            <Card variant="elevated" className="p-4 min-[380px]:p-5 sm:p-8">
               {/* Dimension badge */}
               <div className="flex items-center justify-center mb-5">
                 <Badge tone="default">
@@ -1049,12 +1127,12 @@ export default function DailyCheckInPage() {
               </div>
 
               {/* Question text */}
-              <h2 className="text-lg sm:text-xl font-semibold leading-relaxed text-text-primary text-center mb-8">
+              <h2 className="mb-6 break-words text-center text-base font-semibold leading-relaxed text-text-primary sm:mb-8 sm:text-xl">
                 {questions[currentIndex]}
               </h2>
 
               {/* Rating buttons */}
-              <div className="grid grid-cols-5 gap-2 sm:gap-3 mb-6">
+              <div className="mb-6 grid grid-cols-5 gap-1.5 min-[380px]:gap-2 sm:gap-3">
                 {moodOptions.map((opt) => (
                   <RatingButton
                     key={opt.value}
@@ -1075,7 +1153,7 @@ export default function DailyCheckInPage() {
               </div>
 
               {/* Navigation */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center">
                 {currentIndex > 0 && (
                   <Button
                     variant="ghost"
