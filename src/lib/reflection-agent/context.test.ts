@@ -1,5 +1,6 @@
 import {
   buildReflectionSystemPrompt,
+  formatLegacyMemoryForReflection,
   formatTwinContextForReflection,
 } from './context';
 import type { TwinContextPack } from '@/lib/twin-core';
@@ -155,5 +156,31 @@ describe('buildReflectionSystemPrompt', () => {
     expect(prompt).toContain('=== INSIGHT CONTEXT ===');
     expect(prompt).toContain('Top interest: writing');
     expect(prompt).toContain('Entertainment ratio: 25%');
+  });
+
+  it('does not include legacy memory block for whitespace-only memory', () => {
+    const prompt = buildReflectionSystemPrompt({
+      memoryContext: ' \n\t ',
+    });
+
+    expect(prompt).not.toContain('=== LEGACY MEMORY ===');
+  });
+});
+
+describe('formatLegacyMemoryForReflection', () => {
+  it('redacts sensitive values', () => {
+    const output = formatLegacyMemoryForReflection('Email x@example.com token=abc123xyz789');
+
+    expect(output).toContain('[redacted-email]');
+    expect(output).toContain('token=[redacted-secret]');
+    expect(output).not.toContain('x@example.com');
+    expect(output).not.toContain('abc123xyz789');
+  });
+
+  it('bounds long memory and includes a truncation note', () => {
+    const output = formatLegacyMemoryForReflection(`memory ${'steady routine '.repeat(200)}`);
+
+    expect(output.length).toBeLessThanOrEqual(1200);
+    expect(output).toContain('legacy memory truncated for prompt budget');
   });
 });

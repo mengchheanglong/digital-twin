@@ -1,4 +1,5 @@
 import type { TwinContextPack } from '@/lib/twin-core';
+import { sanitizeText } from '@/lib/twin-core/sanitize';
 
 export interface ReflectionInsightData {
   topInterest: string;
@@ -8,6 +9,8 @@ export interface ReflectionInsightData {
 }
 
 const MAX_TWIN_CONTEXT_LENGTH = 2500;
+const MAX_LEGACY_MEMORY_LENGTH = 1200;
+const LEGACY_MEMORY_TRUNCATION_NOTE = '\n- Note: legacy memory truncated for prompt budget.';
 
 function cleanText(value: unknown): string {
   return String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -114,11 +117,26 @@ export function formatTwinContextForReflection(pack: TwinContextPack | null | un
   return truncateContext(lines.join('\n').trim());
 }
 
+export function formatLegacyMemoryForReflection(memoryContext: string | null | undefined): string {
+  const sanitized = sanitizeText(memoryContext, Number.MAX_SAFE_INTEGER);
+  if (!sanitized) {
+    return '';
+  }
+
+  if (sanitized.length <= MAX_LEGACY_MEMORY_LENGTH) {
+    return sanitized;
+  }
+
+  const budget = MAX_LEGACY_MEMORY_LENGTH - LEGACY_MEMORY_TRUNCATION_NOTE.length;
+  return `${sanitized.slice(0, Math.max(0, budget)).trimEnd()}${LEGACY_MEMORY_TRUNCATION_NOTE}`;
+}
+
 export function buildReflectionSystemPrompt(input: {
   twinContext?: string;
   memoryContext?: string;
   insight?: ReflectionInsightData | null;
 }): string {
+  const legacyMemory = formatLegacyMemoryForReflection(input.memoryContext);
   const parts: string[] = [
     'You are the user\'s reflection companion inside Digital Twin.',
     'Use a warm, grounded, practical tone. Help with focus, routines, stress regulation, daily planning, and reflective self-understanding.',
@@ -134,11 +152,11 @@ export function buildReflectionSystemPrompt(input: {
     );
   }
 
-  if (input.memoryContext?.trim()) {
+  if (legacyMemory) {
     parts.push(
       '',
       '=== LEGACY MEMORY ===',
-      input.memoryContext.trim(),
+      legacyMemory,
       'Reference this memory naturally when relevant, without stating it was from a file.',
     );
   }
