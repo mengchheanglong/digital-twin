@@ -171,6 +171,7 @@
 :root {
   --sidebar-width: 17rem;
   --sidebar-width-collapsed: 4.5rem;
+  --mobile-nav-height: 4.75rem;
 }
 
 * {
@@ -568,6 +569,21 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* === MOBILE SAFE AREA HELPERS === */
+.safe-bottom-padding {
+  padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (min-width: 768px) {
+  .safe-bottom-padding {
+    padding-bottom: 0;
+  }
 }
 
 /* === ANIMAL PROGRESSION PHYSICS === */

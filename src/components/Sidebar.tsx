@@ -25,6 +25,7 @@ import ThemeToggle from "@/components/theme/ThemeToggle";
 interface NavItem {
   href: string;
   label: string;
+  mobileLabel?: string;
   icon: React.ReactNode;
   badge?: string;
 }
@@ -33,6 +34,8 @@ interface NavItemProps extends NavItem {
   active: boolean;
   isExpanded: boolean;
 }
+
+type MobileNavItemProps = Omit<NavItemProps, "isExpanded">;
 
 interface ProgressState {
   level: number;
@@ -86,6 +89,29 @@ function SidebarNavItem({ href, label, icon, active, badge, isExpanded }: NavIte
               : "p-0 opacity-0 max-w-0 scale-50"
           }`}
         >
+          {badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function MobileNavItem({ href, label, icon, active, badge }: MobileNavItemProps) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={[
+        "relative flex min-w-[4.35rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold transition-all duration-300 ease-apple active:scale-[0.96]",
+        active
+          ? "bg-accent-subtle text-text-primary ring-1 ring-accent-primary/25"
+          : "text-text-muted hover:bg-bg-hover hover:text-text-primary",
+      ].join(" ")}
+    >
+      <span className={active ? "text-accent-primary" : "text-text-muted"}>{icon}</span>
+      <span className="max-w-full truncate leading-none">{label}</span>
+      {badge && (
+        <span className="absolute right-1.5 top-1 rounded-full bg-accent-primary px-1 text-[9px] font-bold leading-4 text-text-inverse">
           {badge}
         </span>
       )}
@@ -184,8 +210,8 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
 
   const navItems: NavItem[] = [
     { href: "/dashboard/insight", label: "Daily Log", icon: <ScrollText className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/quest", label: "Quest Board", icon: <Swords className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/chat", label: "Companion", icon: <Sparkles className="h-4.5 w-4.5" /> },
+    { href: "/dashboard/quest", label: "Quest Board", mobileLabel: "Quest", icon: <Swords className="h-4.5 w-4.5" /> },
+    { href: "/dashboard/chat", label: "Companion", mobileLabel: "Chat", icon: <Sparkles className="h-4.5 w-4.5" /> },
     { href: "/dashboard/journal", label: "Journal", icon: <BookOpen className="h-4.5 w-4.5" /> },
     { href: "/dashboard/focus", label: "Focus", icon: <Timer className="h-4.5 w-4.5" /> },
     { href: "/dashboard/analytics", label: "Analytics", icon: <BarChart3 className="h-4.5 w-4.5" /> },
@@ -194,8 +220,9 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
   ];
 
   return (
+    <>
     <aside
-      className={`fixed z-[1000] flex h-screen flex-col border-r border-border-subtle bg-bg-sidebar backdrop-blur-xl transition-[width] duration-500 ease-apple overflow-hidden ${
+      className={`fixed z-[1000] hidden h-screen flex-col overflow-hidden border-r border-border-subtle bg-bg-sidebar backdrop-blur-xl transition-[width] duration-500 ease-apple md:flex ${
         isExpanded ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-width-collapsed)]"
       }`}
     >
@@ -388,5 +415,55 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
         </button>
       </div>
     </aside>
+    <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-border-subtle bg-bg-sidebar/95 shadow-elevated backdrop-blur-xl safe-area-bottom md:hidden">
+      <div className="flex min-h-[var(--mobile-nav-height)] items-stretch gap-1 overflow-x-auto px-2 pt-2 scrollbar-hide">
+        {navItems.map((item) => (
+          <MobileNavItem
+            key={item.href}
+            href={item.href}
+            label={item.mobileLabel ?? item.label}
+            icon={item.icon}
+            active={isNavItemActive(item.href, pathname)}
+            badge={item.badge}
+          />
+        ))}
+
+        <Link
+          href="/dashboard/profile"
+          aria-current={pathname.startsWith("/dashboard/profile") ? "page" : undefined}
+          className={[
+            "flex min-w-[4.35rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold transition-all duration-300 ease-apple active:scale-[0.96]",
+            pathname.startsWith("/dashboard/profile")
+              ? "bg-accent-subtle text-text-primary ring-1 ring-accent-primary/25"
+              : "text-text-muted hover:bg-bg-hover hover:text-text-primary",
+          ].join(" ")}
+        >
+          <span className="relative flex h-5 w-5 items-center justify-center">
+            <AvatarIcon className={`h-4.5 w-4.5 ${avatarTier.text}`} strokeWidth={2} />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-status-success ring-2 ring-bg-sidebar" />
+          </span>
+          <span className="max-w-full truncate leading-none">Profile</span>
+        </Link>
+
+        <div className="flex min-w-[4.35rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-text-muted">
+          {mounted ? (
+            <ThemeToggle size="sm" className="h-8 w-8 shrink-0" />
+          ) : (
+            <div className="h-8 w-8 shrink-0 rounded-xl border border-border bg-bg-card" />
+          )}
+          <span className="max-w-full truncate leading-none">Theme</span>
+        </div>
+
+        <button
+          onClick={handleSignOut}
+          type="button"
+          className="flex min-w-[4.35rem] flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-semibold text-text-muted transition-all duration-300 ease-apple hover:bg-status-error/10 hover:text-status-error active:scale-[0.96]"
+        >
+          <LogOut className="h-4.5 w-4.5" />
+          <span className="max-w-full truncate leading-none">Sign Out</span>
+        </button>
+      </div>
+    </nav>
+    </>
   );
 }

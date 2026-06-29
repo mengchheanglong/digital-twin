@@ -15,10 +15,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="min-h-screen">
       <Sidebar isCollapsed={isCollapsed} onToggleCollapse={() => setIsCollapsed(!isCollapsed)} />
       <main
-        className={`min-h-screen transition-all duration-500 ease-apple relative overflow-x-hidden bg-bg-base ${
+        className={`relative min-h-screen w-full overflow-x-hidden bg-bg-base transition-all duration-500 ease-apple safe-bottom-padding ${
           isCollapsed
-            ? "ml-[var(--sidebar-width-collapsed)] w-[calc(100%-var(--sidebar-width-collapsed))]"
-            : "ml-[var(--sidebar-width)] w-[calc(100%-var(--sidebar-width))]"
+            ? "md:ml-[var(--sidebar-width-collapsed)] md:w-[calc(100%-var(--sidebar-width-collapsed))]"
+            : "md:ml-[var(--sidebar-width)] md:w-[calc(100%-var(--sidebar-width))]"
         }`}
       >
         {/* Ambient background glow */}
@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         />
 
-        <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8 relative z-10">
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

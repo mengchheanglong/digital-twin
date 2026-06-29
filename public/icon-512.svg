@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Digital Twin app icon</title>
+  <rect width="512" height="512" rx="116" fill="#0b0d14"/>
+  <circle cx="256" cy="256" r="186" fill="#7c5cfc" opacity="0.18"/>
+  <circle cx="256" cy="256" r="128" fill="#7c5cfc" opacity="0.28"/>
+  <path d="M256 104c67.6 0 122.5 54.9 122.5 122.5C378.5 335.3 256 408 256 408S133.5 335.3 133.5 226.5C133.5 158.9 188.4 104 256 104Z" fill="#f0f1f5"/>
+  <path d="M205.4 226.5c0-28 22.6-50.6 50.6-50.6s50.6 22.6 50.6 50.6-22.6 50.6-50.6 50.6-50.6-22.6-50.6-50.6Z" fill="#0b0d14"/>
+  <path d="M170.6 338.5c20.2-38.1 50.9-58.6 85.4-58.6s65.2 20.5 85.4 58.6" fill="none" stroke="#7c5cfc" stroke-width="32" stroke-linecap="round"/>
+  <path d="M154.6 165.3C187.9 124.5 221.7 104 256 104s68.1 20.5 101.4 61.3" fill="none" stroke="#9b82fd" stroke-width="22" stroke-linecap="round"/>
+</svg>
