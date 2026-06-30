@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import PwaServiceWorker from "@/components/PwaServiceWorker";
 import ThemeProvider from "@/components/theme/ThemeProvider";
 import { ToastProvider } from "@/components/ui";
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
+        <PwaServiceWorker />
         <ThemeProvider>
           <ToastProvider position="bottom-right">{children}</ToastProvider>
         </ThemeProvider>
