@@ -89,17 +89,14 @@ export async function PUT(req: Request, { params }: RouteContext) {
       updateUserInsight(user._id.toString(), { force: true }).catch(console.error);
     }
     
-    // Recurring Logic
-    if (nextCompleted) {
+    // Recurring Logic. Daily quests are reactivated by the daily reset route so
+    // completion does not also create a tomorrow clone.
+    if (nextCompleted && quest.duration !== 'daily') {
       const now = new Date();
       let nextDate = new Date(now);
       
       // Determine next start date based on duration
       switch (quest.duration) {
-        case 'daily':
-          nextDate.setDate(now.getDate() + 1);
-          nextDate.setHours(0, 0, 0, 0); // Start of next day
-          break;
         case 'weekly':
           nextDate.setDate(now.getDate() + 7);
           nextDate.setHours(0, 0, 0, 0);

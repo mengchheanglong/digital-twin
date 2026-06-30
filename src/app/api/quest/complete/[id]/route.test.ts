@@ -82,13 +82,13 @@ describe('quest completion route', () => {
     expect(adjustUserXP).not.toHaveBeenCalled();
   });
 
-  it('completes a quest through a guarded update before applying rewards', async () => {
+  it('completes a recurring non-daily quest through a guarded update before applying rewards', async () => {
     const completedDate = new Date('2026-06-24T00:00:00.000Z');
     const quest = {
       _id: questId,
       userId,
       goal: 'Read',
-      duration: 'daily',
+      duration: 'weekly',
       completed: true,
       progress: 100,
       completedDate,
@@ -118,6 +118,36 @@ describe('quest completion route', () => {
     );
     expect(QuestLog.findOneAndUpdate).toHaveBeenCalledTimes(1);
     expect(Quest.create).toHaveBeenCalledTimes(1);
+    expect(adjustUserXP).toHaveBeenCalledTimes(1);
+    await expect(res.json()).resolves.toMatchObject({
+      msg: 'Quest completed.',
+      progression: { level: 1, currentXP: 10, requiredXP: 100 },
+    });
+  });
+
+  it('does not create a future clone for daily quests because reset owns that lifecycle', async () => {
+    const quest = {
+      _id: questId,
+      userId,
+      goal: 'Read',
+      duration: 'daily',
+      completed: true,
+      progress: 100,
+      completedDate: new Date('2026-06-24T00:00:00.000Z'),
+      date: new Date('2026-06-23T00:00:00.000Z'),
+    };
+
+    (Quest.findOne as jest.Mock).mockResolvedValue({ ...quest, completed: false, progress: 0, completedDate: null });
+    (Quest.findOneAndUpdate as jest.Mock).mockResolvedValue(quest);
+
+    const res = await PUT(new Request('http://localhost/api/quest/complete/id'), {
+      params: Promise.resolve({ id: questId }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(QuestLog.findOneAndUpdate).toHaveBeenCalledTimes(1);
+    expect(Quest.create).not.toHaveBeenCalled();
+    expect(Quest.findByIdAndDelete).not.toHaveBeenCalled();
     expect(adjustUserXP).toHaveBeenCalledTimes(1);
     await expect(res.json()).resolves.toMatchObject({
       msg: 'Quest completed.',

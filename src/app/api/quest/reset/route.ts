@@ -18,6 +18,14 @@ function isNewDay(lastResetDate: Date | null, currentTime: Date, tz: string): bo
   return lastResetLocal !== currentLocal;
 }
 
+function normalizeQuestGoal(goal: string): string {
+  return goal.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function questRepeatKey(quest: { goal: string; duration: string }): string {
+  return `${quest.duration}:${normalizeQuestGoal(quest.goal)}`;
+}
+
 /**
  * POST /api/quest/reset
  * 
@@ -80,17 +88,34 @@ export async function POST(req: Request) {
       await QuestLog.bulkWrite(bulkOps);
     }
 
+    const activeDailyQuests = await Quest.find({
+      userId: user.id,
+      duration: 'daily',
+      completed: false,
+    });
+
+    const activeDailyKeys = new Set(activeDailyQuests.map(questRepeatKey));
+    const completedDuplicateIds = completedDailyQuests
+      .filter((quest) => activeDailyKeys.has(questRepeatKey(quest)))
+      .map((quest) => quest._id);
+
+    const deleteConditions: Record<string, unknown>[] = [
+      { recurrencesLeft: 0 },
+      { recurrencesLeft: 1 },
+    ];
+
+    if (completedDuplicateIds.length > 0) {
+      deleteConditions.push({ _id: { $in: completedDuplicateIds } });
+    }
+
     const deleteNonRepeatableResult = await Quest.deleteMany({
       userId: user.id,
       duration: 'daily',
       completed: true,
-      $or: [
-        { recurrencesLeft: 0 },
-        { recurrencesLeft: 1 },
-      ],
+      $or: deleteConditions,
     });
 
-    const resetCompletedResult = await Quest.updateMany(
+    const resetInfiniteCompletedResult = await Quest.updateMany(
       {
         userId: user.id,
         duration: 'daily',
@@ -98,11 +123,23 @@ export async function POST(req: Request) {
         $or: [
           { recurrencesLeft: null },
           { recurrencesLeft: { $exists: false } },
-          { recurrencesLeft: { $gt: 1 } },
         ],
       },
       {
         $set: { progress: 0, completed: false, completedDate: null },
+      }
+    );
+
+    const resetLimitedCompletedResult = await Quest.updateMany(
+      {
+        userId: user.id,
+        duration: 'daily',
+        completed: true,
+        recurrencesLeft: { $gt: 1 },
+      },
+      {
+        $set: { progress: 0, completed: false, completedDate: null },
+        $inc: { recurrencesLeft: -1 },
       }
     );
 
@@ -126,7 +163,8 @@ export async function POST(req: Request) {
       reset: true,
       stats: {
         totalDeleted: deleteNonRepeatableResult.deletedCount,
-        completedReset: resetCompletedResult.modifiedCount,
+        completedReset:
+          resetInfiniteCompletedResult.modifiedCount + resetLimitedCompletedResult.modifiedCount,
         incompleteReset: resetResult.modifiedCount,
       },
     });
