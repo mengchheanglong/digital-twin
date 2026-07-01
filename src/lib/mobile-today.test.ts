@@ -193,6 +193,33 @@ describe('buildMobileToday', () => {
     expect(result.dayKey).toBe(dayKey);
   });
 
+  it('keeps mobile reflection text from ending mid-sentence', async () => {
+    const longReflection = [
+      'Your dedication to your daily routines is impressive, hitting 85.7% productivity while maintaining a steady rhythm-that is a real strength.',
+      'At the same time, you may want to add one quiet recovery block before the evening so the momentum stays sustainable.',
+      'Keep tomorrow simple.',
+    ].join(' ');
+
+    (CheckIn.find as jest.Mock).mockReturnValue(buildChain([]));
+    (Quest.find as jest.Mock).mockReturnValue(buildChain([]));
+    (UserInsightState.findOne as jest.Mock).mockReturnValue(
+      buildChain({
+        currentTrend: 'stable',
+        topInterest: 'Daily',
+        productivityScore: 85.7,
+        entertainmentRatio: 0,
+        lastReflection: longReflection,
+      }),
+    );
+
+    const result = await buildMobileToday(USER_ID, { now: NOW });
+
+    expect(result.insight.reflection).toBe(
+      'Your dedication to your daily routines is impressive, hitting 85.7% productivity while maintaining a steady rhythm-that is a real strength.',
+    );
+    expect(result.insight.reflection).not.toContain('At the same time, you');
+  });
+
   it('sanitizes and redacts embedded secret-like text in user, quest, and insight fields', async () => {
     const nowSecret = new Date('2026-06-30T12:00:00.000Z');
     const email = 'leak@example.com';

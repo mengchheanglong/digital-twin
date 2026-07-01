@@ -66,6 +66,10 @@ export interface BuildMobileTodayOptions {
 
 type PlainRecord = Record<string, unknown>;
 
+const MOBILE_REFLECTION_SOURCE_MAX_LENGTH = 360;
+const MOBILE_REFLECTION_TARGET_MAX_LENGTH = 220;
+const MOBILE_REFLECTION_MIN_SENTENCE_LENGTH = 80;
+
 function asRecord(value: unknown): PlainRecord {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as PlainRecord;
@@ -105,6 +109,32 @@ function extractDayKey(entry: PlainRecord, timezone: string, now: Date): string 
 
 function sanitizeString(value: unknown, maxLength = 100): string {
   return sanitizeText(value, maxLength);
+}
+
+function clampToCompleteSentence(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+
+  const clipped = value.slice(0, maxLength).trimEnd();
+  const sentenceEnd = Math.max(
+    clipped.lastIndexOf('.'),
+    clipped.lastIndexOf('!'),
+    clipped.lastIndexOf('?'),
+  );
+  if (sentenceEnd >= MOBILE_REFLECTION_MIN_SENTENCE_LENGTH) {
+    return clipped.slice(0, sentenceEnd + 1);
+  }
+
+  const wordBoundary = clipped.lastIndexOf(' ');
+  const fallbackEnd = wordBoundary >= MOBILE_REFLECTION_MIN_SENTENCE_LENGTH
+    ? wordBoundary
+    : maxLength;
+  return `${clipped.slice(0, fallbackEnd).trimEnd()}...`;
+}
+
+function sanitizeReflection(value: unknown): string {
+  const sanitized = sanitizeString(value, MOBILE_REFLECTION_SOURCE_MAX_LENGTH);
+  if (!sanitized) return '';
+  return clampToCompleteSentence(sanitized, MOBILE_REFLECTION_TARGET_MAX_LENGTH);
 }
 
 function parseRatingArray(raw: unknown): MobileTodayDimensionMap | null {
@@ -300,10 +330,7 @@ export async function buildMobileToday(
   const trend = isValidTrend(trendRaw)
     ? trendRaw
     : 'stable';
-  const insightReflection = sanitizeString(
-    insightDoc.lastReflection,
-    160,
-  ) || 'No reflection yet. Reflect this evening.';
+  const insightReflection = sanitizeReflection(insightDoc.lastReflection) || 'No reflection yet. Reflect this evening.';
   const topInterest = sanitizeString(insightDoc.topInterest, 80) || 'General';
 
   const { launcher, nextAction } = computeLauncherState({
