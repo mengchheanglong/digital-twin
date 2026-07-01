@@ -287,6 +287,7 @@ async function ensureReplyQuality(userMessage: string, replyResult: DeepSeekGene
 
 async function persistStructuredSignals(
   userId: string,
+  chatId: string,
   messageId: string,
   userMessage: string,
   preferredModel?: string,
@@ -301,13 +302,13 @@ async function persistStructuredSignals(
     }
 
     const timestamp = new Date();
-    const messageObjectId = new mongoose.Types.ObjectId(messageId);
     await ChatSignal.bulkWrite(
       signals.map((signal) => ({
         updateOne: {
           filter: { messageId, signalType: signal.signalType },
           update: {
             $set: {
+              chatId,
               userId,
               intensity: signal.intensity,
               confidence: signal.confidence,
@@ -444,13 +445,13 @@ export async function POST(req: Request) {
       createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
     }).then((dailyCount) => {
       if (dailyCount < 20) {
-        persistStructuredSignals(user.id, userMessageId, message, companionResult.model).catch((err) => {
+        persistStructuredSignals(user.id, chatId, userMessageId, message, companionResult.model).catch((err) => {
           console.error('Background signal persistence failed:', err);
         });
       }
     }).catch(() => {
       // If count fails, still attempt extraction to avoid silent data loss
-      persistStructuredSignals(user.id, userMessageId, message, companionResult.model).catch((err) => {
+      persistStructuredSignals(user.id, chatId, userMessageId, message, companionResult.model).catch((err) => {
         console.error('Background signal persistence failed:', err);
       });
     });

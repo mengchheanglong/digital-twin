@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 // 5 requests per minute per IP
 const forgotPasswordLimiter = new MongoRateLimiter('forgot-password', 60 * 1000, 5);
+const RESET_RESPONSE_MESSAGE = "If an account with that email exists, we have sent a password reset code.";
 
 interface ForgotPasswordPayload {
   email?: string;
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
 
     if (!user) {
       // For security, don't reveal if user exists.
-      return successResponse("If an account with that email exists, we have sent a password reset link.");
+      return successResponse(RESET_RESPONSE_MESSAGE);
     }
 
     // Generate 6-digit OTP
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
       `
     });
 
-    return successResponse("Code sent to your email (check server console).");
+    return successResponse(RESET_RESPONSE_MESSAGE);
 
   } catch (error) {
     return serverError(error, "Error processing forgot password request");

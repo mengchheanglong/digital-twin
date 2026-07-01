@@ -92,6 +92,12 @@ function createRequest() {
   });
 }
 
+async function flushBackgroundPromises() {
+  for (let i = 0; i < 5; i += 1) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+}
+
 describe('chat send route', () => {
   let consoleErrorSpy: jest.SpyInstance;
 
@@ -159,5 +165,40 @@ describe('chat send route', () => {
     expect(systemPrompt).not.toContain('=== TWIN CONTEXT ===');
     expect(systemPrompt).toContain('Do not fabricate personal history');
     expect(systemPrompt).toContain('Do not provide medical diagnosis, legal advice, or financial advice');
+  });
+
+  it('persists extracted chat signals with the owning chat id', async () => {
+    (ChatSignal.countDocuments as jest.Mock).mockResolvedValue(0);
+    (requestDeepSeekChat as jest.Mock)
+      .mockResolvedValueOnce({
+        text: 'Start with one small practical step today, then reflect afterward.',
+        model: 'deepseek-test',
+        finishReason: 'stop',
+      })
+      .mockResolvedValueOnce({
+        text: '[{"signal_type":"stress","intensity":4,"confidence":0.82}]',
+        model: 'deepseek-test',
+        finishReason: 'stop',
+      });
+
+    const res = await POST(createRequest());
+    expect(res.status).toBe(200);
+
+    await flushBackgroundPromises();
+
+    expect(ChatSignal.bulkWrite).toHaveBeenCalledTimes(1);
+    const operations = (ChatSignal.bulkWrite as jest.Mock).mock.calls[0][0];
+    expect(operations).toHaveLength(1);
+    expect(operations[0].updateOne.update.$set).toMatchObject({
+      chatId,
+      userId,
+      intensity: 4,
+      confidence: 0.82,
+    });
+    expect(operations[0].updateOne.update.$setOnInsert).toMatchObject({
+      messageId: expect.any(String),
+      signalType: 'stress',
+      createdAt: expect.any(Date),
+    });
   });
 });

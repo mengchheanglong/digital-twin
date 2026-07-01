@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import confetti from "canvas-confetti";
 import { clamp } from "@/lib/math";
+import { notifyUserProgressionUpdate } from "@/lib/progression-events";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Button,
@@ -398,6 +399,7 @@ export default function QuestBoardPage() {
         { headers },
       );
       const responseData = response.data;
+      if (responseData?.progression) notifyUserProgressionUpdate();
 
       if (responseData?.deleted) {
         setQuests((current) => current.filter((q) => q.id !== id));

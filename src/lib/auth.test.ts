@@ -64,6 +64,29 @@ describe('auth token verification', () => {
     await expect(verifyTokenWithRevocation(requestWithToken(token))).resolves.toBeNull();
   });
 
+  it('accepts tokens issued in the same second as the password change', async () => {
+    const userId = new mongoose.Types.ObjectId().toString();
+    const token = jwt.sign({ user: { id: userId }, iat: 1000 }, secret);
+    (User.findById as jest.Mock).mockReturnValue({
+      lean: jest.fn(() => Promise.resolve({ passwordChangedAt: new Date(1000 * 1000 + 900) })),
+    });
+
+    await expect(verifyTokenWithRevocation(requestWithToken(token))).resolves.toEqual({
+      id: userId,
+      _id: userId,
+    });
+  });
+
+  it('rejects tokens when the user no longer exists', async () => {
+    const userId = new mongoose.Types.ObjectId().toString();
+    const token = jwt.sign({ user: { id: userId } }, secret);
+    (User.findById as jest.Mock).mockReturnValue({
+      lean: jest.fn(() => Promise.resolve(null)),
+    });
+
+    await expect(verifyTokenWithRevocation(requestWithToken(token))).resolves.toBeNull();
+  });
+
   it('normalizes valid token users', async () => {
     const userId = new mongoose.Types.ObjectId().toString();
     const token = jwt.sign({ user: { _id: userId, email: 'test@example.com' } }, secret);

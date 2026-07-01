@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
-import { getDayKeyTz } from '@/lib/progression';
+import { getCheckInXpReward, getDayKeyTz } from '@/lib/progression';
 import { adjustUserXP } from '@/lib/user-progress';
 import { updateUserInsight } from '@/lib/insight-engine';
 import { badRequest, unauthorized, serverError, tooManyRequests } from '@/lib/api-response';
@@ -81,7 +81,8 @@ export async function POST(req: Request) {
       throw error;
     }
 
-    const progression = await adjustUserXP(user.id, percentage);
+    const xpAwarded = getCheckInXpReward(percentage);
+    const progression = await adjustUserXP(user.id, xpAwarded);
 
     void Promise.all([
       UserEvent.create({
@@ -107,6 +108,7 @@ export async function POST(req: Request) {
         totalScore: overallScore,
         maxScore,
         percentage,
+        xpAwarded,
       },
       progression,
     });

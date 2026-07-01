@@ -320,14 +320,7 @@ export default function AuthPage() {
                 </div>
               </FormField>
 
-              {/* Confirm password */}
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-apple ${
-                  isLogin
-                    ? "max-h-0 opacity-0"
-                    : "max-h-40 opacity-100"
-                }`}
-              >
+              {!isLogin && (
                 <FormField
                   label="Confirm Password"
                   htmlFor="confirmPassword"
@@ -367,7 +360,7 @@ export default function AuthPage() {
                     </button>
                   </div>
                 </FormField>
-              </div>
+              )}
 
               {isLogin && (
                 <div className="flex justify-end">

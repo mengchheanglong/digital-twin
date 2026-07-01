@@ -107,9 +107,13 @@ export async function verifyTokenWithRevocation(req: Request): Promise<DecodedUs
   try {
     await dbConnect();
     const userDoc = await User.findById(normalizedId, { passwordChangedAt: 1 }).lean();
+    if (!userDoc) {
+      return null;
+    }
+
     if (userDoc?.passwordChangedAt && typeof decoded.iat === 'number') {
-      const tokenIssuedMs = decoded.iat * 1000;
-      if (tokenIssuedMs < new Date(userDoc.passwordChangedAt).getTime()) {
+      const passwordChangedAtSeconds = Math.floor(new Date(userDoc.passwordChangedAt).getTime() / 1000);
+      if (decoded.iat < passwordChangedAtSeconds) {
         return null;
       }
     }

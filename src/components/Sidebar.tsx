@@ -20,6 +20,7 @@ import {
   User,
 } from "lucide-react";
 import { getAvatarTier } from "@/lib/progression";
+import { USER_PROGRESSION_UPDATE_EVENT } from "@/lib/progression-events";
 import { Tooltip, ProgressBar } from "@/components/ui";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 
@@ -191,11 +192,14 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
     const handleProgressUpdate = () => {
       void fetchProgress();
     };
-    window.addEventListener("user-progression-update", handleProgressUpdate);
+    window.addEventListener(USER_PROGRESSION_UPDATE_EVENT, handleProgressUpdate);
 
     return () => {
       active = false;
-      window.removeEventListener("user-progression-update", handleProgressUpdate);
+      window.removeEventListener(
+        USER_PROGRESSION_UPDATE_EVENT,
+        handleProgressUpdate,
+      );
     };
   }, []);
 

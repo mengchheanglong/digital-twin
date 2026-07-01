@@ -36,6 +36,11 @@ export const QUEST_XP_REWARD: Record<QuestDuration, number> = {
   yearly: 500,
 };
 
+export function getCheckInXpReward(percentage: number): number {
+  if (!Number.isFinite(percentage)) return 0;
+  return Math.max(0, Math.round(percentage / 10));
+}
+
 export function normalizeDuration(value: string): QuestDuration {
   const normalized = String(value || "")
     .trim()

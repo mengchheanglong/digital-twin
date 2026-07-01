@@ -2,8 +2,6 @@ import mongoose from 'mongoose';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import { verifyTokenWithRevocation } from '@/lib/auth';
-import { normalizeDuration, QUEST_XP_REWARD } from '@/lib/progression';
-import { adjustUserXP } from '@/lib/user-progress';
 import { badRequest, notFound, serverError, unauthorized } from '@/lib/api-response';
 import { readJsonBody } from '@/lib/request';
 
@@ -45,35 +43,24 @@ export async function PUT(req: Request, { params }: RouteContext) {
     }
 
     const roundedProgress = Math.round(progress);
-    const nextCompleted = roundedProgress >= 100;
-    const previousQuest = await Quest.findOneAndUpdate(
-      { _id: id, userId: user.id },
+    const quest = await Quest.findOneAndUpdate(
+      { _id: id, userId: user.id, completed: false },
       {
         $set: {
           progress: roundedProgress,
-          completed: nextCompleted,
-          completedDate: nextCompleted ? new Date() : null,
         },
       },
-      { new: false },
+      { new: true },
     );
 
-    if (!previousQuest) {
+    if (!quest) {
       return notFound('Quest not found.');
     }
-
-    let progression = null;
-    if (Boolean(previousQuest.completed) !== nextCompleted) {
-      const reward = QUEST_XP_REWARD[normalizeDuration(previousQuest.duration)] || 0;
-      progression = await adjustUserXP(user.id, nextCompleted ? reward : -reward);
-    }
-
-    const quest = await Quest.findOne({ _id: id, userId: user.id });
 
     return NextResponse.json({
       msg: 'Progress updated.',
       quest,
-      progression,
+      progression: null,
     });
   } catch (error) {
     return serverError(error, 'Update progress error');

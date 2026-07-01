@@ -29,6 +29,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
+import { getGuidedForwardState } from "@/lib/checkin-flow";
+import { getCheckInXpReward } from "@/lib/progression";
+import { notifyUserProgressionUpdate } from "@/lib/progression-events";
 import {
   Button,
   Card,
@@ -50,6 +53,7 @@ interface CheckInResult {
   totalScore: number;
   maxScore: number;
   percentage: number;
+  xpAwarded?: number;
 }
 
 interface ProgressionResult {
@@ -346,6 +350,9 @@ function CheckInSuccessScreen({
 
   const targetOffset = circumference * (1 - result.percentage / 100);
   const strokeDashoffset = ringFilled ? targetOffset : circumference;
+  const xpAwarded = Number.isFinite(result.xpAwarded)
+    ? Math.max(0, Math.floor(result.xpAwarded as number))
+    : getCheckInXpReward(result.percentage);
 
   return (
     <div className="flex min-h-[80vh] flex-col items-center justify-center px-4 py-10 animate-fade-in">
@@ -492,7 +499,7 @@ function CheckInSuccessScreen({
                   </span>
                 </div>
                 <Pill tone="accent">
-                  <Sparkles className="mr-1 h-3 w-3" />+{result.totalScore} XP
+                  <Sparkles className="mr-1 h-3 w-3" />+{xpAwarded} XP
                   earned
                 </Pill>
               </div>
@@ -674,14 +681,16 @@ export default function DailyCheckInPage() {
         const finalResult: CheckInResult =
           apiResult && Number.isFinite(apiResult.totalScore)
             ? apiResult
-            : {
+              : {
                 totalScore: computedTotal,
                 maxScore: computedMax,
                 percentage: computedPct,
+                xpAwarded: getCheckInXpReward(computedPct),
               };
 
         setResult(finalResult);
         setProgression(apiProgression ?? null);
+        if (apiProgression) notifyUserProgressionUpdate();
         setFlowState("success");
 
         if (finalResult.percentage >= 80) {
@@ -722,51 +731,48 @@ export default function DailyCheckInPage() {
     }
   }, []);
 
-  const scheduleAutoAdvance = useCallback(() => {
-    clearAutoAdvance();
-    autoAdvanceRef.current = window.setTimeout(() => {
-      handleAdvance(1);
-    }, 500);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clearAutoAdvance, currentIndex, ratings, questions]);
-
   /* ── Navigation ── */
   const handleAdvance = useCallback(
-    (dir: 1 | -1) => {
+    (dir: 1 | -1, ratingOverride?: number) => {
       if (isTransitioning) return;
       clearAutoAdvance();
 
       if (dir === -1 && currentIndex > 0) {
         setIsTransitioning(true);
+        const previousIndex = currentIndex - 1;
         window.setTimeout(() => {
-          setCurrentIndex((i) => i - 1);
-          setSelectedRating(ratings[currentIndex - 1] ?? 0);
+          setCurrentIndex(previousIndex);
+          setSelectedRating(ratings[previousIndex] ?? 0);
           setIsTransitioning(false);
         }, 180);
         return;
       }
 
-      if (dir === 1 && selectedRating === 0) return;
+      const forwardState = getGuidedForwardState({
+        currentIndex,
+        questionCount: questions.length,
+        ratings,
+        selectedRating,
+        ratingOverride,
+      });
+      if (forwardState.type === "blocked") return;
 
-      if (dir === 1 && currentIndex < questions.length - 1) {
+      if (forwardState.type === "next") {
         setIsTransitioning(true);
-        const nextRatings = [...ratings];
-        nextRatings[currentIndex] = selectedRating;
-        setRatings(nextRatings);
+        setRatings(forwardState.ratings);
         window.setTimeout(() => {
-          setCurrentIndex((i) => i + 1);
-          setSelectedRating(ratings[currentIndex + 1] ?? 0);
+          setCurrentIndex(forwardState.nextIndex);
+          setSelectedRating(forwardState.nextSelectedRating);
           setIsTransitioning(false);
         }, 180);
         return;
       }
 
-      if (dir === 1 && currentIndex === questions.length - 1) {
-        const nextRatings = [...ratings];
-        nextRatings[currentIndex] = selectedRating;
+      if (forwardState.type === "complete") {
+        setRatings(forwardState.ratings);
         const entries: ResponseEntry[] = questions.map((q, i) => ({
           question: q,
-          rating: nextRatings[i] ?? 3,
+          rating: forwardState.ratings[i] ?? 3,
         }));
         void submitCheckIn(entries);
       }
@@ -782,10 +788,20 @@ export default function DailyCheckInPage() {
     ],
   );
 
+  const scheduleAutoAdvance = useCallback(
+    (rating: number) => {
+      clearAutoAdvance();
+      autoAdvanceRef.current = window.setTimeout(() => {
+        handleAdvance(1, rating);
+      }, 500);
+    },
+    [clearAutoAdvance, handleAdvance],
+  );
+
   const onSelectRating = useCallback(
     (value: number) => {
       setSelectedRating(value);
-      scheduleAutoAdvance();
+      scheduleAutoAdvance(value);
     },
     [scheduleAutoAdvance],
   );
@@ -866,8 +882,7 @@ export default function DailyCheckInPage() {
     const dimensionBreakdown = DIMENSION_KEYS.map((key, i) => ({
       key,
       meta: DIMENSION_META[key],
-      rating:
-        (ratings[questions[i]] as number | undefined) ?? nlParsed?.[key] ?? 0,
+      rating: ratings[i] ?? nlParsed?.[key] ?? 0,
     }));
 
     const hasDimensionData = dimensionBreakdown.some((d) => d.rating > 0);

@@ -152,3 +152,6 @@ vite.config.ts.timestamp-*
 
 # Local project planning notes
 project-plan/
+
+# Local QA run artifacts
+qa-output/

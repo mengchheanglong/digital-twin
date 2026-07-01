@@ -8,7 +8,14 @@ import Quest from '@/lib/models/Quest';
 import QuestLog from '@/lib/models/QuestLog';
 import JournalEntry from '@/lib/models/JournalEntry';
 import FocusSession from '@/lib/models/FocusSession';
+import LifeEvent from '@/lib/models/LifeEvent';
+import BurnoutHistory from '@/lib/models/BurnoutHistory';
+import UserEvent from '@/lib/models/UserEvent';
 import UserInsightState from '@/lib/models/UserInsightState';
+import UserMemory from '@/lib/models/UserMemory';
+import ChatConversation from '@/lib/models/ChatConversation';
+import ChatMessage from '@/lib/models/ChatMessage';
+import ChatSignal from '@/lib/models/ChatSignal';
 import dbConnect from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -29,11 +36,18 @@ export async function GET(req: Request) {
       questLogs,
       journals,
       focusSessions,
+      lifeEvents,
+      burnoutHistory,
+      userEvents,
       insightState,
+      userMemory,
+      chatConversations,
+      chatMessages,
+      chatSignals,
     ] = await Promise.all([
       User.findById(uid)
         .select(
-          '-password -resetPasswordToken -resetPasswordExpires',
+          '-password -resetPasswordToken -resetPasswordExpires -passwordChangedAt',
         )
         .lean(),
       CheckIn.find({ userId: uid }).sort({ date: -1 }).lean(),
@@ -45,7 +59,14 @@ export async function GET(req: Request) {
       FocusSession.find({ userId: uid })
         .sort({ startedAt: -1 })
         .lean(),
+      LifeEvent.find({ userId: uid }).sort({ date: -1 }).lean(),
+      BurnoutHistory.find({ userId: uid }).sort({ recordedAt: -1 }).lean(),
+      UserEvent.find({ userId: uid }).sort({ createdAt: -1 }).lean(),
       UserInsightState.findOne({ userId: uid }).lean(),
+      UserMemory.findOne({ userId: uid }).lean(),
+      ChatConversation.find({ userId: user.id }).sort({ updatedAt: -1 }).lean(),
+      ChatMessage.find({ userId: user.id }).sort({ createdAt: -1 }).lean(),
+      ChatSignal.find({ userId: user.id }).sort({ createdAt: -1 }).lean(),
     ]);
 
     const exportData = {
@@ -56,7 +77,14 @@ export async function GET(req: Request) {
       questLogs,
       journals,
       focusSessions,
+      lifeEvents,
+      burnoutHistory,
+      userEvents,
       insightState,
+      userMemory,
+      chatConversations,
+      chatMessages,
+      chatSignals,
     };
 
     return new NextResponse(JSON.stringify(exportData, null, 2), {

@@ -8,11 +8,14 @@ import ChatSignal from '@/lib/models/ChatSignal';
 import CheckIn from '@/lib/models/CheckIn';
 import FocusSession from '@/lib/models/FocusSession';
 import JournalEntry from '@/lib/models/JournalEntry';
+import LifeEvent from '@/lib/models/LifeEvent';
+import BurnoutHistory from '@/lib/models/BurnoutHistory';
 import Quest from '@/lib/models/Quest';
 import QuestLog from '@/lib/models/QuestLog';
 import User from '@/lib/models/User';
 import UserEvent from '@/lib/models/UserEvent';
 import UserInsightState from '@/lib/models/UserInsightState';
+import UserMemory from '@/lib/models/UserMemory';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -36,11 +39,14 @@ export const DELETE = withAuth(async (_req, _context, user) => {
       QuestLog.deleteMany({ userId: uid }),
       JournalEntry.deleteMany({ userId: uid }),
       FocusSession.deleteMany({ userId: uid }),
+      LifeEvent.deleteMany({ userId: uid }),
+      BurnoutHistory.deleteMany({ userId: uid }),
       ChatMessage.deleteMany({ userId: user.id }),
       ChatConversation.deleteMany({ userId: user.id }),
       ChatSignal.deleteMany({ userId: user.id }),
       UserEvent.deleteMany({ userId: uid }),
       UserInsightState.deleteMany({ userId: uid }),
+      UserMemory.deleteMany({ userId: uid }),
       // RateLimitEntry rows are keyed by IP, not userId, so no user-specific cleanup needed.
     ]);
 
