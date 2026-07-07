@@ -129,6 +129,29 @@ function getLocalMidnightTime(date: Date): number {
 }
 
 const tzFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const validTimeZoneCache = new Map<string, boolean>();
+
+export function isValidTimeZone(timezone: string): boolean {
+  const normalized = String(timezone || "").trim();
+  if (!normalized) return false;
+
+  const cached = validTimeZoneCache.get(normalized);
+  if (cached !== undefined) return cached;
+
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: normalized }).format(new Date(0));
+    validTimeZoneCache.set(normalized, true);
+    return true;
+  } catch {
+    validTimeZoneCache.set(normalized, false);
+    return false;
+  }
+}
+
+export function normalizeTimeZone(timezone: unknown, fallback = "UTC"): string {
+  const normalized = String(timezone || "").trim();
+  return isValidTimeZone(normalized) ? normalized : fallback;
+}
 
 /**
  * Returns the day of the week (0-6, where 0 is Sunday) for a YYYY-MM-DD dayKey.
@@ -196,7 +219,7 @@ export function getDayKeyTz(date: Date, timezone: string): string {
   return getDayKey(date);
 }
 
-export function computeDailyStreak(dates: Date[]): number {
+export function computeDailyStreak(dates: Date[], referenceDate = new Date()): number {
   if (!dates.length) return 0;
 
   const uniqueDays = Array.from(
@@ -204,9 +227,9 @@ export function computeDailyStreak(dates: Date[]): number {
   );
   const sortedDays = uniqueDays.sort((a, b) => b - a);
 
-  // If the last activity was not today or yesterday, the streak is broken.
-  const todayKey = getLocalMidnightTime(new Date());
-  const yesterdayDate = new Date();
+  // If the last activity was not on the reference day or the day before, the streak is broken.
+  const todayKey = getLocalMidnightTime(referenceDate);
+  const yesterdayDate = new Date(referenceDate);
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterdayKey = getLocalMidnightTime(yesterdayDate);
 
@@ -347,7 +370,7 @@ export const AVATAR_TIERS = [
   {
     level: 100,
     name: "Sovereign",
-    description: "The digital twin fully realized — absolute mastery of self.",
+    description: "A disciplined operating state built from clear patterns and steady execution.",
     icon: Crown,
     colors: "from-emerald-400 via-teal-300 to-violet-500",
     bg: "bg-emerald-500/10",

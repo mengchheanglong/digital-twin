@@ -36,6 +36,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
+import { findNewlyCompletedQuest } from "./questState";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -327,35 +328,37 @@ export default function QuestBoardPage() {
     progress: number,
     completed: boolean,
   ) => {
+    const newlyCompletedQuest = findNewlyCompletedQuest(quests, id, completed);
+
     setQuests((current) =>
-      current.map((quest) => {
-        if (quest.id !== id) return quest;
-
-        if (completed && !quest.completed) {
-          const reward = getDurationMeta(quest.duration).reward;
-          toast({
-            title: "Quest completed!",
-            description: `Achievement unlocked. +${reward} XP.`,
-            variant: "success",
-          });
-          confetti({
-            particleCount: 120,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: getThemeColors(),
-          });
-        }
-
-        return {
-          ...quest,
-          progress,
-          completed,
-          completedDate: completed
-            ? new Date().toISOString()
-            : quest.completedDate,
-        };
-      }),
+      current.map((quest) =>
+        quest.id === id
+          ? {
+              ...quest,
+              progress,
+              completed,
+              completedDate: completed
+                ? new Date().toISOString()
+                : quest.completedDate,
+            }
+          : quest,
+      ),
     );
+
+    if (newlyCompletedQuest) {
+      const reward = getDurationMeta(newlyCompletedQuest.duration).reward;
+      toast({
+        title: "Quest completed!",
+        description: `Achievement unlocked. +${reward} XP.`,
+        variant: "success",
+      });
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: getThemeColors(),
+      });
+    }
   };
 
   const updateProgress = async (id: string, nextProgress: number) => {

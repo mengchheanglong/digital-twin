@@ -57,12 +57,11 @@ export function StatCard({
   return (
     <div
       className={[
-        "group relative flex items-center gap-4 overflow-hidden rounded-xl border border-border-subtle bg-bg-panel/60 p-4",
-        "transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:shadow-elevated",
+        "group relative flex min-h-[5.75rem] items-center gap-3 overflow-hidden rounded-xl border border-border-subtle bg-bg-panel/60 p-3",
+        "transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:border-border-hover hover:shadow-elevated",
         styles.bg,
       ].join(" ")}
     >
-      {/* Glow orb */}
       <div
         className={[
           "pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full blur-2xl transition-opacity duration-500 opacity-0 group-hover:opacity-100",
@@ -70,22 +69,20 @@ export function StatCard({
         ].join(" ")}
       />
 
-      {/* Icon */}
       <div
         className={[
-          "relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 transition-transform duration-300 group-hover:scale-110",
+          "relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 transition-transform duration-300 group-hover:scale-105",
           styles.icon,
         ].join(" ")}
       >
         {icon}
       </div>
 
-      {/* Content */}
       <div className="relative z-10 min-w-0">
-        <p className="truncate text-lg font-black leading-tight text-text-primary">
+        <p className="truncate text-xl font-black leading-tight text-text-primary tabular-nums">
           {value}
         </p>
-        <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mt-0.5">
+        <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
           {label}
         </p>
       </div>

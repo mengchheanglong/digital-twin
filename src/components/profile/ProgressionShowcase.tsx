@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { AVATAR_TIERS, getAvatarTier } from "@/lib/progression";
-import { Check, Lock } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { Card } from "@/components/ui";
 
 export interface ProgressionShowcaseProps {
@@ -57,19 +57,41 @@ export function ProgressionShowcase({ currentLevel }: ProgressionShowcaseProps) 
       />
 
       <div className="relative z-10 space-y-5 p-4 sm:p-6">
-        <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-text-primary">
-            Path of Ascension
-          </h2>
-          <p className="text-sm text-text-secondary">
-            Move left or right to view each level.
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              Progression
+            </p>
+            <h2 className="text-xl font-black tracking-tight text-text-primary">
+              Level path
+            </h2>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => moveTier(-1)}
+              disabled={selectedIndex === 0}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-panel text-text-secondary transition-all hover:border-border-hover hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+              aria-label="Previous level"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => moveTier(1)}
+              disabled={selectedIndex === AVATAR_TIERS.length - 1}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-panel text-text-secondary transition-all hover:border-border-hover hover:bg-bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+              aria-label="Next level"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div
           role="slider"
           tabIndex={0}
-          aria-label="Path of Ascension level"
+          aria-label="Level path"
           aria-valuemin={AVATAR_TIERS[0]?.level ?? 1}
           aria-valuemax={AVATAR_TIERS[AVATAR_TIERS.length - 1]?.level ?? 1}
           aria-valuenow={selectedTier.level}
@@ -94,7 +116,7 @@ export function ProgressionShowcase({ currentLevel }: ProgressionShowcaseProps) 
           onPointerCancel={() => {
             pointerStartRef.current = null;
           }}
-          className={`rounded-3xl border p-5 focus-ring [touch-action:pan-y] ${selectedTier.bg} ${selectedTier.border}`}
+          className={`rounded-2xl border p-5 focus-ring [touch-action:pan-y] ${selectedTier.bg} ${selectedTier.border}`}
         >
           <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <div

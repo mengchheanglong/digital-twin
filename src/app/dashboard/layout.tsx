@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import ErrorBoundary from "../../components/ErrorBoundary";
 
@@ -10,6 +11,8 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
+  const isChatPage = pathname === "/dashboard/chat";
 
   return (
     <div className="min-h-screen">
@@ -34,7 +37,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           }}
         />
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-3 py-4 sm:px-4 sm:py-6 md:px-8 md:py-8">
+        <div
+          className={[
+            "relative z-10 w-full",
+            isChatPage
+              ? "h-screen overflow-hidden"
+              : "mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6 md:px-8 md:py-8",
+          ].join(" ")}
+        >
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

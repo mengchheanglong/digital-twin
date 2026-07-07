@@ -301,7 +301,7 @@ export async function buildMobileToday(
       return null;
     })
     .filter((date): date is Date => Boolean(date && Number.isFinite(date.getTime())));
-  const streak = computeDailyStreak(checkInHistoryDates);
+  const streak = computeDailyStreak(checkInHistoryDates, now);
 
   const todayRaw = userCheckIns.find((entry) => extractDayKey(entry, timezone, now) === dayKey);
   const todayCheckIn = todayRaw || null;

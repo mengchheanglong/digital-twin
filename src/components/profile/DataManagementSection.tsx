@@ -87,23 +87,27 @@ export function DataManagementSection() {
   return (
     <>
       <Card className="relative overflow-hidden p-4 sm:p-5">
-        {/* Subtle warning glow */}
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-status-error/5 blur-2xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-status-error/30 to-transparent" />
 
         <div className="relative z-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bg-hover text-text-secondary shadow-inner ring-1 ring-border">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-bg-panel text-text-secondary shadow-inner">
               <ShieldAlert className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-text-primary">Data &amp; Privacy</h2>
-              <p className="mt-0.5 max-w-[280px] text-xs leading-relaxed text-text-secondary">
-                Manage your secure exports and account erasure.
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                Ownership
+              </p>
+              <h2 className="mt-1 text-base font-black tracking-tight text-text-primary">
+                Data &amp; privacy
+              </h2>
+              <p className="mt-1 max-w-[32rem] text-xs leading-relaxed text-text-secondary">
+                Export a copy of your records or erase the account after confirmation.
               </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-center">
             <Button
               variant="secondary"
               size="sm"

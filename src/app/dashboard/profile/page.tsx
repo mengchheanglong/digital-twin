@@ -29,6 +29,7 @@ interface LocalUserProfile {
   completedQuests: number;
   avatarStage: string;
   joinDate: string;
+  timezone?: string;
   currentMood?: {
     emoji: string;
     label: string;
@@ -144,7 +145,7 @@ export default function CharacterPage() {
       bio: profile.bio ?? "",
       location: profile.location ?? "",
       age: String(profile.age ?? ""),
-      timezone: "",
+      timezone: profile.timezone ?? "",
     });
     setSaveError("");
     setEditing(true);

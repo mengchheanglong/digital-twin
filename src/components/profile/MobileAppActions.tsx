@@ -51,31 +51,46 @@ export function MobileAppActions() {
   }, []);
 
   return (
-    <div className="space-y-4 md:hidden">
+    <div className="grid gap-3 md:hidden">
       <Card className="p-4">
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
-          More from Digital Twin
-        </h2>
-        <div className="grid gap-2">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+              More
+            </p>
+            <h2 className="mt-1 text-base font-black tracking-tight text-text-primary">
+              Quick routes
+            </h2>
+          </div>
+          <span className="rounded-lg border border-border bg-bg-panel px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
+            {shortcuts.length}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
           {shortcuts.map((shortcut) => (
             <Link
               key={shortcut.href}
               href={shortcut.href}
-              className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border bg-bg-panel px-3 py-2.5 text-sm font-semibold text-text-primary transition-all duration-300 ease-apple hover:border-border-hover hover:bg-bg-hover active:scale-[0.98] focus-ring"
+              className="flex min-h-[4.5rem] flex-col items-start justify-between rounded-xl border border-border bg-bg-panel px-3 py-3 text-sm font-semibold text-text-primary transition-all duration-300 ease-apple hover:border-border-hover hover:bg-bg-hover active:scale-[0.98] focus-ring"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary">
                 {shortcut.icon}
               </span>
-              <span>{shortcut.label}</span>
+              <span className="leading-none">{shortcut.label}</span>
             </Link>
           ))}
         </div>
       </Card>
 
       <Card className="p-4">
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-[0.12em] text-text-muted">
-          App settings
-        </h2>
+        <div className="mb-3">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+            Settings
+          </p>
+          <h2 className="mt-1 text-base font-black tracking-tight text-text-primary">
+            App controls
+          </h2>
+        </div>
         <div className="space-y-2">
           <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border bg-bg-panel px-3 py-2.5">
             <span className="text-sm font-semibold text-text-primary">Theme</span>

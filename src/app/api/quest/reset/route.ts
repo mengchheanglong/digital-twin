@@ -5,6 +5,7 @@ import { unauthorized, notFound, serverError } from '@/lib/api-response';
 import User from '@/lib/models/User';
 import Quest from '@/lib/models/Quest';
 import QuestLog from '@/lib/models/QuestLog';
+import { normalizeTimeZone } from '@/lib/progression';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
       return notFound('User not found.');
     }
 
-    const timezone = userDoc.timezone || 'Asia/Bangkok';
+    const timezone = normalizeTimeZone(userDoc.timezone, 'Asia/Bangkok');
     const now = new Date();
     const lastResetDate = userDoc.lastQuestResetDate;
 

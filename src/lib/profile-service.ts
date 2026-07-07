@@ -9,7 +9,7 @@ export async function buildProfile(userId: string, userObj?: Partial<IUser> | nu
 
   if (!user) {
     user = await User.findById(userId)
-      .select('name age email location bio level currentXP requiredXP badges avatarStage joinDate')
+      .select('name age email location bio level currentXP requiredXP badges avatarStage joinDate timezone')
       .lean();
   }
 
@@ -82,6 +82,7 @@ export async function buildProfile(userId: string, userObj?: Partial<IUser> | nu
     badges,
     avatarStage: user.avatarStage,
     joinDate: formatJoinDate(user.joinDate),
+    timezone: user.timezone,
     currentMood: mood,
   };
 }

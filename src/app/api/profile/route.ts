@@ -5,6 +5,7 @@ import { buildProfile } from '@/lib/profile-service';
 import { badRequest, notFound, serverError } from '@/lib/api-response';
 import User from '@/lib/models/User';
 import { readJsonBody } from '@/lib/request';
+import { isValidTimeZone } from '@/lib/progression';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +74,9 @@ export const PUT = withAuth(async (req, _context, user) => {
     if (body.timezone !== undefined) {
       const timezone = String(body.timezone).trim();
       if (timezone.length > 60) return badRequest('Timezone must be 60 characters or less.');
+      if (timezone && !isValidTimeZone(timezone)) {
+        return badRequest('Timezone must be a valid IANA timezone.');
+      }
       if (timezone) updates.timezone = timezone;
     }
 

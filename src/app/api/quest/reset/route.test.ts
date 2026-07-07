@@ -277,4 +277,23 @@ describe('quest reset route', () => {
     expect(quests).toHaveLength(0);
     expect(QuestLog.bulkWrite).toHaveBeenCalledTimes(1);
   });
+
+  it('falls back when a stored timezone is invalid instead of returning 500', async () => {
+    (User.findById as jest.Mock).mockResolvedValue({
+      _id: userId,
+      timezone: 'Not/A_Real_Zone',
+      lastQuestResetDate: baseDate,
+    });
+    const quests: QuestRecord[] = [];
+    mockQuestStore(quests);
+
+    const res = await POST(new Request('http://localhost/api/quest/reset', { method: 'POST' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.reset).toBe(true);
+    expect(User.findByIdAndUpdate).toHaveBeenCalledWith(userId, {
+      lastQuestResetDate: new Date('2026-06-25T01:00:00.000Z'),
+    });
+  });
 });
