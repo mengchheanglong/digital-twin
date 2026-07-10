@@ -49,6 +49,7 @@ describe('GET /api/mobile/today', () => {
       },
       checkIn: {
         completedToday: true,
+        historyCount: 1,
         score: 20,
         dimensions: {
           energy: 4,

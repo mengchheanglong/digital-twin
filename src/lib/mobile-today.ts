@@ -30,6 +30,7 @@ export interface MobileToday {
   };
   checkIn: {
     completedToday: boolean;
+    historyCount: number;
     score: number | null;
     dimensions: MobileTodayDimensionMap | null;
   };
@@ -355,6 +356,7 @@ export async function buildMobileToday(
     },
     checkIn: {
       completedToday: Boolean(todayCheckIn),
+      historyCount: userCheckIns.length,
       score: toCheckInScore(todayCheckIn?.overallScore),
       dimensions: parseRatingArray(todayCheckIn?.ratings),
     },

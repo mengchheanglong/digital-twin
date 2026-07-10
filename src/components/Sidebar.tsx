@@ -55,7 +55,7 @@ function SidebarNavItem({ href, label, icon, active, badge, isExpanded }: NavIte
         "group relative flex items-center rounded-xl py-2 px-3 mx-3 text-sm font-medium transition-all duration-500 ease-apple overflow-hidden active:scale-[0.97]",
         active
           ? "bg-accent-subtle text-text-primary shadow-inner-glow ring-1 ring-accent-primary/20"
-          : "text-text-muted hover:text-text-primary hover:bg-bg-hover",
+          : "text-text-secondary hover:text-text-primary hover:bg-bg-hover",
       ].join(" ")}
     >
       {active && (
@@ -67,7 +67,7 @@ function SidebarNavItem({ href, label, icon, active, badge, isExpanded }: NavIte
           "shrink-0 flex justify-center items-center w-6 h-6 transition-all duration-500 ease-apple",
           active
             ? "text-accent-primary scale-110"
-            : "text-text-muted group-hover:text-accent-primary group-hover:scale-110",
+            : "text-text-secondary group-hover:text-accent-primary group-hover:scale-110",
         ].join(" ")}
       >
         {icon}
@@ -108,10 +108,10 @@ function MobileNavItem({ href, label, icon, active, badge }: MobileNavItemProps)
         "relative flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-semibold transition-all duration-300 ease-apple active:scale-[0.96]",
         active
           ? "bg-accent-subtle text-text-primary ring-1 ring-accent-primary/25"
-          : "text-text-muted hover:bg-bg-hover hover:text-text-primary",
+          : "text-text-secondary hover:bg-bg-hover hover:text-text-primary",
       ].join(" ")}
     >
-      <span className={active ? "text-accent-primary" : "text-text-muted"}>{icon}</span>
+      <span className={active ? "text-accent-primary" : "text-text-secondary"}>{icon}</span>
       <span className="max-w-full truncate leading-none">{label}</span>
       {badge && (
         <span className="absolute right-1.5 top-1 rounded-full bg-accent-primary px-1 text-[9px] font-bold leading-4 text-text-inverse">
@@ -214,15 +214,25 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
     router.replace("/?mode=signin");
   };
 
-  const navItems: NavItem[] = [
-    { href: "/dashboard/insight", label: "Daily Log", icon: <ScrollText className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/quest", label: "Quest Board", mobileLabel: "Quest", icon: <Swords className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/chat", label: "Companion", mobileLabel: "Chat", icon: <Sparkles className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/journal", label: "Journal", icon: <BookOpen className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/focus", label: "Focus", icon: <Timer className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/analytics", label: "Analytics", icon: <BarChart3 className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/timeline", label: "Timeline", icon: <CalendarDays className="h-4.5 w-4.5" /> },
-    { href: "/dashboard/history", label: "History", icon: <Clock className="h-4.5 w-4.5" /> },
+  const navSections: Array<{ label: string; items: NavItem[] }> = [
+    {
+      label: "Daily",
+      items: [
+        { href: "/dashboard/insight", label: "Today", icon: <ScrollText className="h-4.5 w-4.5" /> },
+        { href: "/dashboard/quest", label: "Quest Board", mobileLabel: "Quest", icon: <Swords className="h-4.5 w-4.5" /> },
+        { href: "/dashboard/chat", label: "Companion", mobileLabel: "Chat", icon: <Sparkles className="h-4.5 w-4.5" /> },
+        { href: "/dashboard/journal", label: "Journal", icon: <BookOpen className="h-4.5 w-4.5" /> },
+      ],
+    },
+    {
+      label: "Review",
+      items: [
+        { href: "/dashboard/focus", label: "Focus", icon: <Timer className="h-4.5 w-4.5" /> },
+        { href: "/dashboard/analytics", label: "Analytics", icon: <BarChart3 className="h-4.5 w-4.5" /> },
+        { href: "/dashboard/timeline", label: "Timeline", icon: <CalendarDays className="h-4.5 w-4.5" /> },
+        { href: "/dashboard/history", label: "History", icon: <Clock className="h-4.5 w-4.5" /> },
+      ],
+    },
   ];
 
   const mobileNavItems: NavItem[] = [
@@ -240,15 +250,10 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
         isExpanded ? "w-[var(--sidebar-width)]" : "w-[var(--sidebar-width-collapsed)]"
       }`}
     >
-      {/* Top ambient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-32 w-full bg-gradient-to-b from-accent-primary/5 to-transparent pointer-events-none" />
-
       {/* Header / Logo */}
       <div className="group/header relative flex h-[72px] items-center border-b border-border-subtle px-[18px]">
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 h-24 w-32 bg-accent-primary/10 rounded-full blur-2xl pointer-events-none" />
-
         {/* Fixed Logo Spine */}
-        <div className="relative shrink-0 flex h-9 w-9 items-center justify-center animate-float">
+        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
           <div
             className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-tr from-accent-primary to-accent-hover shadow-glow-soft ring-1 ring-border transition-all duration-300 ease-apple ${
               !isExpanded &&
@@ -297,43 +302,50 @@ export default function Sidebar({ isCollapsed = false, onToggleCollapse }: Sideb
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-6 flex flex-col gap-1.5 scrollbar-hide">
-        <div
-          className={`transition-all duration-500 ease-apple overflow-hidden ${
-            isExpanded ? "px-6 mb-2 opacity-100 max-w-[200px]" : "opacity-0 max-w-0 h-0 m-0"
-          }`}
-        >
-          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-muted/60 whitespace-nowrap">
-            Navigation
-          </span>
-        </div>
-        {navItems.map((item, index) => {
-          const link = (
-            <SidebarNavItem
-              href={item.href}
-              label={item.label}
-              icon={item.icon}
-              active={isNavItemActive(item.href, pathname)}
-              badge={item.badge}
-              isExpanded={isExpanded}
-            />
-          );
-          return (
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto py-5 scrollbar-hide">
+        {navSections.map((section, sectionIndex) => (
+          <div key={section.label} className="flex flex-col gap-1.5">
             <div
-              key={item.href}
-              className="w-full animate-fade-in"
-              style={{ opacity: 0, animationDelay: `${index * 35}ms` }}
+              className={`overflow-hidden transition-all duration-300 ease-apple ${
+                isExpanded ? "mb-1 max-w-[200px] px-6 opacity-100" : "m-0 h-0 max-w-0 opacity-0"
+              }`}
             >
-              {!isExpanded ? (
-                <Tooltip content={item.label} position="right" delay={100}>
-                  {link}
-                </Tooltip>
-              ) : (
-                link
-              )}
+              <span className="whitespace-nowrap font-mono text-[10px] font-black uppercase tracking-[0.16em] text-text-muted">
+                {section.label}
+              </span>
             </div>
-          );
-        })}
+            {section.items.map((item, itemIndex) => {
+              const link = (
+                <SidebarNavItem
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  active={isNavItemActive(item.href, pathname)}
+                  badge={item.badge}
+                  isExpanded={isExpanded}
+                />
+              );
+              return (
+                <div
+                  key={item.href}
+                  className="w-full animate-fade-in"
+                  style={{
+                    opacity: 0,
+                    animationDelay: `${(sectionIndex * 4 + itemIndex) * 35}ms`,
+                  }}
+                >
+                  {!isExpanded ? (
+                    <Tooltip content={item.label} position="right" delay={100}>
+                      {link}
+                    </Tooltip>
+                  ) : (
+                    link
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Bottom Section */}

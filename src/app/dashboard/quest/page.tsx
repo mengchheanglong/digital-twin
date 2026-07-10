@@ -509,82 +509,83 @@ export default function QuestBoardPage() {
   /* ------------------------ Render -------------------------------- */
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 pb-10 sm:space-y-8">
+    <div className="mx-auto w-full max-w-7xl space-y-5 pb-10 sm:space-y-7">
       {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
-              <Sword className="h-5 w-5" />
-            </div>
-            <h1 className="min-w-0 break-words text-2xl font-extrabold tracking-tight text-gradient sm:text-3xl">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-subtle text-accent-primary shadow-inner-glow">
+            <Sword className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-text-muted">
+              Momentum
+            </p>
+            <h1 className="truncate text-2xl font-black tracking-normal text-text-primary sm:text-3xl">
               Quest Board
             </h1>
+            <p className="mt-0.5 hidden text-sm text-text-secondary sm:block">
+              Turn intentions into visible progress.
+            </p>
           </div>
-          <p className="text-sm leading-relaxed text-text-secondary sm:pl-[3.25rem]">
-            Forge habits, complete missions, and level up your life.
-          </p>
         </div>
         {!showCreateDialog && (
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             leftIcon={<Plus className="h-4 w-4" />}
             onClick={() => setShowCreateDialog(true)}
-            className="w-full sm:w-auto"
+            className="shrink-0 sm:h-10 sm:px-4"
           >
-            New Quest
+            <span className="sm:hidden">New</span>
+            <span className="hidden sm:inline">New Quest</span>
           </Button>
         )}
       </header>
 
       {/* Stats */}
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Card variant="elevated" className="group relative overflow-hidden p-5">
-          <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-accent-primary/5 blur-2xl transition-colors duration-500 group-hover:bg-accent-primary/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20">
-              <Flame className="h-6 w-6" />
+      <section className="grid grid-cols-3 gap-2 sm:gap-3">
+        <Card variant="default" className="relative overflow-hidden p-3 sm:p-4">
+          <div className="relative z-10 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent-primary ring-1 ring-accent-primary/20 sm:h-10 sm:w-10">
+              <Flame className="h-4.5 w-4.5" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+            <div className="min-w-0">
+              <p className="truncate font-mono text-[9px] font-black uppercase tracking-[0.12em] text-text-muted sm:text-[10px]">
                 Active
               </p>
-              <p className="text-2xl font-black text-text-primary">
+              <p className="mt-0.5 text-xl font-black text-text-primary tabular-nums sm:text-2xl">
                 {activeQuests.length}
               </p>
             </div>
           </div>
         </Card>
 
-        <Card variant="elevated" className="group relative overflow-hidden p-5">
-          <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-status-success/5 blur-2xl transition-colors duration-500 group-hover:bg-status-success/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-status-success/10 text-status-success ring-1 ring-status-success/20">
-              <CheckCircle2 className="h-6 w-6" />
+        <Card variant="default" className="relative overflow-hidden p-3 sm:p-4">
+          <div className="relative z-10 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-status-success/10 text-status-success ring-1 ring-status-success/20 sm:h-10 sm:w-10">
+              <CheckCircle2 className="h-4.5 w-4.5" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
-                Completed Today
+            <div className="min-w-0">
+              <p className="truncate font-mono text-[9px] font-black uppercase tracking-[0.12em] text-text-muted sm:text-[10px]">
+                Done Today
               </p>
-              <p className="text-2xl font-black text-text-primary">
+              <p className="mt-0.5 text-xl font-black text-text-primary tabular-nums sm:text-2xl">
                 {todaysCompletedCount}
               </p>
             </div>
           </div>
         </Card>
 
-        <Card variant="elevated" className="group relative overflow-hidden p-5">
-          <div className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-status-warning/5 blur-2xl transition-colors duration-500 group-hover:bg-status-warning/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-status-warning/10 text-status-warning ring-1 ring-status-warning/20">
-              <Sparkles className="h-6 w-6" />
+        <Card variant="default" className="relative overflow-hidden p-3 sm:p-4">
+          <div className="relative z-10 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-status-warning/10 text-status-warning ring-1 ring-status-warning/20 sm:h-10 sm:w-10">
+              <Sparkles className="h-4.5 w-4.5" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+            <div className="min-w-0">
+              <p className="truncate font-mono text-[9px] font-black uppercase tracking-[0.12em] text-text-muted sm:text-[10px]">
                 Total XP
               </p>
-              <p className="max-w-[120px] truncate text-2xl font-black text-text-primary">
+              <p className="mt-0.5 truncate text-xl font-black text-text-primary tabular-nums sm:text-2xl">
                 {totalXPGained}
               </p>
             </div>
@@ -625,7 +626,11 @@ export default function QuestBoardPage() {
           <EmptyState
             icon={<Target className="h-8 w-8" />}
             title="No active quests"
-            description="Create your first quest to start your journey and earn XP."
+            description="Choose one concrete outcome and make the next step visible."
+            action={{
+              label: "Create a quest",
+              onClick: () => setShowCreateDialog(true),
+            }}
           />
         ) : (
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -659,16 +664,19 @@ export default function QuestBoardPage() {
 
                   <div className="p-6">
                     {/* Delete button */}
-                    <Tooltip content="Delete quest">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-5 right-4 h-7 w-7 p-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                        onClick={() => setDeleteId(quest.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </Tooltip>
+                    <div className="absolute right-4 top-4 z-20 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100">
+                      <Tooltip content="Delete quest">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Delete quest"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setDeleteId(quest.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </Tooltip>
+                    </div>
 
                     <div className="mb-4 space-y-2 pr-8">
                       {/* Status badges row */}
@@ -810,6 +818,7 @@ export default function QuestBoardPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label="Delete quest"
                       className="h-8 w-8 shrink-0 p-0"
                       onClick={() => setDeleteId(quest.id)}
                     >
@@ -824,27 +833,21 @@ export default function QuestBoardPage() {
       )}
 
       {/* Quest Log */}
-      <section className="space-y-4">
-        <button
-          onClick={() => setShowLog((prev) => !prev)}
-          className="group flex flex-wrap items-center gap-2 text-left text-lg font-bold text-text-primary transition-colors hover:text-accent-primary"
-        >
-          <Trophy className="h-5 w-5 text-status-warning transition-transform group-hover:scale-110" />
-          Achievement Log
-          <span className="ml-2 text-sm font-normal text-text-muted">
-            {showLog ? "Hide" : "Show"} history
-          </span>
-        </button>
+      {completedQuestsStacked.length > 0 && (
+        <section className="space-y-4">
+          <button
+            onClick={() => setShowLog((prev) => !prev)}
+            className="group flex flex-wrap items-center gap-2 text-left text-lg font-bold text-text-primary transition-colors hover:text-accent-primary"
+          >
+            <Trophy className="h-5 w-5 text-status-warning transition-transform group-hover:scale-110" />
+            Achievement Log
+            <span className="ml-2 text-sm font-normal text-text-muted">
+              {showLog ? "Hide" : "Show"} history
+            </span>
+          </button>
 
-        {showLog && (
-          <Card variant="default" className="p-6">
-            {completedQuestsStacked.length === 0 ? (
-              <EmptyState
-                icon={<Trophy className="h-6 w-6" />}
-                title="No achievements yet"
-                description="Complete quests to fill your achievement log."
-              />
-            ) : (
+          {showLog && (
+            <Card variant="default" className="p-6">
               <div className="space-y-3">
                 {completedQuestsStacked.map((group, index) => {
                   const meta = getDurationMeta(group.duration);
@@ -877,10 +880,10 @@ export default function QuestBoardPage() {
                   );
                 })}
               </div>
-            )}
-          </Card>
-        )}
-      </section>
+            </Card>
+          )}
+        </section>
+      )}
 
       {/* Create Quest Dialog */}
       <Dialog

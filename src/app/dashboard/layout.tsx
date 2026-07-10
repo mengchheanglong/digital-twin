@@ -24,9 +24,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             : "md:ml-[var(--sidebar-width)] md:w-[calc(100%-var(--sidebar-width))]"
         }`}
       >
-        {/* Ambient background glow */}
-        <div className="absolute left-1/2 top-0 h-[22rem] w-[22rem] -translate-x-1/2 rounded-full bg-accent-primary/5 blur-[100px] pointer-events-none sm:left-1/4 sm:h-[800px] sm:w-[800px] sm:translate-x-0 sm:blur-[150px]" />
-
         {/* Subtle dot pattern overlay */}
         <div
           className="absolute inset-0 pointer-events-none opacity-40"

@@ -129,6 +129,7 @@ describe('buildMobileToday', () => {
       },
       checkIn: {
         completedToday: true,
+        historyCount: 2,
         score: 19,
         dimensions: {
           energy: 4,
@@ -184,6 +185,7 @@ describe('buildMobileToday', () => {
     const result = await buildMobileToday(USER_ID, { now: NOW });
 
     expect(result.checkIn.completedToday).toBe(false);
+    expect(result.checkIn.historyCount).toBe(0);
     expect(result.checkIn.score).toBe(null);
     expect(result.checkIn.dimensions).toBe(null);
     expect(result.launcher.primaryLabel).toBe('Check in');

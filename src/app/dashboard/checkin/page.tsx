@@ -230,8 +230,10 @@ function RatingButton({
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${option.value} of 5: ${option.label}`}
+      aria-pressed={selected}
       className={[
-        "group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all ease-spring focus-ring",
+        "group relative flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl border transition-all ease-spring focus-ring",
         size === "lg" ? "min-h-[72px] px-1 py-3 min-[380px]:px-2 min-[380px]:py-4 sm:px-3 sm:py-5" : "py-2.5 px-2",
         selected
           ? `${option.bgClass} ${option.borderClass} scale-[1.03]`
@@ -253,7 +255,7 @@ function RatingButton({
       <span
         className={[
           "font-bold leading-none",
-          size === "lg" ? "max-w-full break-words text-center text-[9px] leading-tight min-[380px]:text-[10px] sm:text-[11px]" : "text-[10px]",
+          size === "lg" ? "max-w-full whitespace-nowrap text-center text-[8px] leading-tight min-[360px]:text-[9px] min-[420px]:text-[10px] sm:text-[11px]" : "text-[10px]",
           selected ? option.textToken : "text-text-muted",
         ].join(" ")}
       >
@@ -974,7 +976,7 @@ export default function DailyCheckInPage() {
                 : "text-text-muted hover:text-text-secondary",
             ].join(" ")}
           >
-            <MessageSquare className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Natural Language</span>
+            <MessageSquare className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Write freely</span>
           </button>
         </div>
       </div>
